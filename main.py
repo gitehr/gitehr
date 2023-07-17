@@ -7,7 +7,7 @@ import typer
 from git import Repo
 
 # GITEHR IMPORTS
-from RecordTypes import RecordType
+from RecordTypes import RecordTypes
 from helper_functions import (
     get_iso_filename,
 )
@@ -73,10 +73,12 @@ def init(
 
 @app.command()
 def create_entry(
-    entry_type: RecordType = RecordType.ENCOUNTER,
+    entry_type: Annotated[RecordTypes, typer.Option(parser=RecordTypes().parse_custom_class)]=RecordTypes.ENCOUNTER.name,
 ):
-    """
-    Adds new entry in GitEHR Repository.
+    """Creates a new GitEHR record within the same directory.
+
+    Args:
+        entry_type (RecordType, optional): Type of GitEHR Record to generate - determines file attributes.
     """
     
     with open("state.json", "r") as state_file:
@@ -85,14 +87,14 @@ def create_entry(
     
     
     typer.secho(
-        f"Creating new {entry_type.value} Entry inside Record {state['repo_name']}",
+        f"Creating new {entry_type.name} Entry inside Record Directory {repo_name}",
         fg=typer.colors.GREEN,
     )
     
-    FILENAME = get_iso_filename()
+    FILENAME = repo_name + get_iso_filename()
 
     with open(f"{FILENAME}.txt", "w") as entry_file:
-        entry_file.write(f"Entry {FILENAME} created inside {state['repo_name']}")
+        entry_file.write(f"Entry {FILENAME} created inside {repo_name}")
 
 
 if __name__ == "__main__":
