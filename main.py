@@ -3,14 +3,13 @@ import os
 from typing_extensions import Annotated
 
 # 3RD PARTY
-import typer
 from git import Repo
+import typer
 
 # GITEHR IMPORTS
+from helper_functions import get_iso_filename
 from RecordTypes import RecordTypes
-from helper_functions import (
-    get_iso_filename,
-)
+from RecordWriter import RecordWriter
 
 app = typer.Typer()
 
@@ -91,10 +90,22 @@ def create_entry(
         fg=typer.colors.GREEN,
     )
     
-    FILENAME = repo_name + get_iso_filename()
+    FILENAME = repo_name + get_iso_filename() + entry_type.file_type
 
-    with open(f"{FILENAME}.txt", "w") as entry_file:
-        entry_file.write(f"Entry {FILENAME} created inside {repo_name}")
+    with open(FILENAME, "w") as entry_file:
+        
+        record_writer = RecordWriter()
+        
+        contents = [
+            "---",
+            "",
+            "---",
+            f"Entry {FILENAME} created inside {repo_name}",
+        ]
+        
+        record_writer.add_contents(contents)
+        
+        entry_file.write(record_writer.get_contents())
 
 
 if __name__ == "__main__":

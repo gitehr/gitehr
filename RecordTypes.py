@@ -3,7 +3,7 @@ from dataclasses import dataclass
 @dataclass
 class RecordType:
     name: str
-    file_type: str=".txt"
+    file_type: str=".md"
     
 @dataclass
 class RecordTypes:
