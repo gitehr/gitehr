@@ -91,7 +91,7 @@ def create_entry(
         fg=typer.colors.GREEN,
     )
 
-    FILENAME = repo_name + get_iso_filename() + entry_type.file_type
+    FILENAME = get_iso_filename() + entry_type.file_type
 
     with open(FILENAME, "w") as entry_file:
         record_writer = RecordWriter()

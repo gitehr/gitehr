@@ -20,12 +20,10 @@ def test_rw_start_contents():
 def test_rw_add_line():
     """Test RW with multiple calls to .add_line method returns expected output."""
 
-    INPUT = ["Test line"]
-
     rw = RecordWriter()
-    
+
     rw.add_line("Hello")
     rw.add_line("This is")
     rw.add_line("a test.")
-    
+
     assert rw.get_contents() == "Hello\nThis is\na test.\n"

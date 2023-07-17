@@ -1,11 +1,11 @@
 from datetime import datetime
 
-def get_iso_filename()->str:
+from .get_current_datetime import get_current_datetime
+
+def get_iso_filename(current_datetime = get_current_datetime())->str:
     """
     Returns a filename, as string, created from the current ISO datetime at which the function is called, with symbols ":.-" removed.
     """
-    
-    current_datetime = datetime.now()
     
     # Convert datetime to ISO string
     iso_string = current_datetime.isoformat()
