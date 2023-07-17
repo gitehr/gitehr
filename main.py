@@ -72,39 +72,39 @@ def init(
 
 @app.command()
 def create_entry(
-    entry_type: Annotated[RecordTypes, typer.Option(parser=RecordTypes().parse_custom_class)]=RecordTypes.ENCOUNTER.name,
+    entry_type: Annotated[
+        RecordTypes, typer.Option(parser=RecordTypes().parse_custom_class)
+    ] = RecordTypes.ENCOUNTER.name,
 ):
     """Creates a new GitEHR record within the same directory.
 
     Args:
         entry_type (RecordType, optional): Type of GitEHR Record to generate - determines file attributes.
     """
-    
+
     with open("state.json", "r") as state_file:
         state = json.load(state_file)
         repo_name = state["repo_name"]
-    
-    
+
     typer.secho(
         f"Creating new {entry_type.name} Entry inside Record Directory {repo_name}",
         fg=typer.colors.GREEN,
     )
-    
+
     FILENAME = repo_name + get_iso_filename() + entry_type.file_type
 
     with open(FILENAME, "w") as entry_file:
-        
         record_writer = RecordWriter()
-        
+
         contents = [
             "---",
             "",
             "---",
             f"Entry {FILENAME} created inside {repo_name}",
         ]
-        
+
         record_writer.add_contents(contents)
-        
+
         entry_file.write(record_writer.get_contents())
 
 
