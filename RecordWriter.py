@@ -14,7 +14,7 @@ class RecordWriter:
         _contents_joined = "\n".join(_contents_lst)
         self.add_line(_contents_joined)
     
-    def add_public_key(self)->None:
+    def _add_public_key(self)->None:
         
         self.add_contents([
             "\n",
@@ -25,6 +25,6 @@ class RecordWriter:
             ])
     
     def get_contents(self)->str:
-        self.add_public_key()
+        self._add_public_key()
         return self.contents
 
