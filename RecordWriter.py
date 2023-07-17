@@ -15,8 +15,16 @@ class RecordWriter:
         self.add_line(_contents_joined)
     
     def add_public_key(self)->None:
-        self.add_contents("PGP BLOCK")
+        
+        self.add_contents([
+            "\n",
+            "-----BEGIN PGP PUBLIC KEY BLOCK-----",
+            "mQINBFRUAGoBEACuk6ze2V2pZtScf1Ul25N2CX19AeL7sVYwnyrTYuWdG2FmJx4x",
+            "=nUop",
+            "-----END PGP PUBLIC KEY BLOCK-----",
+            ])
     
     def get_contents(self)->str:
+        self.add_public_key()
         return self.contents
 
