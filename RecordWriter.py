@@ -24,7 +24,7 @@ class RecordWriter:
             "-----END PGP PUBLIC KEY BLOCK-----",
             ])
     
-    def get_contents(self)->str:
-        self._add_public_key()
+    def get_contents(self, sign=False)->str:
+        if sign: self._add_public_key()
         return self.contents
 
