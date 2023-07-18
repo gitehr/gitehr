@@ -9,7 +9,7 @@ import typer
 # GITEHR IMPORTS
 from helper_functions import get_iso_filename
 from RecordTypes import RecordTypes
-from RecordWriter import RecordWriter
+from RecordWriter import Record, RecordWriter
 from helper_functions import get_current_datetime
 
 app = typer.Typer()
@@ -73,6 +73,10 @@ def init(
 
 @app.command()
 def create_entry(
+    entry_contents: Annotated[
+        str,
+        typer.Argument(help="Contents of the entry.")
+    ],
     entry_type: Annotated[
         RecordTypes, typer.Option(parser=RecordTypes().parse_custom_class)
     ] = RecordTypes.ENCOUNTER.name,
@@ -92,28 +96,22 @@ def create_entry(
         fg=typer.colors.GREEN,
     )
 
-    FILENAME = get_iso_filename() + entry_type.file_type
+    current_datetime = get_current_datetime()
+    FILENAME = get_iso_filename(current_datetime) + entry_type.file_type
+    
+    meta_data={
+                    "created_on": current_datetime,
+                    "created_by": "PLACEHOLDER",
+                    "tags": f"#{entry_type.name}",
+                }
+    
+    new_record = Record(contents=entry_contents, meta_data=meta_data)
+    
+    writer = RecordWriter(new_record, file_extension=".md")
+    
+    writer.write(filename=FILENAME)
 
-    with open(FILENAME, "w") as entry_file:
-        record_writer = RecordWriter(
-            "Hi guys",
-            meta_data={
-                "created_on": get_current_datetime(),
-                "created_by": "PLACEHOLDER",
-            },
-        )
-
-        record_writer.add_contents(
-            [
-                "This is an entry for Anchit",
-                "Anchit presented today",
-                "Management is...",
-            ]
-        )
-
-        contents = record_writer.get_contents(sign=True)
-
-        entry_file.write(contents)
+    
 
 
 if __name__ == "__main__":
