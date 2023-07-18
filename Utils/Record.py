@@ -1,4 +1,5 @@
 from .YAMLFrontmatter import YAMLFrontmatter
+from .PGPPublicKey import PGPPublicKey
 
 class Record:
     """
@@ -25,20 +26,14 @@ class Record:
         yaml_string = yaml.get_string()
         self.contents = "\n".join([yaml_string, self.contents])
 
-    def _add_public_key(self) -> None:
-        self.add_contents(
-            [
-                "-----BEGIN PGP PUBLIC KEY BLOCK-----",
-                "mQINBFRUAGoBEACuk6ze2V2pZtScf1Ul25N2CX19AeL7sVYwnyrTYuWdG2FmJx4x",
-                "=nUop",
-                "-----END PGP PUBLIC KEY BLOCK-----",
-            ]
-        )
+    def _add_public_key(self, public_key:PGPPublicKey) -> None:
+        self.add_contents([public_key._TEMP_METHOD_GET_TEST_GPG_BLOCK()])
 
     def get_contents(self, sign=True) -> str:
         self._prepend_yaml()
 
         if sign:
-            self._add_public_key()
+            key = PGPPublicKey()
+            self._add_public_key(public_key=key)
 
         return self.contents

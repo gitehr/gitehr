@@ -84,7 +84,9 @@ def create_entry(
     """Creates a new GitEHR record within the same directory.
 
     Args:
-        entry_type (RecordType, optional): Type of GitEHR Record to generate - determines file attributes.
+        `entry_contents` (str): Initial contents to add to created file.
+
+        `entry_type` (RecordType, optional): Type of GitEHR Record to generate - determines file attributes.
     """
 
     with open("state.json", "r") as state_file:
@@ -99,6 +101,7 @@ def create_entry(
     current_datetime = get_current_datetime()
     FILENAME = get_iso_filename(current_datetime) + entry_type.file_type
 
+    # TODO: add some way to automatically add this meta data to record
     meta_data = {
         "created_on": current_datetime,
         "created_by": "PLACEHOLDER",
