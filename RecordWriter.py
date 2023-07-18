@@ -1,4 +1,6 @@
 from typing import Optional, Dict
+import re
+import inspect
 
 from helper_functions import get_current_datetime
 
@@ -62,37 +64,56 @@ class RecordWriter:
             self._add_public_key()
         return self.contents
 
-class YAMLFrontmatter:
-    def __init__(self, meta_data:dict):
-        self.meta_data = meta_data
-    
-    def _convert_meta_dict_to_list(self, meta_dict:dict)->list[str]:
-        
-        return [f"{key}:{val}" for key,val in meta_dict.items()]
-    
-    def _sandwich_dashes(self, meta_data_str_list:list[str])->list[str]:
-        
-        return ['---'] + meta_data_str_list + ['---']
-    
-    def _extract_yaml_from_string(self, input_string:str)->str:
-        pass
-    
-    def get_string(self):
 
+class YAMLFrontmatter:
+    def __init__(self, meta_data: dict = None):
+        self.meta_data = meta_data
+
+    def _convert_meta_dict_to_list(self, meta_dict: dict) -> list[str]:
+        return [f"{key}:{val}" for key, val in meta_dict.items()]
+
+    def _sandwich_dashes(self, meta_data_str_list: list[str]) -> list[str]:
+        return ["---"] + meta_data_str_list + ["---"]
+
+    def extract_yaml_from_string(self, input_string: str) -> str:
+        matches = re.search(r"---\n(([\s|\S])*)(?<!-)---(?=\n)", input_string)
+        if matches:
+            return matches.group(0).replace('\n    ','\n')
+    
+    def add_yaml_items(self, items_to_add:dict)->None:
+        if self.meta_data is not None:
+            self.meta_data.update(items_to_add)
+        else:
+            self.meta_data = items_to_add
+
+    def get_string(self):
         meta_data_str_list = self._convert_meta_dict_to_list(self.meta_data)
-        
+
         yaml_list = self._sandwich_dashes(meta_data_str_list)
-        
+
         return "\n".join(yaml_list)
 
 
 if __name__ == "__main__":
-    
-    yaml = YAMLFrontmatter({
-                "created_on": get_current_datetime(),
-                "created_by": "PLACEHOLDER",
-            })
-    
-    print(yaml.get_string())
-    
-    
+    yaml_obj = YAMLFrontmatter(
+        {
+            "created_on": get_current_datetime(),
+            "created_by": "PLACEHOLDER",
+        }
+    )
+    inpt_str = """---
+    created_on:2023-07-18
+    created_by:PLACEHOLDER
+    ---
+    Hi guys
+    This is an entry for Patient
+    Patient presented today
+    Management is...
+    -----BEGIN PGP PUBLIC KEY BLOCK-----
+    mQINBFRUAGoBEACuk6ze2V2pZtScf1Ul25N2CX19AeL7sVYwnyrTYuWdG2FmJx4x
+    =nUop
+    -----END PGP PUBLIC KEY BLOCK-----"""
+
+    yaml = yaml_obj.extract_yaml_from_string(inpt_str)
+
+    print(yaml)
