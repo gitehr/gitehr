@@ -66,6 +66,15 @@ class RecordWriter:
 
 
 class YAMLFrontmatter:
+    """Helper Class to aid interaction with YAML.
+    
+    Instantiate with a dictionary of meta data items.
+    
+    Useful methods:
+        1) `.add_yaml_items()` -> takes a dictionary of meta data items to add.
+        2) `.get_string()` -> turns current contents into a YAML string
+        3) `.extract_yaml_from_string()` -> searches input string and returns YAML contents, or None if one can't be found.
+    """
     def __init__(self, meta_data: dict = None):
         self.meta_data = meta_data
 
