@@ -1,4 +1,4 @@
-from ..RecordWriter import (
+from ..Utils import (
     Record,
     RecordWriter,
 )
