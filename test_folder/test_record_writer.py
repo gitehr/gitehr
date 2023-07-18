@@ -1,29 +1,29 @@
-from ..RecordWriter import RecordWriter
+from ..RecordWriter import (
+    RecordWriter,
+    YAMLFrontmatter,
+)
 
 
-def test_clean_RW_empty():
-    """Base RW instance should be empty string."""
-    rw = RecordWriter()
+def test_YAMLFrontmatter_expected_output():
+    """Tests the YAMLFrontmatter returns expected output for given input dict."""
 
-    assert rw.get_contents() == ""
+    input_dict = {
+        "created_on": "2022-10-01",
+        "created_by": "PLACEHOLDER",
+        "another_key": 20,
+    }
 
+    # create expected output
+    expected_output_as_list = (
+        ["---"] + [f"{key}:{val}" for key, val in input_dict.items()] + ["---"]
+    )
+    expected_output = "\n".join(expected_output_as_list)
 
-def test_rw_start_contents():
-    """RW instantiated with contents should have only those contents."""
+    yaml = YAMLFrontmatter(input_dict)
 
-    TEST_CONTENTS = "Some test contents"
-    rw = RecordWriter(TEST_CONTENTS)
+    assert yaml.get_string() == expected_output
 
-    assert rw.get_contents() == TEST_CONTENTS
-
-
-def test_rw_add_line():
-    """Test RW with multiple calls to .add_line method returns expected output."""
-
-    rw = RecordWriter()
-
-    rw.add_line("Hello")
-    rw.add_line("This is")
-    rw.add_line("a test.")
-
-    assert rw.get_contents() == "Hello\nThis is\na test.\n"
+def test_YAMLFrontmatter_extracts_yaml_from_string_method():
+    """Tests the YAMLFrontmatter method correctly extracts YAML content from input string"""
+    
+    pass

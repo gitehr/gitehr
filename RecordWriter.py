@@ -62,17 +62,37 @@ class RecordWriter:
             self._add_public_key()
         return self.contents
 
+class YAMLFrontmatter:
+    def __init__(self, meta_data:dict):
+        self.meta_data = meta_data
+    
+    def _convert_meta_dict_to_list(self, meta_dict:dict)->list[str]:
+        
+        return [f"{key}:{val}" for key,val in meta_dict.items()]
+    
+    def _sandwich_dashes(self, meta_data_str_list:list[str])->list[str]:
+        
+        return ['---'] + meta_data_str_list + ['---']
+    
+    def _extract_yaml_from_string(self, input_string:str)->str:
+        pass
+    
+    def get_string(self):
+
+        meta_data_str_list = self._convert_meta_dict_to_list(self.meta_data)
+        
+        yaml_list = self._sandwich_dashes(meta_data_str_list)
+        
+        return "\n".join(yaml_list)
+
 
 if __name__ == "__main__":
-    rw = RecordWriter(
-        "Hi guys",
-        meta_data={"created_on": get_current_datetime(), "created_by": "PLACEHOLDER"},
-    )
-
-    rw.add_contents(
-        ["This is an entry for Anchit", "Anchit presented today", "Management is..."]
-    )
-
-    c = rw.get_contents(sign=True)
     
-    print(c)
+    yaml = YAMLFrontmatter({
+                "created_on": get_current_datetime(),
+                "created_by": "PLACEHOLDER",
+            })
+    
+    print(yaml.get_string())
+    
+    

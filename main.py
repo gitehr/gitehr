@@ -10,6 +10,7 @@ import typer
 from helper_functions import get_iso_filename
 from RecordTypes import RecordTypes
 from RecordWriter import RecordWriter
+from helper_functions import get_current_datetime
 
 app = typer.Typer()
 
@@ -94,18 +95,25 @@ def create_entry(
     FILENAME = get_iso_filename() + entry_type.file_type
 
     with open(FILENAME, "w") as entry_file:
-        record_writer = RecordWriter()
+        record_writer = RecordWriter(
+            "Hi guys",
+            meta_data={
+                "created_on": get_current_datetime(),
+                "created_by": "PLACEHOLDER",
+            },
+        )
 
-        contents = [
-            "---",
-            "",
-            "---",
-            f"Entry {FILENAME} created inside {repo_name}",
-        ]
+        record_writer.add_contents(
+            [
+                "This is an entry for Anchit",
+                "Anchit presented today",
+                "Management is...",
+            ]
+        )
 
-        record_writer.add_contents(contents)
+        contents = record_writer.get_contents(sign=True)
 
-        entry_file.write(record_writer.get_contents())
+        entry_file.write(contents)
 
 
 if __name__ == "__main__":
