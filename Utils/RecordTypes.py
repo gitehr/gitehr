@@ -6,7 +6,7 @@ class RecordType:
     file_type: str=".md"
     
 @dataclass
-class RecordTypes:
+class RecordTypesClass:
     ENCOUNTER = RecordType(name='ENCOUNTER')
     MEDICATIONS = RecordType(name='MEDICATIONS')
     ALLERGIES = RecordType(name='ALLERGIES')
@@ -14,3 +14,4 @@ class RecordTypes:
     def parse_custom_class(self, value:str):
         return getattr(self, value)
 
+RecordTypes = RecordTypesClass()

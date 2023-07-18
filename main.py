@@ -8,8 +8,11 @@ import typer
 
 # GITEHR IMPORTS
 from helper_functions import get_iso_filename
-from RecordTypes import RecordTypes
-from RecordWriter import Record, RecordWriter
+from Utils import (
+    RecordTypes,
+    Record,
+    RecordWriter,
+)
 from helper_functions import get_current_datetime
 
 app = typer.Typer()
@@ -73,12 +76,9 @@ def init(
 
 @app.command()
 def create_entry(
-    entry_contents: Annotated[
-        str,
-        typer.Argument(help="Contents of the entry.")
-    ],
+    entry_contents: Annotated[str, typer.Argument(help="Contents of the entry.")],
     entry_type: Annotated[
-        RecordTypes, typer.Option(parser=RecordTypes().parse_custom_class)
+        type(RecordTypes), typer.Option(parser=RecordTypes.parse_custom_class)
     ] = RecordTypes.ENCOUNTER.name,
 ):
     """Creates a new GitEHR record within the same directory.
@@ -98,20 +98,18 @@ def create_entry(
 
     current_datetime = get_current_datetime()
     FILENAME = get_iso_filename(current_datetime) + entry_type.file_type
-    
-    meta_data={
-                    "created_on": current_datetime,
-                    "created_by": "PLACEHOLDER",
-                    "tags": f"#{entry_type.name}",
-                }
-    
-    new_record = Record(contents=entry_contents, meta_data=meta_data)
-    
-    writer = RecordWriter(new_record, file_extension=".md")
-    
-    writer.write(filename=FILENAME)
 
-    
+    meta_data = {
+        "created_on": current_datetime,
+        "created_by": "PLACEHOLDER",
+        "tags": f"#{entry_type.name}",
+    }
+
+    new_record = Record(contents=entry_contents, meta_data=meta_data)
+
+    writer = RecordWriter(new_record, file_extension=".md")
+
+    writer.write(filename=FILENAME)
 
 
 if __name__ == "__main__":
