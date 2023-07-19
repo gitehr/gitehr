@@ -11,13 +11,7 @@ from utils.helper_functions import (
     get_iso_filename,
     get_current_datetime,
 )
-from utils import (
-    RecordTypes,
-    Record,
-    Block,
-    BlockChain,
-    YAMLFrontmatter
-)
+from utils import RecordTypes, Record, Block, BlockChain, YAMLFrontmatter
 from utils.constants import (
     meta_files,
 )
@@ -29,7 +23,7 @@ def get_repo_url(repo_name: str) -> str:
     return os.path.join(os.getcwd(), repo_name)
 
 
-def check_file_exists(FILE_URL:str) -> bool:
+def check_file_exists(FILE_URL: str) -> bool:
     repo_exists = os.path.exists(FILE_URL)
 
     if repo_exists:
@@ -78,13 +72,9 @@ def init(
         )
         new_record = Record(
             contents=f"ROOT FILE FOR {repo_name}",
-            meta_data={
-                "created_on": get_current_datetime(),
-            },
         )
-        writer = RecordWriter(new_record, file_extension=".md")
-        writer.write(filename=FILE_PATH)
-        
+        new_record.write_to_file()
+
     # Add JSON state file
     FILE_PATH = f"{REPO_URL}/state.json"
     if not check_file_exists(FILE_PATH):
@@ -95,7 +85,6 @@ def init(
 
         with open(FILE_PATH, "w") as json_file:
             json.dump({"repo_name": repo_name}, json_file)
-
 
 
 @app.command()
@@ -129,7 +118,6 @@ def create_entry(
 
 @app.command()
 def debug():
-    
     record = Record(contents="Test entry")
 
     print("CONTENTS###")

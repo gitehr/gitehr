@@ -9,6 +9,7 @@ from utils.helper_functions import (
 )
 from utils.record_types import RecordTypes
 
+
 class Record:
     """
     Class to create a GitEHR markdown record including YAML, contents, and PGP signing.
@@ -64,40 +65,42 @@ class Record:
         contents = self.contents
         key = self.get_formatted_public_key_string()
 
-        return "\n\n".join(
-            [
-                yaml,
-                contents,
-                key,
-            ]
-        ) + '\n'
+        return (
+            "\n\n".join(
+                [
+                    yaml,
+                    contents,
+                    key,
+                ]
+            )
+            + "\n"
+        )
 
     def get_contents(self) -> str:
         return self.contents
 
     def get_filename(self) -> str:
         return self.filename
-    
-    def write_to_file(self, file_extension=".md"):
 
+    def write_to_file(self, file_extension=".md"):
         RecordWriter(self, file_extension=file_extension).write()
 
     def __str__(self):
         return f"{self.filename}"
 
+
 class RecordWriter:
     """Takes a Record object and writes to file."""
-    
-    def __init__(self, record_obj:Record, file_extension:str='.md'):
-        self.file_extension=file_extension
+
+    def __init__(self, record_obj: Record, file_extension: str = ".md"):
+        self.file_extension = file_extension
         self.record = record_obj
         self.filename = f"{self.record.get_filename()}{file_extension}"
-    
-    def write(self)->None:
+
+    def write(self) -> None:
         """Takes Record object's contents and writes to file {filename}"""
-        
+
         with open(self.filename, "w") as entry_file:
-            
-            contents=self.record.generate_record_string_as_md()
+            contents = self.record.generate_record_string_as_md()
 
             entry_file.write(contents)
