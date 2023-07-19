@@ -41,3 +41,6 @@ class YAMLFrontmatter:
         yaml_list = self._sandwich_dashes(meta_data_str_list)
 
         return "\n".join(yaml_list)
+
+    def __str__(self):
+        return f"{self.get_meta_data()}"

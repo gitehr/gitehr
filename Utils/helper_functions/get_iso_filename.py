@@ -2,7 +2,7 @@ from datetime import datetime
 
 from .get_current_datetime import get_current_datetime
 
-def get_iso_filename(current_datetime = get_current_datetime())->str:
+def get_iso_filename(current_datetime:datetime = get_current_datetime())->str:
     """
     Returns a filename, as string, created from the current ISO datetime at which the function is called, with symbols ":.-" removed.
     """

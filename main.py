@@ -7,14 +7,19 @@ from git import Repo
 import typer
 
 # GITEHR IMPORTS
-from helper_functions import (
+from utils.helper_functions import (
     get_iso_filename,
     get_current_datetime,
 )
 from utils import (
     RecordTypes,
     Record,
-    RecordWriter,
+    Block,
+    BlockChain,
+    YAMLFrontmatter
+)
+from utils.constants import (
+    meta_files,
 )
 
 app = typer.Typer()
@@ -24,12 +29,12 @@ def get_repo_url(repo_name: str) -> str:
     return os.path.join(os.getcwd(), repo_name)
 
 
-def check_repo_exists(REPO_URL) -> bool:
-    repo_exists = os.path.exists(REPO_URL)
+def check_file_exists(FILE_URL:str) -> bool:
+    repo_exists = os.path.exists(FILE_URL)
 
     if repo_exists:
         typer.secho(
-            f"Looks like the repo already exists at {REPO_URL}",
+            f"Already exists: {os.path.basename(FILE_URL)}",
             fg=typer.colors.MAGENTA,
         )
 
@@ -56,7 +61,7 @@ def init(
     BASE_URL = os.path.join(os.getcwd(), repo_name)
     REPO_URL = get_repo_url(repo_name)
 
-    if not check_repo_exists(REPO_URL=BASE_URL):
+    if not check_file_exists(BASE_URL):
         typer.secho(
             f"Creating new GitEHR Repository at {REPO_URL}...",
             fg=typer.colors.GREEN,
@@ -64,9 +69,25 @@ def init(
 
         Repo.init(BASE_URL)
 
+    # Add first ROOT file
+    FILE_PATH = f"{REPO_URL}/_ROOT.md"
+    if not check_file_exists(FILE_PATH):
+        typer.secho(
+            f"Adding _ROOT.md file at {REPO_URL}...",
+            fg=typer.colors.GREEN,
+        )
+        new_record = Record(
+            contents=f"ROOT FILE FOR {repo_name}",
+            meta_data={
+                "created_on": get_current_datetime(),
+            },
+        )
+        writer = RecordWriter(new_record, file_extension=".md")
+        writer.write(filename=FILE_PATH)
+        
     # Add JSON state file
     FILE_PATH = f"{REPO_URL}/state.json"
-    if not os.path.exists(FILE_PATH):
+    if not check_file_exists(FILE_PATH):
         typer.secho(
             f"Adding state.json file at {REPO_URL}...",
             fg=typer.colors.GREEN,
@@ -74,6 +95,7 @@ def init(
 
         with open(FILE_PATH, "w") as json_file:
             json.dump({"repo_name": repo_name}, json_file)
+
 
 
 @app.command()
@@ -100,21 +122,22 @@ def create_entry(
         fg=typer.colors.GREEN,
     )
 
-    current_datetime = get_current_datetime()
-    FILENAME = get_iso_filename(current_datetime) + entry_type.file_type
+    new_record = Record(contents=entry_contents)
 
-    # TODO: add some way to automatically add this meta data to record
-    meta_data = {
-        "created_on": current_datetime,
-        "created_by": "PLACEHOLDER",
-        "tags": f"#{entry_type.name}",
-    }
+    new_record.write_to_file()
 
-    new_record = Record(contents=entry_contents, meta_data=meta_data)
 
-    writer = RecordWriter(new_record, file_extension=".md")
+@app.command()
+def debug():
+    
+    record = Record(contents="Test entry")
 
-    writer.write(filename=FILENAME)
+    print("CONTENTS###")
+    print(record.get_contents())
+    print("CONTENTS###\n\n")
+    # print(record.get_contents())
+    print(record.generate_record_string())
+    # print(record.generate_record_string())
 
 
 if __name__ == "__main__":
