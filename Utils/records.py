@@ -1,5 +1,5 @@
-from .YAMLFrontmatter import YAMLFrontmatter
-from .PGPPublicKey import PGPPublicKey
+from .yaml import YAMLFrontmatter
+from .pgp import PGPPublicKey
 
 class Record:
     """
