@@ -49,6 +49,9 @@ class Record:
         """
         self.yaml.add_yaml_items(default_meta_data)
 
+    def set_yaml(self, new_yaml: YAMLFrontmatter) -> None:
+        self.yaml = new_yaml
+
     def add_line(self, content: str) -> None:
         self.contents += content + self.separator
 
@@ -58,7 +61,7 @@ class Record:
         self.add_line(_contents_joined)
 
     def get_formatted_public_key_string(self) -> str:
-        return self.public_key._TEMP_METHOD_GET_TEST_GPG_BLOCK()
+        return self.public_key.get_public_key()
 
     def generate_record_string_as_md(self) -> str:
         yaml = self.yaml.get_string()
@@ -82,11 +85,64 @@ class Record:
     def get_filename(self) -> str:
         return self.filename
 
+    def get_yaml_dict(self) -> dict:
+        return self.yaml.get_meta_data()
+
     def write_to_file(self, file_extension=".md"):
         RecordWriter(self, file_extension=file_extension).write()
 
     def __str__(self):
         return f"{self.filename}"
+
+
+class RecordReader:
+    """Takes in a text file, to generate a Record object."""
+
+    def __init__(self):
+        pass
+
+    def to_record(self, filepath) -> Record:
+        with open(filepath, "r") as file:
+            file_contents = file.readlines()
+
+        # get yaml -> input to YAMLFrontmatter() requires dict
+        # first line should always be YAML start string: "---"
+        yaml_end_idx = file_contents[1:].index("---\n")
+        yaml_dict = self._get_yaml_dict_from_list(file_contents[1:yaml_end_idx])
+        yaml = YAMLFrontmatter(yaml_dict)
+
+        # get contents
+        start_contents_idx = yaml_end_idx + 3
+        end_contents_idx = (
+            file_contents.index("-----BEGIN PGP PUBLIC KEY BLOCK-----\n") - 1
+        )
+        contents = "".join(file_contents[start_contents_idx:end_contents_idx]).strip(
+            "\n"
+        )
+
+        # get signature
+        start_signature_idx = end_contents_idx + 1
+        signature_str = "".join(file_contents[start_signature_idx:]).strip("\n")
+        public_key = PGPPublicKey(signature_str)
+
+        record = Record(
+            contents=contents,
+            public_key=public_key,
+        )
+        record.set_yaml(yaml)
+        
+        return record
+
+    def _get_yaml_dict_from_list(self, yaml_contents_list: list) -> dict:
+        yaml_dict = {}
+        for content in yaml_contents_list:
+            content = content.strip("\n")
+
+            # Can't just split on ":" as would break datetime items
+            first_colon = content.find(":")
+            key, val = content[:first_colon], content[first_colon + 1 :]
+            yaml_dict.update({key: val})
+        return yaml_dict
 
 
 class RecordWriter:

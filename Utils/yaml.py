@@ -28,7 +28,7 @@ class YAMLFrontmatter:
         matches = re.search(r"---\n(([\s|\S])*)(?<!-)---(?=\n)", input_string)
         if matches:
             return matches.group(0).replace("\n    ", "\n")
-
+    
     def add_yaml_items(self, items_to_add: dict) -> None:
         if self.meta_data is not None:
             self.meta_data.update(items_to_add)

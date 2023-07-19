@@ -11,7 +11,7 @@ from utils.helper_functions import (
     get_iso_filename,
     get_current_datetime,
 )
-from utils import RecordTypes, Record, Block, BlockChain, YAMLFrontmatter
+from utils import RecordTypes, Record, RecordReader, Block, BlockChain, YAMLFrontmatter
 from utils.constants import (
     meta_files,
 )
@@ -86,7 +86,6 @@ def init(
         with open(FILE_PATH, "w") as json_file:
             json.dump({"repo_name": repo_name}, json_file)
 
-
 @app.command()
 def create_entry(
     entry_contents: Annotated[str, typer.Argument(help="Contents of the entry.")],
@@ -118,14 +117,11 @@ def create_entry(
 
 @app.command()
 def debug():
-    record = Record(contents="Test entry")
-
-    print("CONTENTS###")
-    print(record.get_contents())
-    print("CONTENTS###\n\n")
-    # print(record.get_contents())
-    print(record.generate_record_string())
-    # print(record.generate_record_string())
+    
+    reader = RecordReader()
+    file = os.listdir('GITEHR_TEST_DIR')[-3]
+    record = reader.to_record(f"GITEHR_TEST_DIR/{file}")
+    print(f"{record.get_yaml_dict()=}")
 
 
 if __name__ == "__main__":

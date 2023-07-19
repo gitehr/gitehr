@@ -24,6 +24,11 @@ class PGPPublicKey:
                 end,
             ]
         )
+    
+    def get_public_key(self):
+        if self.get_public_key is None:
+            return self._TEMP_METHOD_GET_TEST_GPG_BLOCK()
+        return self.public_key
 
 
 # DEBUGGING CODE
