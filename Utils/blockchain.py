@@ -20,13 +20,13 @@ class Block:
         hash_algorithm.update(encoded_data)
         return hash_algorithm.hexdigest()
 
-    def get_data(self)->str:
+    def get_data(self) -> str:
         return self.data
 
-    def get_hash(self)->str:
+    def get_hash(self) -> str:
         return self.hash
 
-    def get_prev_hash(self)->str:
+    def get_prev_hash(self) -> str:
         return self.prev_hash
 
 
@@ -45,10 +45,19 @@ class BlockChain:
         block = Block(data=f"{str(datetime.now())}", prev_hash="0")
         return block
 
+    def add_block(self, data: str) -> None:
+        latest_block = self.chain[-1]
+
+        new_block = Block(data=data, prev_hash=latest_block.hash)
+
+        self.chain.append(new_block)
+
     def get_chain(self) -> list[Block]:
         return self.chain
 
 
 if __name__ == "__main__":
     block_chain = BlockChain()
+    block_chain.add_block("Block 1")
+    block_chain.add_block("Block 2")
     print(block_chain.get_chain()[0].hash)
