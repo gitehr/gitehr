@@ -99,7 +99,7 @@ class Record:
     def get_yaml_dict(self) -> dict:
         return self.yaml.get_meta_data()
 
-    def write_to_file(self, directory:str, file_name:str=None, file_extension=".md"):
+    def write_to_file(self, directory:str=None, file_name:str=None, file_extension=".md"):
         RecordWriter(record_obj=self, directory=directory, file_extension=file_extension, file_name=file_name).write()
 
     def __str__(self):
