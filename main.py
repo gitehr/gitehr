@@ -67,13 +67,16 @@ def init(
     FILE_PATH = f"{REPO_URL}/_ROOT.md"
     if not check_file_exists(FILE_PATH):
         typer.secho(
-            f"Adding _ROOT.md file at {REPO_URL}...",
+            f"Creating _ROOT.md file at {REPO_URL}...",
             fg=typer.colors.GREEN,
         )
         new_record = Record(
             contents=f"ROOT FILE FOR {repo_name}",
         )
-        new_record.write_to_file()
+        initial_hash = new_record._generate_hash()
+        new_record._set_hash(initial_hash)
+        
+        new_record.write_to_file(directory=repo_name, file_name="_ROOT")
 
     # Add JSON state file
     FILE_PATH = f"{REPO_URL}/state.json"

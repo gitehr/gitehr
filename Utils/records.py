@@ -8,6 +8,7 @@ from utils.helper_functions import (
     get_current_datetime,
 )
 from utils.record_types import RecordTypes
+from utils.blockchain import Block
 
 
 class Record:
@@ -28,6 +29,7 @@ class Record:
         self.yaml = meta_data
         self.public_key = public_key
         self.record_type = record_type
+        
 
         # to be used for metadata and filename attributes
         current_datetime = get_current_datetime()
@@ -38,16 +40,17 @@ class Record:
             "created_by": "PLACEHOLDER",
             "tags": [f"{record_type}"],
         }
-        self._add_default_meta_data(**DEFAULT_META_DATA)
+        self.add_meta_data(**DEFAULT_META_DATA)
 
         # create filename
         self.filename = get_iso_filename(current_datetime)
+        
 
-    def _add_default_meta_data(self, **default_meta_data) -> None:
+    def add_meta_data(self, **meta_data) -> None:
         """
-        Adds **default_meta_data kwargs to object's yaml.
+        Adds **meta_data kwargs to object's yaml.
         """
-        self.yaml.add_yaml_items(default_meta_data)
+        self.yaml.add_yaml_items(meta_data)
 
     def set_yaml(self, new_yaml: YAMLFrontmatter) -> None:
         self.yaml = new_yaml
@@ -79,6 +82,14 @@ class Record:
             + "\n"
         )
 
+    def _generate_hash(self)->None:
+        block = Block(data=self.generate_record_string_as_md())
+        return block.get_hash()
+    
+    def _set_hash(self, hash_value)->None:
+        self.hash = hash_value
+        self.add_meta_data(hash=self.hash)
+    
     def get_contents(self) -> str:
         return self.contents
 
@@ -88,8 +99,8 @@ class Record:
     def get_yaml_dict(self) -> dict:
         return self.yaml.get_meta_data()
 
-    def write_to_file(self, file_extension=".md"):
-        RecordWriter(self, file_extension=file_extension).write()
+    def write_to_file(self, directory:str, file_name:str=None, file_extension=".md"):
+        RecordWriter(record_obj=self, directory=directory, file_extension=file_extension, file_name=file_name).write()
 
     def __str__(self):
         return f"{self.filename}"
@@ -148,15 +159,16 @@ class RecordReader:
 class RecordWriter:
     """Takes a Record object and writes to file."""
 
-    def __init__(self, record_obj: Record, file_extension: str = ".md"):
+    def __init__(self, record_obj: Record, directory:str=None, file_name:str=None, file_extension: str = ".md"):
         self.file_extension = file_extension
         self.record = record_obj
-        self.filename = f"{self.record.get_filename()}{file_extension}"
+        self.filename = f"{self.record.get_filename()}{file_extension}" if not file_name else f"{file_name}{file_extension}"
+        self.directory = directory
 
     def write(self) -> None:
         """Takes Record object's contents and writes to file {filename}"""
-
-        with open(self.filename, "w") as entry_file:
+        FILE_PATH = f"{self.directory}/{self.filename}" if self.directory else self.filename
+        with open(FILE_PATH, "w") as entry_file:
             contents = self.record.generate_record_string_as_md()
 
             entry_file.write(contents)
