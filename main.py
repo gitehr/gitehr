@@ -7,13 +7,15 @@ from git import Repo
 import typer
 
 # GITEHR IMPORTS
-from helper_functions import get_iso_filename
-from Utils import (
+from helper_functions import (
+    get_iso_filename,
+    get_current_datetime,
+)
+from utils import (
     RecordTypes,
     Record,
     RecordWriter,
 )
-from helper_functions import get_current_datetime
 
 app = typer.Typer()
 

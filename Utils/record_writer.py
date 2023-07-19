@@ -2,7 +2,7 @@
 
 # GitEHR Imports
 from helper_functions import get_current_datetime
-from . import Record
+from utils import Record
 
 class RecordWriter:
     """Takes a Record object and writes to file."""
