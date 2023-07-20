@@ -252,7 +252,7 @@ class RecordWriter:
         self.record = record_obj
         self.filename = (
             f"{file_name}{file_extension}"
-            if not file_name
+            if file_name
             else f"{self.record.get_filename()}{file_extension}"
         )
         self.directory = directory
