@@ -1,5 +1,6 @@
 # Python Imports
 import os
+from datetime import datetime
 
 # GitEHR Imports
 from .yaml import YAMLFrontmatter
@@ -22,25 +23,21 @@ class Record:
         self,
         contents: str = "",
         separator: str = "\n",
-        meta_data: YAMLFrontmatter = YAMLFrontmatter(),
-        public_key: PGPPublicKey = PGPPublicKey(),
+        meta_data: YAMLFrontmatter = None,
+        public_key: PGPPublicKey = None,
         record_type: str = RecordTypes.ENCOUNTER.name,
     ):
         self.contents = contents
         self.separator = separator
-        self.yaml = meta_data
-        self.public_key = public_key
+        self.yaml = meta_data if meta_data else YAMLFrontmatter()
+        self.public_key = public_key if public_key else PGPPublicKey()
         self.record_type = record_type
 
         # to be used for metadata and filename attributes
         current_datetime = get_current_datetime()
 
-        # add default meta data here
-        DEFAULT_META_DATA = {
-            "created_datetime": current_datetime,
-            "created_by": "PLACEHOLDER",
-            "tags": [f"{record_type}"],
-        }
+        DEFAULT_META_DATA = self._get_default_meta_data(current_datetime=current_datetime, record_type=self.record_type)
+
         self.add_meta_data(**DEFAULT_META_DATA)
 
         # create filename
@@ -52,16 +49,29 @@ class Record:
         """
         self.yaml.add_yaml_items(meta_data)
 
+    def _get_default_meta_data(
+        self,
+        current_datetime: datetime,
+        record_type: str = RecordTypes.ENCOUNTER.name,
+    ) -> dict:
+        # add default meta data here
+        DEFAULT_META_DATA = {
+            "created_datetime": current_datetime,
+            "created_by": "PLACEHOLDER",
+            "tags": [f"{record_type}"],
+        }
+        return DEFAULT_META_DATA
+
     def set_yaml(self, new_yaml: YAMLFrontmatter) -> None:
         self.yaml = new_yaml
 
     def add_line(self, content: str) -> None:
         self.contents += content + self.separator
 
-    def add_contents(self, _contents_lst: list[str]) -> None:
-        _contents_lst[0] = "\n" + _contents_lst[0]
-        _contents_joined = "\n".join(_contents_lst)
-        self.add_line(_contents_joined)
+    def add_contents(self, contents_lst: list[str]) -> None:
+        contents_lst[0] = "\n" + contents_lst[0]
+        contents_joined = "\n".join(contents_lst)
+        self.add_line(contents_joined)
 
     def get_formatted_public_key_string(self) -> str:
         return self.public_key.get_public_key()
@@ -97,10 +107,10 @@ class Record:
 
     def get_hash(self) -> str:
         return self.hash
-    
-    def _create_initial_file(self, repo_name:str) -> None:
+
+    def _create_initial_file(self, repo_name: str) -> None:
         """Creates initial file inside Repo. Should only be run once."""
-        
+
         # GENERATE HASH FOR THIS FILE USING PREVIOUS FILE'S CONTENTS
         new_hash = Block(data=self.generate_record_string_as_md()).get_hash()
 
@@ -111,22 +121,21 @@ class Record:
             record_obj=self,
             directory=repo_name,
             file_name="_ROOT",
-            file_extension='.md',
+            file_extension=".md",
         ).write()
 
     def write_to_file(
         self, directory: str = None, file_name: str = None, file_extension=".md"
-    )->None:
+    ) -> None:
         """
         Writes current Record's contents to file.
 
         First gets the contents of the most recent file, hashes it, and sets this Record's YAML data relating to hash and prev_hash.
         """
-        
+
         current_records_in_dir = [
             file for file in os.listdir() if file not in meta_files.META_FILES
         ]
-        
 
         # ONLY INIT RECORD PRESENT
         if len(current_records_in_dir) == 1:
