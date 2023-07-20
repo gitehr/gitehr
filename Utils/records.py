@@ -108,7 +108,7 @@ class Record:
     def get_hash(self) -> str:
         return self.hash
 
-    def _create_initial_file(self, repo_name: str) -> None:
+    def _create_initial_file(self, repo_directory:str) -> None:
         """Creates initial file inside Repo. Should only be run once."""
 
         # GENERATE HASH FOR THIS FILE USING PREVIOUS FILE'S CONTENTS
@@ -119,7 +119,7 @@ class Record:
 
         RecordWriter(
             record_obj=self,
-            directory=repo_name,
+            directory=repo_directory,
             file_name="_ROOT",
             file_extension=".md",
         ).write()
@@ -174,12 +174,12 @@ class Record:
 class InitialRecord:
     """Creates initial _ROOT.md record at given repo_name."""
 
-    def __init__(self, repo_name):
+    def __init__(self, repo_name:str, repo_directory:str,):
         self.repo_name = repo_name
 
         init_record = self._create_init_record()
 
-        init_record._create_initial_file(repo_name=repo_name)
+        init_record._create_initial_file(repo_directory=repo_directory)
 
     def _create_init_record(self) -> Record:
         return Record(

@@ -14,8 +14,10 @@ from utils import RecordTypes, Record, RecordReader, InitialRecord
 app = typer.Typer()
 
 
-def get_repo_url(repo_name: str) -> str:
-    return os.path.join(os.getcwd(), repo_name)
+def get_repo_url(repo_name: str, base_url:str=None) -> str:
+    if base_url is None:
+        base_url = os.getcwd()
+    return os.path.join(base_url, repo_name)
 
 
 def check_file_exists(FILE_URL: str) -> bool:
@@ -43,20 +45,25 @@ def init(
     repo_name: Annotated[
         str, typer.Argument(help="Name of the GitEHR Repository folder.")
     ],
+    repo_path: Annotated[
+        str, typer.Option(help="Optionally specify output path of repo")
+    ]=None
 ):
     """
     Creates a new GitEHR Repository.
     """
-    BASE_URL = os.path.join(os.getcwd(), repo_name)
-    REPO_URL = get_repo_url(repo_name)
+    BASE_URL = os.getcwd() if repo_path is None else repo_path
+    REPO_URL = get_repo_url(repo_name, base_url=BASE_URL)
+    
+    print(f"{REPO_URL=}")
 
-    if not check_file_exists(BASE_URL):
+    if not check_file_exists(REPO_URL):
         typer.secho(
             f"Creating new GitEHR Repository at {REPO_URL}...",
             fg=typer.colors.GREEN,
         )
 
-        Repo.init(BASE_URL)
+        Repo.init(REPO_URL)
 
     # Add first ROOT file
     FILE_PATH = f"{REPO_URL}/_ROOT.md"
@@ -67,8 +74,7 @@ def init(
         )
         
         # Creates initial file inside directory
-        InitialRecord(repo_name)
-        
+        InitialRecord(repo_name, repo_directory=REPO_URL)
 
     # Add JSON state file
     FILE_PATH = f"{REPO_URL}/state.json"

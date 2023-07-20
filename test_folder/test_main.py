@@ -1,6 +1,6 @@
-import shutil
-import pytest
+import os
 
+import pytest
 from typer.testing import CliRunner
 
 from ..main import app
@@ -13,19 +13,19 @@ def test_docs():
     result = runner.invoke(app, ["docs"])
     assert result.exit_code == 0
 
-@pytest.mark.skip(reason='Creates an actual dir. Skip until using tmpdir fixture')
-def test_init_runs():
-    """Tests `init` argument creates a folder called Test"""
+
+def test_init_runs(tmpdir):
+    """Tests `init` command creates a folder called Test"""
     
-    TEST_DIR_NAME = 'TEMP_TEST_FOLDER'
+    REPO_NAME = 'TEMP_REPO'
+    temp_dir_path = os.path.abspath(tmpdir)
     
-    result = runner.invoke(app, ['init',TEST_DIR_NAME])
-    
+    result = runner.invoke(app, ['init',REPO_NAME, "--repo-path", temp_dir_path])
+
     assert result.exit_code == 0
-    assert "Creating new GitEHR Repository at" in result.stdout
+    assert f"Creating new GitEHR Repository at {temp_dir_path}" in result.stdout
     
-    # TEAR DOWN
-    shutil.rmtree(TEST_DIR_NAME)
+
 
 def test_init_correct_output_repo_already_exists():
     """Tests `init` doesn't add another folder if the Repo already exists."""
