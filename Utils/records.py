@@ -153,8 +153,7 @@ class Record:
         # GENERATE HASH FOR THIS FILE USING PREVIOUS FILE'S CONTENTS
         with open(HEAD_FILENAME,'r') as file:
             head_file_contents = file.read()
-        
-        print('Hashing using \n', head_file_contents)
+
         new_hash = Block(data=head_file_contents).get_hash()
 
         # SET THE HASH
