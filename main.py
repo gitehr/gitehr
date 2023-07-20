@@ -72,6 +72,7 @@ def init(
         )
         new_record = Record(
             contents=f"ROOT FILE FOR {repo_name}",
+            meta_data=YAMLFrontmatter({'prev_hash':'0'})
         )
         initial_hash = new_record._generate_hash()
         new_record._set_hash(initial_hash)
@@ -117,14 +118,24 @@ def create_entry(
 
     new_record.write_to_file()
 
+@app.command()
+def read_entry(filename:Annotated[str, typer.Argument(help="Name of Record to read")]):
+    
+    record = RecordReader().to_record(filename)
+    
+    typer.secho(
+        f"Reading {record.filename} Entry...\n\nFound contents:",
+        fg=typer.colors.GREEN,
+    )
+    
+    print(record.generate_record_string_as_md())
+    
 
 @app.command()
 def debug():
     
-    reader = RecordReader()
-    file = os.listdir('GITEHR_TEST_DIR')[-3]
-    record = reader.to_record(f"GITEHR_TEST_DIR/{file}")
-    print(f"{record.get_yaml_dict()=}")
+    record = Record()
+    record.write_to_file()
 
 
 if __name__ == "__main__":
