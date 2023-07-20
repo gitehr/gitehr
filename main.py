@@ -7,14 +7,9 @@ from git import Repo
 import typer
 
 # GITEHR IMPORTS
-from utils.helper_functions import (
-    get_iso_filename,
-    get_current_datetime,
-)
-from utils import RecordTypes, Record, RecordReader, Block, BlockChain, YAMLFrontmatter
-from utils.constants import (
-    meta_files,
-)
+
+from utils import RecordTypes, Record, RecordReader, InitialRecord
+
 
 app = typer.Typer()
 
@@ -70,14 +65,10 @@ def init(
             f"Creating _ROOT.md file at {REPO_URL}...",
             fg=typer.colors.GREEN,
         )
-        new_record = Record(
-            contents=f"ROOT FILE FOR {repo_name}",
-            meta_data=YAMLFrontmatter({'prev_hash':'0'})
-        )
-        initial_hash = new_record._generate_hash()
-        new_record._set_hash(initial_hash)
         
-        new_record.write_to_file(directory=repo_name, file_name="_ROOT")
+        # Creates initial file inside directory
+        InitialRecord(repo_name)
+        
 
     # Add JSON state file
     FILE_PATH = f"{REPO_URL}/state.json"

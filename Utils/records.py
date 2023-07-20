@@ -97,23 +97,41 @@ class Record:
 
     def get_hash(self) -> str:
         return self.hash
+    
+    def _create_initial_file(self, repo_name:str) -> None:
+        """Creates initial file inside Repo. Should only be run once."""
+        
+        # GENERATE HASH FOR THIS FILE USING PREVIOUS FILE'S CONTENTS
+        new_hash = Block(data=self.generate_record_string_as_md()).get_hash()
+
+        # SET THE HASH
+        self._set_hash(new_hash)
+
+        RecordWriter(
+            record_obj=self,
+            directory=repo_name,
+            file_name="_ROOT",
+            file_extension='.md',
+        ).write()
 
     def write_to_file(
         self, directory: str = None, file_name: str = None, file_extension=".md"
-    ):
+    )->None:
         """
         Writes current Record's contents to file.
-        
+
         First gets the contents of the most recent file, hashes it, and sets this Record's YAML data relating to hash and prev_hash.
         """
-        # Get current files excluding any meta files like state.json
+        
         current_records_in_dir = [
             file for file in os.listdir() if file not in meta_files.META_FILES
         ]
+        
 
-        # CASE WHEN ONLY INITIALISATION FILE PRESENT
+        # ONLY INIT RECORD PRESENT
         if len(current_records_in_dir) == 1:
             HEAD_FILENAME = current_records_in_dir[0]
+
         else:
             sorted_records = sorted(current_records_in_dir)
             HEAD_FILENAME = sorted_records[-2]
@@ -140,6 +158,23 @@ class Record:
 
     def __str__(self):
         return f"{self.filename}"
+
+
+class InitialRecord:
+    """Creates initial _ROOT.md record at given repo_name."""
+
+    def __init__(self, repo_name):
+        self.repo_name = repo_name
+
+        init_record = self._create_init_record()
+
+        init_record._create_initial_file(repo_name=repo_name)
+
+    def _create_init_record(self) -> Record:
+        return Record(
+            contents=f"ROOT FILE FOR {self.repo_name}",
+            meta_data=YAMLFrontmatter({"prev_hash": "0"}),
+        )
 
 
 class RecordReader:

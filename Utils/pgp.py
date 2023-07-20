@@ -27,7 +27,7 @@ class PGPPublicKey:
     
     def get_public_key(self):
         if self.public_key is None:
-            print('USING TEMP KEY')
+            print('USING TEMP PGP KEY')
             return self._TEMP_METHOD_GET_TEST_GPG_BLOCK()
         return self.public_key
 
