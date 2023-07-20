@@ -107,7 +107,7 @@ def create_entry(
 
     new_record = Record(contents=entry_contents)
 
-    new_record.write_to_file()
+    new_record.write_to_file(file_name=new_record.get_filename())
 
 @app.command()
 def read_entry(filename:Annotated[str, typer.Argument(help="Name of Record to read")]):

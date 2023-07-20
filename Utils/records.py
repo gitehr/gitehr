@@ -148,12 +148,14 @@ class Record:
         # Find previous file's YAML for this file's hash
         head_record = RecordReader().to_record(filepath=HEAD_FILENAME)
         head_record_yaml = head_record.get_yaml_dict()
-
-        # ADD PREV_HASH TO THIS YAML
         self.add_meta_data(prev_hash=head_record_yaml["hash"])
 
         # GENERATE HASH FOR THIS FILE USING PREVIOUS FILE'S CONTENTS
-        new_hash = Block(data=head_record.generate_record_string_as_md()).get_hash()
+        with open(HEAD_FILENAME,'r') as file:
+            head_file_contents = file.read()
+        
+        print('Hashing using \n', head_file_contents)
+        new_hash = Block(data=head_file_contents).get_hash()
 
         # SET THE HASH
         self._set_hash(new_hash)
@@ -162,7 +164,7 @@ class Record:
             record_obj=self,
             directory=directory,
             file_extension=file_extension,
-            file_name=file_name,
+            file_name=self.get_filename(),
         ).write()
 
     def __str__(self):
@@ -249,9 +251,9 @@ class RecordWriter:
         self.file_extension = file_extension
         self.record = record_obj
         self.filename = (
-            f"{self.record.get_filename()}{file_extension}"
+            f"{file_name}{file_extension}"
             if not file_name
-            else f"{file_name}{file_extension}"
+            else f"{self.record.get_filename()}{file_extension}"
         )
         self.directory = directory
 

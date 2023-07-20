@@ -13,7 +13,7 @@ def test_docs():
     result = runner.invoke(app, ["docs"])
     assert result.exit_code == 0
 
-# TODO replace shutil with pytest tmpdir fixture
+@pytest.mark.skip(reason='Creates an actual dir. Skip until using tmpdir fixture')
 def test_init_runs():
     """Tests `init` argument creates a folder called Test"""
     
