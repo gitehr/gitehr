@@ -1,4 +1,5 @@
 # Python Imports
+import os
 
 # GitEHR Imports
 from .yaml import YAMLFrontmatter
@@ -7,6 +8,7 @@ from utils.helper_functions import (
     get_iso_filename,
     get_current_datetime,
 )
+from utils.constants import meta_files
 from utils.record_types import RecordTypes
 from utils.blockchain import Block
 
@@ -29,14 +31,13 @@ class Record:
         self.yaml = meta_data
         self.public_key = public_key
         self.record_type = record_type
-        
 
         # to be used for metadata and filename attributes
         current_datetime = get_current_datetime()
 
         # add default meta data here
         DEFAULT_META_DATA = {
-            "current_datetime": current_datetime,
+            "created_datetime": current_datetime,
             "created_by": "PLACEHOLDER",
             "tags": [f"{record_type}"],
         }
@@ -44,7 +45,6 @@ class Record:
 
         # create filename
         self.filename = get_iso_filename(current_datetime)
-        
 
     def add_meta_data(self, **meta_data) -> None:
         """
@@ -70,7 +70,6 @@ class Record:
         yaml = self.yaml.get_string()
         contents = self.contents
         key = self.get_formatted_public_key_string()
-
         return (
             "\n\n".join(
                 [
@@ -82,14 +81,11 @@ class Record:
             + "\n"
         )
 
-    def _generate_hash(self)->None:
-        block = Block(data=self.generate_record_string_as_md())
-        return block.get_hash()
-    
-    def _set_hash(self, hash_value)->None:
+    def _set_hash(self, hash_value: str) -> None:
+        """Sets self.hash attribute AND adds to YAML meta data"""
         self.hash = hash_value
         self.add_meta_data(hash=self.hash)
-    
+
     def get_contents(self) -> str:
         return self.contents
 
@@ -99,8 +95,48 @@ class Record:
     def get_yaml_dict(self) -> dict:
         return self.yaml.get_meta_data()
 
-    def write_to_file(self, directory:str=None, file_name:str=None, file_extension=".md"):
-        RecordWriter(record_obj=self, directory=directory, file_extension=file_extension, file_name=file_name).write()
+    def get_hash(self) -> str:
+        return self.hash
+
+    def write_to_file(
+        self, directory: str = None, file_name: str = None, file_extension=".md"
+    ):
+        """
+        Writes current Record's contents to file.
+        
+        First gets the contents of the most recent file, hashes it, and sets this Record's YAML data relating to hash and prev_hash.
+        """
+        # Get current files excluding any meta files like state.json
+        current_records_in_dir = [
+            file for file in os.listdir() if file not in meta_files.META_FILES
+        ]
+
+        # CASE WHEN ONLY INITIALISATION FILE PRESENT
+        if len(current_records_in_dir) == 1:
+            HEAD_FILENAME = current_records_in_dir[0]
+        else:
+            sorted_records = sorted(current_records_in_dir)
+            HEAD_FILENAME = sorted_records[-2]
+
+        # Find previous file's YAML for this file's hash
+        head_record = RecordReader().to_record(filepath=HEAD_FILENAME)
+        head_record_yaml = head_record.get_yaml_dict()
+
+        # ADD PREV_HASH TO THIS YAML
+        self.add_meta_data(prev_hash=head_record_yaml["hash"])
+
+        # GENERATE HASH FOR THIS FILE USING PREVIOUS FILE'S CONTENTS
+        new_hash = Block(data=head_record.generate_record_string_as_md()).get_hash()
+
+        # SET THE HASH
+        self._set_hash(new_hash)
+
+        RecordWriter(
+            record_obj=self,
+            directory=directory,
+            file_extension=file_extension,
+            file_name=file_name,
+        ).write()
 
     def __str__(self):
         return f"{self.filename}"
@@ -112,18 +148,18 @@ class RecordReader:
     def __init__(self):
         pass
 
-    def to_record(self, filepath) -> Record:
+    def to_record(self, filepath: str) -> Record:
         with open(filepath, "r") as file:
             file_contents = file.readlines()
 
         # get yaml -> input to YAMLFrontmatter() requires dict
         # first line should always be YAML start string: "---"
-        yaml_end_idx = file_contents[1:].index("---\n")
+        yaml_end_idx = file_contents[1:].index("---\n") + 1
         yaml_dict = self._get_yaml_dict_from_list(file_contents[1:yaml_end_idx])
         yaml = YAMLFrontmatter(yaml_dict)
 
         # get contents
-        start_contents_idx = yaml_end_idx + 3
+        start_contents_idx = yaml_end_idx + 2
         end_contents_idx = (
             file_contents.index("-----BEGIN PGP PUBLIC KEY BLOCK-----\n") - 1
         )
@@ -141,7 +177,7 @@ class RecordReader:
             public_key=public_key,
         )
         record.set_yaml(yaml)
-        
+
         return record
 
     def _get_yaml_dict_from_list(self, yaml_contents_list: list) -> dict:
@@ -159,15 +195,27 @@ class RecordReader:
 class RecordWriter:
     """Takes a Record object and writes to file."""
 
-    def __init__(self, record_obj: Record, directory:str=None, file_name:str=None, file_extension: str = ".md"):
+    def __init__(
+        self,
+        record_obj: Record,
+        directory: str = None,
+        file_name: str = None,
+        file_extension: str = ".md",
+    ):
         self.file_extension = file_extension
         self.record = record_obj
-        self.filename = f"{self.record.get_filename()}{file_extension}" if not file_name else f"{file_name}{file_extension}"
+        self.filename = (
+            f"{self.record.get_filename()}{file_extension}"
+            if not file_name
+            else f"{file_name}{file_extension}"
+        )
         self.directory = directory
 
     def write(self) -> None:
         """Takes Record object's contents and writes to file {filename}"""
-        FILE_PATH = f"{self.directory}/{self.filename}" if self.directory else self.filename
+        FILE_PATH = (
+            f"{self.directory}/{self.filename}" if self.directory else self.filename
+        )
         with open(FILE_PATH, "w") as entry_file:
             contents = self.record.generate_record_string_as_md()
 
