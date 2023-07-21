@@ -3,18 +3,17 @@ import os
 from typing_extensions import Annotated
 
 # 3RD PARTY
-from git import Repo
 import typer
 
 # GITEHR IMPORTS
 
-from utils import RecordTypes, Record, RecordReader, InitialRecord
+from utils import RecordTypes, Record, RecordReader, InitialDir
 
 
 app = typer.Typer()
 
 
-def get_repo_url(repo_name: str, base_url:str=None) -> str:
+def get_repo_url(repo_name: str, base_url: str = None) -> str:
     if base_url is None:
         base_url = os.getcwd()
     return os.path.join(base_url, repo_name)
@@ -42,20 +41,17 @@ def docs():
 
 @app.command()
 def init(
-    repo_name: Annotated[
-        str, typer.Argument(help="Name of the GitEHR Repository folder.")
+    repo_name_or_path: Annotated[
+        str, typer.Argument(help="Name or path of the GitEHR Repository folder.")
     ],
-    repo_path: Annotated[
-        str, typer.Option(help="Optionally specify output path of repo")
-    ]=None
 ):
     """
     Creates a new GitEHR Repository.
     """
-    BASE_URL = os.getcwd() if repo_path is None else repo_path
-    REPO_URL = get_repo_url(repo_name, base_url=BASE_URL)
-    
-    print(f"{REPO_URL=}")
+
+    gitehr_dir = InitialDir(repo_path=repo_name_or_path)
+
+    REPO_URL = gitehr_dir.get_repo_path()
 
     if not check_file_exists(REPO_URL):
         typer.secho(
@@ -63,7 +59,7 @@ def init(
             fg=typer.colors.GREEN,
         )
 
-        Repo.init(REPO_URL)
+        gitehr_dir.initialise_repo()
 
     # Add first ROOT file
     FILE_PATH = f"{REPO_URL}/_ROOT.md"
@@ -72,9 +68,9 @@ def init(
             f"Creating _ROOT.md file at {REPO_URL}...",
             fg=typer.colors.GREEN,
         )
-        
+
         # Creates initial file inside directory
-        InitialRecord(repo_name, repo_directory=REPO_URL)
+        gitehr_dir.add_first_root_file_to_repo()
 
     # Add JSON state file
     FILE_PATH = f"{REPO_URL}/state.json"
@@ -84,8 +80,9 @@ def init(
             fg=typer.colors.GREEN,
         )
 
-        with open(FILE_PATH, "w") as json_file:
-            json.dump({"repo_name": repo_name}, json_file)
+        # Creates JSON state file inside directory
+        gitehr_dir.add_state_file()
+
 
 @app.command()
 def create_entry(
@@ -115,24 +112,22 @@ def create_entry(
 
     new_record.write_to_file(file_name=new_record.get_filename())
 
+
 @app.command()
-def read_entry(filename:Annotated[str, typer.Argument(help="Name of Record to read")]):
-    
+def read_entry(filename: Annotated[str, typer.Argument(help="Name of Record to read")]):
     record = RecordReader().to_record(filename)
-    
+
     typer.secho(
         f"Reading {record.filename} Entry...\n\nFound contents:",
         fg=typer.colors.GREEN,
     )
-    
+
     print(record.generate_record_string_as_md())
-    
+
 
 @app.command()
 def debug():
-    
-    record = Record()
-    record.write_to_file()
+    InitialDir(repo_path="C:Anchit/Chandran/Repo")
 
 
 if __name__ == "__main__":

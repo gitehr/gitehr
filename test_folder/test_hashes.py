@@ -12,11 +12,9 @@ runner = CliRunner()
 def initialise_repo(tmpdir):
     # Create a base repo with _ROOT.md file
     REPO_NAME = "TEMP_REPO"
-    temp_dir_path = os.path.abspath(tmpdir)
-
-    runner.invoke(app, ["init", REPO_NAME, "--repo-path", temp_dir_path])
-
-    temp_repo_path = os.path.join(temp_dir_path, REPO_NAME)
+    temp_repo_path = os.path.join(os.path.abspath(tmpdir), REPO_NAME)
+    
+    runner.invoke(app, ["init", temp_repo_path])
 
     return temp_repo_path
 

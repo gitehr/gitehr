@@ -20,7 +20,9 @@ def test_init_runs(tmpdir):
     REPO_NAME = 'TEMP_REPO'
     temp_dir_path = os.path.abspath(tmpdir)
     
-    result = runner.invoke(app, ['init',REPO_NAME, "--repo-path", temp_dir_path])
+    repo_full_path = os.path.join(temp_dir_path, REPO_NAME)
+    
+    result = runner.invoke(app, ['init',repo_full_path])
 
     assert result.exit_code == 0
     assert f"Creating new GitEHR Repository at {temp_dir_path}" in result.stdout

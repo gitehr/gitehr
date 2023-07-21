@@ -1,6 +1,10 @@
 # Python Imports
 import os
 from datetime import datetime
+import json
+
+# 3rd Party Imports
+from git import Repo
 
 # GitEHR Imports
 from .yaml import YAMLFrontmatter
@@ -169,6 +173,44 @@ class Record:
     def __str__(self):
         return f"{self.filename}"
 
+class InitialDir:
+    
+    def __init__(self, repo_path:str) -> None:
+        """Create a new GitEHR Repo
+
+        Args:
+            repo_path (str): can be simple string which will be name of directory created in the same level, or full path.
+        """
+        
+        self.repo_name = os.path.basename(repo_path)
+        self.repo_path = self._get_full_repo_path(repo_path)
+        
+        
+    
+    def _get_full_repo_path(self, repo_path:str)->str:
+        """Returns full repo path. Will either be in current directory if only repo name given, or the full path given"""
+        if repo_path == os.path.basename(repo_path):
+            return os.path.join(os.getcwd(), self.repo_name)
+        return repo_path
+    
+    def initialise_repo(self)->None:
+        """Creates an empty .git repo"""
+        Repo.init(self.repo_path)
+    
+    def add_first_root_file_to_repo(self)->None:
+        InitialRecord(self.repo_name, self.repo_path)
+    
+    def add_state_file(self)->None:
+        state_filename = f"{self.repo_path}/state.json"
+        with open(state_filename, "w") as f:
+            json.dump({"repo_name": self.repo_name}, f)
+    
+    def get_repo_name(self)->str:
+        return self.repo_name
+
+    def get_repo_path(self)->str:
+        return self.repo_path
+    
 
 class InitialRecord:
     """Creates initial _ROOT.md record at given repo_name."""
