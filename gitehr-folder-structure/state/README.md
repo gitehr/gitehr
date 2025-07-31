@@ -1,8 +1,17 @@
 # State
 
-This folder contains clinical 'state' - items which are current and relevant to the patient's care but may be updated to the new state as the patient's condition changes.
+This directory contains current clinical state information that may be updated over time.
 
-All items are version controlled, so that the history of the record can be easily audited and reviewed.
+Examples of state information:
 
-All commits are signed, providing a tamper-evident log of changes.
+- Current medications
+- Active problems
+- Latest vital signs
+- Recent test results
+- Care plans
 
+All updates are:
+
+- Version controlled with full history
+- Signed with tamper-evident commits
+- Accompanied by journal entries explaining changes
