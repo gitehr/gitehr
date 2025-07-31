@@ -1,0 +1,11 @@
+[package]
+name = "gitehr"
+version = "0.1.0"
+edition = "2024"
+description = "A Git-based Electronic Health Record system"
+authors = ["Marcus Baw"]
+
+[dependencies]
+clap = { version = "4.4", features = ["derive"] }
+anyhow = "1.0"
+fs_extra = "1.3"
