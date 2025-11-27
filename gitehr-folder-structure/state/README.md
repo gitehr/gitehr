@@ -4,6 +4,8 @@ This directory contains current clinical state information that may be updated o
 
 Examples of state information:
 
+- Alerts and 'About Me' information
+- Allergies
 - Current medications
 - Active problems
 - Latest vital signs
