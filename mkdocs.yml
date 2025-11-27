@@ -10,17 +10,6 @@ edit_uri: edit/main/docs/
 copyright: >
   GitEHR and all intellectual property rights are Copyright &copy; 2022-25 Dr Marcus Baw, licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>. <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/"><br/><br/>
 
-nav:
-  - Home: 'index.md'
-  - About:
-    - 'about/about.md'
-    - The GitEHR story: 'about/gitEHRstory.md'
-    - Databasechester: 'about/Databasechester.md'
-    - Design: 'about/design/design.md'
-    - Specification:
-      - 'about/specification/specification.md'
-    - Contributors: 'about/contributors.md'
-
 theme:
   features:
     - content.action.edit # explicitly adds edit button (Material4MkDocs9.0)
