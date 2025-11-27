@@ -1,5 +1,6 @@
 pub mod init;
 pub mod journal;
+pub mod verify;
 
 // Re-export commands for easier access
 pub use init::initialise;

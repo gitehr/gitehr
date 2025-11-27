@@ -7,23 +7,42 @@ use uuid::Uuid;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct JournalEntry {
-    parent_hash: Option<String>,
-    timestamp: DateTime<Utc>,
+    pub parent_hash: Option<String>,
+    pub parent_entry: Option<String>,
+    pub timestamp: DateTime<Utc>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    author: Option<String>,
+    pub author: Option<String>,
 }
 
 pub fn create_journal_entry(content: &str, parent_hash: Option<String>) -> Result<()> {
+    // Get the parent entry filename by finding the file with the matching hash
+    let parent_entry = {
+        let entries: Vec<_> = fs::read_dir("journal")?.filter_map(|e| e.ok()).collect();
+        entries
+            .iter()
+            .filter_map(|entry| {
+                let content = fs::read_to_string(entry.path()).ok()?;
+                let hash = format!("{:x}", Sha256::digest(content.as_bytes()));
+                if Some(hash) == parent_hash {
+                    Some(entry.file_name().to_string_lossy().to_string())
+                } else {
+                    None
+                }
+            })
+            .next()
+    };
+
     let entry = JournalEntry {
         parent_hash,
+        parent_entry,
         timestamp: Utc::now(),
         author: None, // TODO: Implement author management
     };
 
-    // Create filename with timestamp and UUID
+    // Create filename with millisecond timestamp and UUID
     let filename = format!(
         "journal/{}-{}.md",
-        entry.timestamp.format("%Y%m%dT%H%M%SZ"),
+        entry.timestamp.format("%Y%m%dT%H%M%S%.3fZ"),
         Uuid::new_v4()
     );
 

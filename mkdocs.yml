@@ -1,0 +1,71 @@
+# site
+site_name: GitEHR
+site_url: https://gitehr.org/
+
+# repo
+repo_url: https://github.com/gitehr/gitehr.org
+repo_name: gitehr/gitehr.org
+edit_uri: edit/main/docs/
+
+copyright: >
+  GitEHR and all intellectual property rights are Copyright &copy; 2022-25 Dr Marcus Baw, licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>. <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/"><br/><br/>
+
+nav:
+  - Home: 'index.md'
+  - About:
+    - 'about/about.md'
+    - The GitEHR story: 'about/gitEHRstory.md'
+    - Databasechester: 'about/Databasechester.md'
+    - Design: 'about/design/design.md'
+    - Specification:
+      - 'about/specification/specification.md'
+    - Contributors: 'about/contributors.md'
+
+theme:
+  features:
+    - content.action.edit # explicitly adds edit button (Material4MkDocs9.0)
+    - content.action.view # explicitly adds view button (Material4MkDocs9.0)
+    - content.code.copy
+    - content.code.select
+    - content.code.annotate
+    - navigation.footer # explicitly adds footer prev/next (Material4MkDocs9.0)
+    - navigation.indexes
+    - navigation.instant
+    - navigation.sections
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.top
+    - navigation.tracking
+    - toc.follow
+
+
+  name: material
+
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: amber
+      accent: deep orange
+      toggle:
+        icon: material/toggle-switch-off-outline
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: amber
+      accent: deep orange
+      toggle:
+        icon: material/toggle-switch
+        name: Switch to light mode
+
+markdown_extensions:
+  - abbr
+  - admonition
+  - attr_list
+  - pymdownx.details
+  - pymdownx.snippets:
+      auto_append:
+        - includes/glossary.md
+  - pymdownx.superfences
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
