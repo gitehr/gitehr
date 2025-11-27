@@ -14,15 +14,9 @@ RUN apt-get update && \
 # Add requirements
 COPY requirements.txt /app/requirements.txt
 
-# Set working directory for requirements installation
-WORKDIR /app/
-
 # Run installation of requirements
 RUN pip install --upgrade pip
 RUN pip install -r /app/requirements.txt
-
-# Set working directory back to main app
-WORKDIR /app/
 
 # Flag the app directory as safe so that Git can read it
 RUN git config --global --add safe.directory /app

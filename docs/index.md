@@ -1,6 +1,4 @@
-# GitEHR
-
-GitEHR is a decentralised and portable health record powered by Git, cryptography, and open standards.
+GitEHR is a decentralised file-based open-source electronic health record powered by Git, cryptography, and open standards.
 
 ## The Problem
 
