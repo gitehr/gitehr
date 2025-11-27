@@ -1,87 +1,87 @@
 use anyhow::Result;
-use clap::{CommandFactory, Parser, Subcommand};
-use std::path::PathBuf;
+use clap::{Parser, Subcommand};
+use std::ffi::CStr;
+use std::fs;
+use flate2::read::ZlibDecoder;
+use std::io::{BufReader, prelude::*};
+use std::io;
+use anyhow::Context;
 
 mod commands;
 
 #[derive(Parser)]
 #[command(name = "gitehr")]
 #[command(about = "A Git-based Electronic Health Record system", long_about = None)]
-struct Cli {
+struct Args {
     #[command(subcommand)]
     command: Commands,
 }
 
-#[derive(Subcommand)]
+#[derive(Debug, Subcommand)]
 enum Commands {
-    /// Initialize a new GitEHR repository
-    Init,
-    /// Add a new clinical document
-    Add {
-        /// Content of the clinical entry
-        #[arg(help = "The content to add to the journal")]
-        content: String,
-    },
-    /// Journal-related commands
-    Journal {
-        #[command(subcommand)]
-        command: JournalCommands,
-    },
+    Init, // Initialize a new GitEHR repository
+    CatFile {
+        #[clap(short = 'p')]
+        pretty_print: bool,
+
+        object_hash: String,
+    }, // View details about a GitEHR object
+    // Add {
+    //     /// Content of the clinical entry
+    //     #[arg(help = "The content to add to the journal")]
+    //     content: String,
+    // },
 }
 
-#[derive(Subcommand)]
-enum JournalCommands {
-    /// Verify the integrity of the journal chain
-    Verify,
-}
+fn main() -> anyhow::Result<()> {
+    let args = Args::parse();
 
-fn is_gitehr_repository() -> bool {
-    PathBuf::from(".gitehr").exists()
-}
-
-fn main() -> Result<()> {
-    let cli = Cli::parse();
-
-    // If no subcommand was provided, print the version and exit successfully
-    if std::env::args().len() == 1 {
-        let cmd = Cli::command();
-        // clap already defines the version via Cargo.toml
-        println!("{}", cmd.get_version().unwrap_or_default());
-        return Ok(());
-    }
-
-    match cli.command {
+    match args.command {
         Commands::Init => {
-            commands::initialise()?;
-        }
-        Commands::Add { content } => {
-            // Check if we're in a GitEHR repository
-            if !is_gitehr_repository() {
-                anyhow::bail!(
-                    "Not a GitEHR repository (or not in the repository root). Run 'gitehr init' to create a new repository."
-                );
-            }
+            // commands::initialise()?;
 
-            // Get the latest entry's hash to use as parent
-            let latest = commands::get_latest_journal_entry()?;
-            let parent_hash = latest.map(|(_, hash)| hash);
-            commands::create_journal_entry(&content, parent_hash)?;
-        }
-        Commands::Journal { command } => {
-            // Check if we're in a GitEHR repository
-            if !is_gitehr_repository() {
-                anyhow::bail!(
-                    "Not a GitEHR repository (or not in the repository root). Run 'gitehr init' to create a new repository."
-                );
-            }
+            fs::create_dir(".gitehr").unwrap();
+            fs::create_dir(".gitehr/objects").unwrap();
+            fs::create_dir(".gitehr/refs").unwrap();
+            fs::create_dir(".gitehr/logs").unwrap();
+            fs::create_dir(".gitehr/index").unwrap();
+            fs::create_dir(".gitehr/config").unwrap();
+            fs::write(".gitehr/HEAD", "ref: refs/heads/main").unwrap();
 
-            match command {
-                JournalCommands::Verify => {
-                    commands::verify::verify_journal()?;
-                }
-            }
+            println!("Initialized GitEHR repository");
+
         }
-    }
+        Commands::CatFile { pretty_print, object_hash } => {
+            let f = fs::File::open(format!(
+                ".gitehr/objects/{}/{}",
+                &object_hash[..2],
+                &object_hash[2..],
+            )).context("open in .gitehr/objects")?;
+
+            let z = ZlibDecoder::new(f);
+            let mut z = BufReader::new(z);
+
+            let mut buf = Vec::new();
+            z.read_until(0, &mut buf)
+                .context("reading header from gitehr object")?; // Technically this should be a CStr if successful
+
+            let header = CStr::from_bytes_with_nul(&buf).context("gitehr object is invalid")?;
+            let header = header.to_str().context("gitehr object is  UTF-8")?;
+
+            let Some(size) = header.strip_prefix("blob ") else {
+                anyhow::bail!("gitehr object is not a blob");
+            };
+
+            let size = size.parse::<usize>().context("invalid blob size")?;
+            buf.clear();
+            buf.resize(size, 0); // Allocated items in vector to zero. Performance hit
+            z.read_exact(&mut buf[..]).context("file contents not matching expectation")?;
+
+            let n = z.read(&mut [0]).context("validate EOF")?;
+            anyhow::ensure!(n == 0, ".gitehr object still having trailing bytes");
+
+            // Important to note the end result is a binary blob
+    }}
 
     Ok(())
 }
