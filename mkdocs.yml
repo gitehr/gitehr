@@ -3,8 +3,8 @@ site_name: GitEHR
 site_url: https://gitehr.org/
 
 # repo
-repo_url: https://github.com/gitehr/gitehr.org
-repo_name: gitehr/gitehr.org
+repo_url: https://github.com/gitehr/gitehr
+repo_name: gitehr/gitehr
 edit_uri: edit/main/docs/
 
 copyright: >
