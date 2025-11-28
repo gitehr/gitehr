@@ -1,11 +1,16 @@
 use anyhow::Result;
 use clap::{Parser, Subcommand};
+use sha2::{Digest, Sha256};
 use std::ffi::CStr;
 use std::fs;
+use std::path::PathBuf;
 use flate2::read::ZlibDecoder;
+use flate2::write::ZlibEncoder;
+use flate2::Compression;
 use std::io::{BufReader, prelude::*};
 use std::io;
 use anyhow::Context;
+use std::io::Write;
 
 mod commands;
 
@@ -26,6 +31,12 @@ enum Commands {
 
         object_hash: String,
     }, // View details about a GitEHR object
+    HashObject {
+        #[clap(short = 'w')]
+        write: bool,
+
+        file: PathBuf,
+    }, // Hash an object
     // Add {
     //     /// Content of the clinical entry
     //     #[arg(help = "The content to add to the journal")]
@@ -33,8 +44,17 @@ enum Commands {
     // },
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ObjectKind {
+    Blob,
+    // Tree,
+    // Commit,
+}
+
 fn main() -> anyhow::Result<()> {
     let args = Args::parse();
+
+    eprintln!("--> [INFO] Starting program");
 
     match args.command {
         Commands::Init => {
@@ -48,10 +68,14 @@ fn main() -> anyhow::Result<()> {
             fs::create_dir(".gitehr/config").unwrap();
             fs::write(".gitehr/HEAD", "ref: refs/heads/main").unwrap();
 
-            println!("Initialized GitEHR repository");
+            eprintln!("Initialized GitEHR repository");
 
         }
+        // Should be able to 'cat' blobs, tree and commits
         Commands::CatFile { pretty_print, object_hash } => {
+
+            anyhow::ensure!(pretty_print, "parameter 'pretty_print' is required");
+
             let f = fs::File::open(format!(
                 ".gitehr/objects/{}/{}",
                 &object_hash[..2],
@@ -68,20 +92,75 @@ fn main() -> anyhow::Result<()> {
             let header = CStr::from_bytes_with_nul(&buf).context("gitehr object is invalid")?;
             let header = header.to_str().context("gitehr object is  UTF-8")?;
 
-            let Some(size) = header.strip_prefix("blob ") else {
-                anyhow::bail!("gitehr object is not a blob");
+            // TODO: I wonder if an enum for kind would be better?
+            let Some((kind, size)) = header.split_once(' ') else {
+                anyhow::bail!(".gitehr/object did not start with a known type: '{header}'");
+            };
+
+            let kind = match kind {
+                "blob" => ObjectKind::Blob,
+                // "tree" => ObjectKind::Tree,
+                // "commit" => ObjectKind::Commit,
+                _ => anyhow::bail!(".gitehr/object did not start with an implemented type: '{header}'"),
             };
 
             let size = size.parse::<usize>().context("invalid blob size")?;
-            buf.clear();
-            buf.resize(size, 0); // Allocated items in vector to zero. Performance hit
-            z.read_exact(&mut buf[..]).context("file contents not matching expectation")?;
 
-            let n = z.read(&mut [0]).context("validate EOF")?;
-            anyhow::ensure!(n == 0, ".gitehr object still having trailing bytes");
+            // TODO: Need to think of error handling here
+            // Will not error if limit is exceeded, but will return 0
+            let mut z = z.take(size as u64);
 
-            // Important to note the end result is a binary blob
-    }}
+            match kind {
+                ObjectKind::Blob => {
+                    let stdout = io::stdout();
+                    let mut stdout = stdout.lock();
+                    let n = std::io::copy(&mut z, &mut stdout).context("writing .gitehr/object blob to stdout")?;
+                    anyhow::ensure!(n == size.try_into().unwrap(), "blob size mismatch");
+                }
+                _ => anyhow::bail!(".gitehr/object did not start with an implemented type: '{header}'"),
+
+            }
+        }
+        Commands::HashObject { write, file } => {
+            let stat = fs::metadata(&file).context("getting file metadata")?;
+
+            let mut buf = Vec::new();
+            let mut file = fs::File::open(&file).context("opening file")?;
+            file.read_to_end(&mut buf).context("reading file")?;
+
+            let mut e = ZlibEncoder::new(Vec::new(), Compression::default());
+            write!(e, "blob ")?;
+            write!(e, "{}\0", stat.len())?;
+            // e.write_all(&buf)?;
+
+
+            let compressed = e.finish().context("finishing zlib compression")?;
+            // Here you can write `compressed` to a file or stdout as needed.
+
+
+        }
+    }
 
     Ok(())
+}
+
+
+struct HashWriter<W> {
+    writer: W,
+    hasher: Sha256,
+}
+
+impl<W> Write for HashWriter<W>
+where W: Write,
+{
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        let n = self.writer.write(buf)?;
+        self.hasher.update(&buf[..n]);
+        Ok(n)
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        self.writer.flush()?;
+        Ok(())
+    }
 }

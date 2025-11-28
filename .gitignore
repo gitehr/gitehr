@@ -5,6 +5,9 @@
 **/*.rs.bk
 Cargo.lock
 
+# GitEHR repository 
+.gitehr/
+
 # Debug files
 **/*.pdb
 
