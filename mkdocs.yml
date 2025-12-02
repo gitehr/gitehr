@@ -8,7 +8,7 @@ repo_name: gitehr/gitehr
 edit_uri: edit/main/docs/
 
 copyright: >
-  GitEHR and all intellectual property rights are Copyright &copy; 2022-25 Dr Marcus Baw, licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>. <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/"><br/><br/>
+  GitEHR and all intellectual property rights are Copyright &copy; 2022-25 Baw Medical Ltd, licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>. <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/"><br/><br/>
 
 theme:
   features:
