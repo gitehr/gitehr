@@ -12,6 +12,4 @@ WORKDIR /project
 # Install MkDocs Material (version >= 9.5)
 RUN pip install --no-cache-dir "mkdocs-material>=9.5"
 
-# Default command: serve docs with live reload on port 8764
-# Assumes mkdocs.yml and docs/ are available in the working directory
-CMD ["mkdocs", "serve", "-a", "0.0.0.0:8766"]
+# Command runs in docker compose hence no CMD here
