@@ -2,13 +2,12 @@
 services:
 
   mkdocs:
-    build: .
-    environment:
-      - ENABLE_PDF_EXPORT=0 # Makes PDF export an option, default disabled for local dev
-      - ENABLE_GIT_COMMITTERS=True # Makes git-committers an option, default enabled
-    volumes:
-      - .:/app
+    build:
+      context: .
+      dockerfile: Dockerfile.mkdocs
     ports:
-      - 8766:8000 # MkDocs will be accessible at localhost:8766
-    command: sh -c "mkdocs serve --dev-addr=0.0.0.0:8000"
+      - "8766:8766"
+    volumes:
+      - .:/project
+    working_dir: /project
     restart: unless-stopped
