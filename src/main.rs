@@ -1,84 +1,96 @@
-use anyhow::Result;
-use clap::{CommandFactory, Parser, Subcommand};
+use anyhow::Context;
+use clap::{Parser, Subcommand};
+use git2::{ObjectType, Oid, Repository};
+use std::fs;
+use std::io::{self, Write};
 use std::path::PathBuf;
 
-mod commands;
+use gitehr::commands;
+use gitehr::error::Result;
 
 #[derive(Parser)]
 #[command(name = "gitehr")]
 #[command(about = "A Git-based Electronic Health Record system", long_about = None)]
-struct Cli {
+struct Args {
     #[command(subcommand)]
     command: Commands,
 }
 
-#[derive(Subcommand)]
+#[derive(Debug, Subcommand)]
 enum Commands {
-    /// Initialize a new GitEHR repository
-    Init,
-    /// Add a new clinical document
-    Add {
-        /// Content of the clinical entry
-        #[arg(help = "The content to add to the journal")]
-        content: String,
-    },
-    /// Journal-related commands
-    Journal {
-        #[command(subcommand)]
-        command: JournalCommands,
-    },
-}
+    Init, // Initialize a new GitEHR repository (Wraps gitehr init)
+    CatFile {
+        #[clap(short = 'p')]
+        pretty_print: bool,
 
-#[derive(Subcommand)]
-enum JournalCommands {
-    /// Verify the integrity of the journal chain
-    Verify,
-}
+        object_hash: String,
+    }, // View details about a GitEHR object (Wraps git cat-file)
+    HashObject {
+        #[clap(short = 'w')]
+        write: bool,
 
-fn is_gitehr_repository() -> bool {
-    PathBuf::from(".gitehr").exists()
+        file: PathBuf,
+    }, // Hash an object (Wraps git hash-object)
 }
 
 fn main() -> Result<()> {
-    let cli = Cli::parse();
+    let args = Args::parse();
 
-    // If no subcommand was provided, print the version and exit successfully
-    if std::env::args().len() == 1 {
-        let cmd = Cli::command();
-        // clap already defines the version via Cargo.toml
-        println!("{}", cmd.get_version().unwrap_or_default());
-        return Ok(());
-    }
+    eprintln!("--> [INFO]: Starting program");
 
-    match cli.command {
+    match args.command {
         Commands::Init => {
-            commands::initialise()?;
+            commands::init::run()?;
         }
-        Commands::Add { content } => {
-            // Check if we're in a GitEHR repository
-            if !is_gitehr_repository() {
-                anyhow::bail!(
-                    "Not a GitEHR repository (or not in the repository root). Run 'gitehr init' to create a new repository."
-                );
+        Commands::CatFile {
+            pretty_print,
+            object_hash,
+        } => {
+            if !pretty_print {
+                return Err(anyhow::anyhow!("parameter 'pretty_print' is required").into());
             }
 
-            // Get the latest entry's hash to use as parent
-            let latest = commands::get_latest_journal_entry()?;
-            let parent_hash = latest.map(|(_, hash)| hash);
-            commands::create_journal_entry(&content, parent_hash)?;
-        }
-        Commands::Journal { command } => {
-            // Check if we're in a GitEHR repository
-            if !is_gitehr_repository() {
-                anyhow::bail!(
-                    "Not a GitEHR repository (or not in the repository root). Run 'gitehr init' to create a new repository."
-                );
-            }
+            let repo = Repository::discover(".").context("locating Git repository")?;
+            let oid = Oid::from_str(&object_hash).context("invalid object hash")?;
+            let object = repo
+                .find_object(oid, None)
+                .with_context(|| format!("reading Git object {object_hash}"))?;
 
-            match command {
-                JournalCommands::Verify => {
-                    commands::verify::verify_journal()?;
+            match object.kind() {
+                Some(ObjectType::Blob) => {
+                    let blob = object.peel_to_blob().context("loading blob contents")?;
+                    let stdout = io::stdout();
+                    let mut stdout = stdout.lock();
+                    stdout
+                        .write_all(blob.content())
+                        .context("writing blob to stdout")?;
                 }
+                Some(kind) => {
+                    return Err(anyhow::anyhow!(format!(
+                        "unsupported Git object type: {kind:?}"
+                    ))
+                    .into());
+                }
+                None => return Err(anyhow::anyhow!("unknown Git object type").into()),
+            }
+        }
+        Commands::HashObject { write, file } => {
+            let metadata = fs::metadata(&file)
+                .with_context(|| format!("getting metadata for '{}'", file.display()))?;
+            if !metadata.is_file() {
+                return Err(anyhow::anyhow!("only regular files can be hashed").into());
+            }
+
+            if write {
+                let repo = Repository::discover(".").context("locating Git repository")?;
+                let oid = repo
+                    .blob_path(&file)
+                    .with_context(|| format!("writing blob for '{}'", file.display()))?;
+                println!("{oid}");
+            } else {
+                let oid = Oid::hash_file(ObjectType::Blob, file.as_path())
+                    .with_context(|| format!("hashing file '{}'", file.display()))?;
+                println!("{oid}");
             }
         }
     }
