@@ -1,0 +1,12 @@
+#!/bin/bash
+
+# set -v  # Enable verbose mode
+set -e  # Exit on error
+
+# scripts may need to be made executable on some platforms before they can be run
+# chmod +x s/<filename> is the command to do this on unixy systems
+
+repo_root="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$repo_root/gui/gitehr-gui"
+
+WEBKIT_DISABLE_DMABUF_RENDERER=1 npm run tauri dev
