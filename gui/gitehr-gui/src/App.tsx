@@ -37,9 +37,9 @@ function App() {
   return (
     <AppShell
       className="app-shell"
-      header={{ height: 64, offset: false }}
-      navbar={{ width: 260, breakpoint: "sm", offset: false }}
-      aside={{ width: 320, breakpoint: "md", offset: false }}
+      header={{ height: 64, offset: true }}
+      navbar={{ width: 260, breakpoint: "sm" }}
+      aside={{ width: 320, breakpoint: "md" }}
       padding="md"
     >
       <AppShell.Header className="app-header">
@@ -114,7 +114,8 @@ function App() {
       </AppShell.Navbar>
 
       <AppShell.Main className="app-main">
-        <Stack gap="md">
+        <Box className="main-surface">
+          <Stack gap="md">
           <Group justify="space-between" align="flex-end">
             <Box>
               <Title order={2}>Patient Overview</Title>
@@ -244,7 +245,8 @@ function App() {
               </Stack>
             </Card>
           </SimpleGrid>
-        </Stack>
+          </Stack>
+        </Box>
       </AppShell.Main>
 
       <AppShell.Aside className="app-aside">
