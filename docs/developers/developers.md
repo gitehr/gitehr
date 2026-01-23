@@ -1,8 +1,8 @@
 # GitEHR Developer Guide
 
-This document explains how to build and manually test GitEHR.
+This document explains how to build and manually test GitEHR. Initially it focuses on the Linux platform, because that is what I'm using, but I will expand this to add other platforms as I can.
 
-## Prerequisites
+## Prerequisites (CLI)
 
 - `cargo` available on your PATH
 
@@ -17,6 +17,29 @@ Then activate it in your shell:
 ```sh
 mise use rust
 ```
+
+## Prerequisites (GUI)
+
+- `cargo` available on your PATH
+
+- `npm` (Node.js) available on your PATH for the GUI tooling
+
+
+To build/run the Tauri GUI on Linux, install the system dependencies listed in the [Tauri prerequisites guide](https://tauri.app/start/prerequisites/). The following is an example for Debian-derived distros:
+
+```sh
+sudo apt install libwebkit2gtk-4.1-dev \
+  build-essential \
+  curl \
+  wget \
+  file \
+  libxdo-dev \
+  libssl-dev \
+  libayatana-appindicator3-dev \
+  librsvg2-dev
+```
+
+See https://tauri.app/guides/prerequisites/#linux for the current, distro-specific package names and any additional requirements.
 
 ## Building the CLI
 
@@ -70,18 +93,20 @@ cargo build      # or: cargo install --path .
 ### Recommended workflow
 
 1. Make and test your changes (see sections above).
-2. Decide the appropriate semver level (patch/minor/major).
-3. From the CLI crate root:
+2. Bump the version:
 
    ```sh
-   cargo set-version --bump patch   # or minor/major
+   s/version++
    ```
-
-4. Commit your changes, including `Cargo.toml` and any code.
-5. If using git tags, create and push them as appropriate, for example:
+   Or for a different bump level:
 
    ```sh
-   git tag vX.Y.Z
+   s/version++ minor   # or: major
+   ```
+3. Commit your changes, including `Cargo.toml` and any code.
+4. If using git tags, push them as appropriate, for example:
+
+   ```sh
    git push --tags
    ```
 

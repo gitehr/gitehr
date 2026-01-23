@@ -6,7 +6,7 @@ mod commands;
 
 #[derive(Parser)]
 #[command(name = "gitehr")]
-#[command(about = "A Git-based Electronic Health Record system", long_about = None)]
+#[command(about = "The Git-based Electronic Health Record", long_about = None)]
 struct Cli {
     #[command(subcommand)]
     command: Commands,
@@ -27,6 +27,9 @@ enum Commands {
         #[command(subcommand)]
         command: JournalCommands,
     },
+    /// Print the GitEHR CLI and GUI versions
+    #[command(visible_alias = "v")]
+    Version,
 }
 
 #[derive(Subcommand)]
@@ -44,9 +47,14 @@ fn main() -> Result<()> {
 
     // If no subcommand was provided, print the version and exit successfully
     if std::env::args().len() == 1 {
-        let cmd = Cli::command();
+        let mut cmd = Cli::command();
         // clap already defines the version via Cargo.toml
-        println!("{}", cmd.get_version().unwrap_or_default());
+        let version = cmd.get_version().unwrap_or_default();
+        println!("GitEHR CLI: {}", version);
+        println!("GitEHR GUI: {}", version);
+        println!();
+        cmd.print_help()?;
+        println!();
         return Ok(());
     }
 
@@ -80,6 +88,12 @@ fn main() -> Result<()> {
                     commands::verify::verify_journal()?;
                 }
             }
+        }
+        Commands::Version => {
+            let cmd = Cli::command();
+            let version = cmd.get_version().unwrap_or_default();
+            println!("GitEHR CLI: {}", version);
+            println!("GitEHR GUI: {}", version);
         }
     }
 

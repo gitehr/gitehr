@@ -5,14 +5,18 @@
 Aliases:
 
 ### `gitehr journal add <file>`
+
 Appends a new clinical journal entry containing the provided file.
+
 - Requires the current directory to already be a GitEHR repository (presence of `.gitehr`); otherwise, the command aborts with guidance to run `gitehr init` (see [src/main.rs](../../src/main.rs)).
 - Determines the most recent journal entry by filename ordering (timestamps in filenames). If found, calculates its SHA-256 hash and sets that as the new entry’s `parent_hash`; the matching filename is stored as `parent_entry` (see [src/main.rs](../../src/main.rs) and [src/commands/journal.rs](../../src/commands/journal.rs)).
 - Creates a new Markdown file named `journal/<timestamp>-<uuid>.md` using the current UTC time down to milliseconds plus a random UUID (see [src/commands/journal.rs](../../src/commands/journal.rs)).
 - Prepends YAML front matter containing `parent_hash`, `parent_entry`, the creation timestamp, and (currently optional) `author`, followed by the user-provided content. Prints the created filename on success (see [src/commands/journal.rs](../../src/commands/journal.rs)).
 
 ### `gitehr journal verify`
+
 Validates the integrity of the journal chain (see [src/commands/verify.rs](../../src/commands/verify.rs) and [src/main.rs](../../src/main.rs)).
+
 - Requires a GitEHR repository and the existence of the `journal` directory; otherwise, it returns an error.
 - Sorts all journal files by filename, computes each entry’s SHA-256 hash, and builds a map of hash → filename for lookup.
 - For each entry, parses YAML front matter into a `JournalEntry`; errors if the front matter is missing or invalid.
