@@ -1,0 +1,24 @@
+/* SPDX-License-Identifier: CC-BY-SA-4.0 */
+
+:root {
+  /* Logo palette-derived (olive + warm brown) */
+  --md-primary-fg-color: #7b8453;
+  --md-primary-fg-color--light: #9aa36a;
+  --md-primary-fg-color--dark: #5f663e;
+  --md-primary-bg-color: #ffffff;
+  --md-primary-bg-color--light: #f6f5f1;
+
+  --md-accent-fg-color: #8a4f1f;
+  --md-accent-fg-color--transparent: rgba(138, 79, 31, 0.18);
+}
+
+[data-md-color-scheme="slate"] {
+  --md-primary-fg-color: #8a935c;
+  --md-primary-fg-color--light: #a3ac6e;
+  --md-primary-fg-color--dark: #6a7247;
+  --md-primary-bg-color: #11110f;
+  --md-primary-bg-color--light: #1a1a17;
+
+  --md-accent-fg-color: #b06a2a;
+  --md-accent-fg-color--transparent: rgba(176, 106, 42, 0.22);
+}

@@ -32,18 +32,21 @@ theme:
   palette:
     - media: "(prefers-color-scheme: light)"
       scheme: default
-      primary: amber
-      accent: deep orange
+      primary: custom
+      accent: custom
       toggle:
         icon: material/toggle-switch-off-outline
         name: Switch to dark mode
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
-      primary: amber
-      accent: deep orange
+      primary: custom
+      accent: custom
       toggle:
         icon: material/toggle-switch
         name: Switch to light mode
+
+extra_css:
+  - stylesheets/extra.css
 
 # TODO: consider removing glossary auto-appended snippets and replace them with hyperlinks
 # to either a glossary page or external resources. eg. it's more helpful to link to Git
