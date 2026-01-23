@@ -74,7 +74,7 @@ pub fn verify_journal() -> Result<()> {
                     reason: "Missing YAML front matter".to_string(),
                 })?;
 
-        let entry_data: JournalEntry = serde_yaml::from_str(yaml_content).map_err(|e| {
+        let entry_data: JournalEntry = serde_yml::from_str(yaml_content).map_err(|e| {
             JournalVerificationError::BrokenChain {
                 entry_file: filename.clone(),
                 reason: format!("Invalid YAML: {}", e),

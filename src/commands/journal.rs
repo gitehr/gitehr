@@ -47,7 +47,7 @@ pub fn create_journal_entry(content: &str, parent_hash: Option<String>) -> Resul
     );
 
     // Create YAML front matter
-    let yaml = serde_yaml::to_string(&entry)?;
+    let yaml = serde_yml::to_string(&entry)?;
     let file_content = format!("---\n{}---\n\n{}", yaml, content);
 
     fs::write(&filename, file_content)?;

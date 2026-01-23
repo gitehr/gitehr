@@ -53,7 +53,7 @@ fn test_create_journal_entry() -> Result<()> {
         .split("---")
         .nth(1)
         .expect("No YAML front matter found");
-    let entry: gitehr::commands::journal::JournalEntry = serde_yaml::from_str(yaml_content)?;
+    let entry: gitehr::commands::journal::JournalEntry = serde_yml::from_str(yaml_content)?;
 
     assert_eq!(
         entry.parent_hash,
@@ -130,7 +130,7 @@ fn test_parent_entry_linking() -> Result<()> {
         .split("---")
         .nth(1)
         .expect("No YAML front matter found");
-    let entry: gitehr::commands::journal::JournalEntry = serde_yaml::from_str(yaml_content)?;
+    let entry: gitehr::commands::journal::JournalEntry = serde_yml::from_str(yaml_content)?;
 
     assert_eq!(
         entry.parent_entry,

@@ -38,7 +38,7 @@ pub fn initialise() -> Result<()> {
     }
 
     // Create genesis entry with random seed
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
     let mut seed = [0u8; 32];
     rng.fill(&mut seed);
     let seed_hash = format!("{:x}", Sha256::digest(&seed));
