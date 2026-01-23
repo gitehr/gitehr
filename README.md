@@ -34,7 +34,7 @@ A Git-based, decentralised, multi-contributor Electronic Health Record system.
 
 5. **Two-Part Architecture**
    - Core CLI tool for data operations (`gitehr`)
-   - Reference GUI for clinical use (`gitehr-gui`)
+   - Reference GUI for clinical use (`gitehr gui`)
 
 # This repository
 

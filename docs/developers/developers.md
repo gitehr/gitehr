@@ -1,6 +1,6 @@
 # GitEHR Developer Guide
 
-This document explains how to build and manually test the current GitEHR CLI features.
+This document explains how to build and manually test GitEHR.
 
 ## Prerequisites
 
