@@ -13,6 +13,7 @@
     "windows": [
       {
         "title": "guigitehr-gui",
+        "icon": "icons/icon.png",
         "width": 800,
         "height": 600
       }
