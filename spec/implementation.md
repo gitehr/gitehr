@@ -3,13 +3,15 @@
 ## Overview
 
 ### CLI
-* The GitEHR CLI is implemented in Rust, which enables a compiled, cross-platform binary to be shipped inside each GitEHR repository for portability.
-* The CLI uses the `clap` crate for command-line argument parsing.
-* The CLI commands are implemented in the `src/commands` directory, with each command in its own module. Specifications for each command are detailed in their respective files in the `spec/commands` directory.
+
+- The GitEHR CLI is implemented in Rust, which enables a compiled, cross-platform binary to be shipped inside each GitEHR repository for portability.
+- The CLI uses the `clap` crate for command-line argument parsing.
+- The CLI commands are implemented in the `src/commands` directory, with each command in its own module. Specifications for each command are detailed in their respective files in the `spec/commands` directory.
 
 ### GUI
-* The GitEHR GUI is implemented in [Tauri](https://tauri.app/), again enabling a cross-platform desktop application that can be bundled with the CLI binary in each GitEHR repository, so that users have a consistent graphical interface regardless of platform.
-* The design of GitEHR is such that many other interfaces can be developed, all interacting with the same underlying repository structure, however shipping a 'default' GUI with the repository ensures that all users have an easy way to get started. 
+
+- The GitEHR GUI is implemented in [Tauri](https://tauri.app/) (Rust backend) and [Mantine](https://mantine.dev/) (React frontend), as a cross-platform desktop application that can be bundled with the CLI binary in each GitEHR repository, so that users have a consistent graphical interface regardless of platform.
+- The design of GitEHR is such that many other interfaces can be developed, all interacting with the same underlying repository structure, however shipping a 'default' GUI with the repository ensures the 'batteries are included' - all users have an easy way to get started.
 
 ## Versioning
 
