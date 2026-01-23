@@ -6,7 +6,20 @@ This document explains how to build and manually test GitEHR.
 
 - `cargo` available on your PATH
 
+I can recommend the use of [`mise`](https://mise.jdx.dev/) as general development toolchain manager, it can handle the installation and versioning of Rust and many other languages. once you have `mise` installed, you can install Rust with:
+
+```sh
+mise install rust
+```
+
+Then activate it in your shell:
+
+```sh
+mise use rust
+```
+
 ## Building the CLI
+
 From the CLI project root:
 
 ```sh
@@ -43,14 +56,13 @@ Relevant paths inside the CLI repo:
   - `init.rs` – repository initialization logic (creates folders + genesis entry)
   - `journal.rs` – journal entry creation and chaining
 
-
-
 From the CLI crate root (where `Cargo.toml` lives):
 
 ```sh
 cd gitehr
 cargo set-version --bump patch   # or: minor, major
 ```
+
 ```sh
 cargo build      # or: cargo install --path .
 ```
@@ -74,14 +86,10 @@ cargo build      # or: cargo install --path .
    ```
 
 This keeps the Cargo version, git history, and published binaries aligned.
-  - Creates
-    - `.gitehr/`
-    - `journal/`
-    - `state/`
-Use the built-in Cargo command instead:
-    - `imaging/`
-    - `README.md` (root)
-- Creates a *genesis* journal entry in `journal/` with:
+
+- Creates - `.gitehr/` - `journal/` - `state/`
+  Use the built-in Cargo command instead: - `imaging/` - `README.md` (root)
+- Creates a _genesis_ journal entry in `journal/` with:
   - A filename of the form `YYYYMMDDTHHMMSSZ-<UUID>.md`
   - YAML front matter including:
     - `parent_hash`: a random 32‑byte seed hashed with SHA‑256
@@ -113,7 +121,6 @@ Use the built-in Cargo command instead:
    ```
 
    You should see:
-
    - `.gitehr/` directory
    - `journal/`, `state/`, `imaging/` directories
    - `README.md` in the root copied from the template
@@ -126,7 +133,6 @@ Use the built-in Cargo command instead:
    ```
 
    Confirm:
-
    - Exactly one `.md` file exists (if you only ran `init` once)
    - YAML front matter contains `parent_hash` (not `null`) and `timestamp`
    - The body text matches the genesis description
@@ -170,7 +176,6 @@ Adds a new clinical entry to the `journal/` directory of the current GitEHR repo
    ```
 
    Confirm for the newest entry:
-
    - `parent_hash` is **different** from the genesis seed hash
    - `parent_hash` matches the SHA‑256 hash of the full contents of the previous entry file
    - The body contains `First clinical entry` (or your provided text)
@@ -232,13 +237,13 @@ GitEHR follows semantic versioning (`MAJOR.MINOR.PATCH`) and keeps the canonical
 ### Version bump policy
 
 - **PATCH** (`x.y.z -> x.y.(z+1)`)
-   - Backwards-compatible bug fixes or internal changes that don’t affect the public CLI surface or on‑disk data layout.
+  - Backwards-compatible bug fixes or internal changes that don’t affect the public CLI surface or on‑disk data layout.
 - **MINOR** (`x.y.z -> x.(y+1).0`)
-   - Backwards-compatible feature additions.
-   - New commands, new flags, or new fields that older clients can safely ignore.
+  - Backwards-compatible feature additions.
+  - New commands, new flags, or new fields that older clients can safely ignore.
 - **MAJOR** (`x.y.z -> (x+1).0.0`)
-   - Breaking changes to the CLI interface or on-disk format.
-   - Anything that may invalidate existing EHR repos or tools built on top of GitEHR.
+  - Breaking changes to the CLI interface or on-disk format.
+  - Anything that may invalidate existing EHR repos or tools built on top of GitEHR.
 
 ### Bumping the version
 
@@ -269,16 +274,16 @@ cargo build      # or: cargo install --path .
 2. Decide the appropriate semver level (patch/minor/major).
 3. From the repo root:
 
-    ```sh
-    ./scripts/bump_version.sh patch   # or minor/major
-    ```
+   ```sh
+   ./scripts/bump_version.sh patch   # or minor/major
+   ```
 
 4. Commit your changes, including `gitehr/Cargo.toml` and any code.
 5. If using git tags, push them:
 
-    ```sh
-    git push --tags
-    ```
+   ```sh
+   git push --tags
+   ```
 
 This keeps the Cargo version, git history, and published binaries aligned.
 
