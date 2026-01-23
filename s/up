@@ -7,4 +7,12 @@ set -e  # Exit on error
 # run chmod +x s/<filename> to allow this
 
 # starts up the docker compose development environment
-docker compose up
+docker compose up -d "$@"
+
+# open docs in the default browser
+if command -v xdg-open >/dev/null 2>&1; then
+	xdg-open http://localhost:8766 >/dev/null 2>&1 &
+fi
+
+# follow logs
+docker compose logs -f

@@ -7,4 +7,4 @@ set -e  # Exit on error
 # chmod +x <filename> is the command to do this on unixy systems
 
 # shuts down the Docker Compose setup AND deletes containers and images (but not volumes)
-docker compose down --rmi local # removes the container and local images
+docker compose down --rmi local "$@" # removes the container and local images

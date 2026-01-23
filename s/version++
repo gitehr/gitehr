@@ -1,0 +1,31 @@
+#!/bin/bash
+
+# set -v  # Enable verbose mode
+set -e  # Exit on error
+
+# scripts may need to be made executable on some platforms before they can be run
+# chmod +x s/<filename> is the command to do this on unixy systems
+
+bump="patch"
+if [[ -n "${1-}" ]]; then
+  case "$1" in
+    patch|minor|major)
+      bump="$1"
+      ;;
+    *)
+      echo "Usage: s/version++ [patch|minor|major]" >&2
+      exit 1
+      ;;
+  esac
+fi
+
+cargo set-version --bump "$bump"
+
+version="$(awk -F\" '/^version =/ {print $2; exit}' Cargo.toml)"
+tag="v$version"
+if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
+  echo "Tag $tag already exists." >&2
+  exit 1
+fi
+
+git tag "$tag"
