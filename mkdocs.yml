@@ -12,6 +12,8 @@ copyright: >
 
 theme:
   name: material
+  logo: assets/images/gitehr-logo.svg
+  favicon: assets/images/gitehr-logo.svg
   features:
     - content.action.edit # explicitly adds edit button (Material4MkDocs9.0)
     - content.action.view # explicitly adds view button (Material4MkDocs9.0)

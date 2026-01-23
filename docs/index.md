@@ -1,3 +1,8 @@
+<div align="center">
+  <img src="assets/images/gitehr-logo.svg" width="160" alt="GitEHR logo" />
+  <div style="font-size: 2.2rem; font-weight: 700; margin-top: 0.4rem;">GitEHR</div>
+</div>
+
 GitEHR is a decentralised file-based open-source electronic health record powered by Git, cryptography, and open standards. It is patient-centric by design, enabling lifelong health records that can be contributed to by multiple parties while preserving data integrity and security.
 
 It provides the solution for a life-long, lossless clinical record.
