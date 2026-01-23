@@ -1,0 +1,22 @@
+# Set update schedule for GitHub Actions and Rust/Cargo dependencies
+
+version: 2
+updates:
+
+    # Check for updates to GitHub Actions every week
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+
+    # Check for updates to Rust/Cargo dependencies every day
+  - package-ecosystem: "cargo"
+    directory: "/"
+    schedule:
+      interval: "daily"
+
+    # Check for updates to Tauri/npm dependencies every day
+  - package-ecosystem: "npm"
+    directory: "/gui/gitehr-gui"
+    schedule: 
+      interval: "daily"
