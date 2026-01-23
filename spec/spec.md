@@ -77,21 +77,7 @@ Adds, enables, disables, activates, or deactivates contributors to the GitEHR re
 
 - **Verification:** `gitehr journal verify` recomputes hashes to ensure every non-genesis entry’s declared parent exists and matches, flagging missing links or mismatched filenames (see [src/commands/verify.rs](../../src/commands/verify.rs)).
 
-## Licensing in source files
 
-All source files contain an SPDX license identifier at the top of the file to enable automated license detection.
-
-For non-code files and documentation, please use CC-BY-SA-4.0:
-
-```html
-<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
-```
-
-For source code files, please use AGPL-3.0:
-
-```rust
-// SPDX-License-Identifier: AGPL-3.0-or-later
-```
 
 ## GitEHR repository lifecycle
 
