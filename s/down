@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -v  # Enable verbose mode
+# set -v  # Enable verbose mode
 set -e  # Exit on error
 
 # scripts may need to be made executable on some platforms before they can be run

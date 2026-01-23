@@ -15,3 +15,19 @@ services:
     # https://github.com/squidfunk/mkdocs-material/issues/8478
     # Can be removed when MkDocs/Click is fixed
     command: sh -c "mkdocs serve --livereload --dev-addr=0.0.0.0:8766"
+
+  gitehr-gui:
+    build:
+      context: .
+      dockerfile: Dockerfile.tauri
+    working_dir: /project/gui/gitehr-gui
+    volumes:
+      - .:/project
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+    environment:
+      - DISPLAY=${DISPLAY}
+      - XAUTHORITY=${XAUTHORITY}
+    ports:
+      - "5173:5173"
+    restart: unless-stopped
+    command: sh -c "npm install && npm run tauri dev"
