@@ -48,17 +48,11 @@ theme:
 extra_css:
   - stylesheets/extra.css
 
-# TODO: consider removing glossary auto-appended snippets and replace them with hyperlinks
-# to either a glossary page or external resources. eg. it's more helpful to link to Git
-# than to have a tooltip that explains it is a DVCS
 markdown_extensions:
   - abbr
   - admonition
   - attr_list
   - pymdownx.details
-  - pymdownx.snippets:
-      auto_append:
-        - docs/includes/glossary.md
   - pymdownx.superfences
   - pymdownx.emoji:
       emoji_index: !!python/name:material.extensions.emoji.twemoji

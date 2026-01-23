@@ -3,14 +3,14 @@
   <div style="font-size: 2.2rem; font-weight: 700; margin-top: 0.4rem;">GitEHR</div>
 </div>
 
-GitEHR is a decentralised file-based open-source electronic health record powered by Git, cryptography, and open standards. It is patient-centric by design, enabling lifelong health records that can be contributed to by multiple parties while preserving data integrity and security.
+GitEHR is a [decentralised](https://en.wikipedia.org/wiki/Decentralization) file-based open-source [electronic health record](https://en.wikipedia.org/wiki/Electronic_health_record) powered by [Git](https://git-scm.com/), cryptography, and open standards. It is [patient-centric](glossary.md#patient-centric) by design, enabling lifelong health records that can be contributed to by multiple parties while preserving data integrity and security.
 
 It provides the solution for a life-long, lossless clinical record.
 
 
 ## The Problem
 
-Traditional health interoperability focuses on sending data from one **Organisation-Centric Database** to a different **Organisation-Centric Database**.
+Traditional health interoperability focuses on sending data from one **[organisation-centric](glossary.md#organisation-centric)** database to a different **[organisation-centric](glossary.md#organisation-centric)** database.
 
 Databases work fine *inside* the walls of a particular organisation that invested resources in developing a bespoke solution for their needs.
 
@@ -20,7 +20,7 @@ Looking at the well-established tech world, there are no successful examples of 
 
 ## GitEHR's Solution
 
-*Distributed Version Control Software (DVCS)*, such as *Git*, provides exemplary proof of how to engineer multi-contributor and secure. Crucially, these private repositories are agnostic of the software used to view or manipulate them.
+*[Distributed Version Control Software (DVCS)](https://en.wikipedia.org/wiki/Distributed_version_control)*, such as *[Git](https://git-scm.com/)*, provides exemplary proof of how to engineer multi-contributor and secure. Crucially, these private repositories are agnostic of the software used to view or manipulate them.
 
 Though areas which require specialised healthcare technology exist, these health-specific solutions are not *always* required. Many problems faced in healthcare have already been solved by the wider tech world - which is why GitEHR draws extensively on existing technology.
 
