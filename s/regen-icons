@@ -1,0 +1,19 @@
+#!/bin/bash
+
+# set -v  # Enable verbose mode
+set -e  # Exit on error
+
+# scripts may need to be made executable on some platforms before they can be run
+# chmod +x s/<filename> is the command to do this on unixy systems
+
+repo_root="$(cd "$(dirname "$0")/.." && pwd)"
+icon_source="${1:-$repo_root/assets/images/gitehr-logo-black-trans.svg}"
+
+if [[ ! -f "$icon_source" ]]; then
+  echo "Icon source not found: $icon_source" >&2
+  echo "Usage: s/regen-icons [path-to-svg]" >&2
+  exit 1
+fi
+
+cd "$repo_root/gui/gitehr-gui"
+./node_modules/.bin/tauri icon "$icon_source"
