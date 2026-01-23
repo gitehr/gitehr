@@ -28,7 +28,7 @@ callgrind.out.*
 *.dylib
 
 # Environment
-.env
+*.env
 .env.local
 
 
