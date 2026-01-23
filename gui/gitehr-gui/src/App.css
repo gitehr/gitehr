@@ -24,6 +24,13 @@ body {
 .app-shell {
   min-height: 100vh;
   animation: fade-in 480ms ease-out;
+  --app-shell-header-height: 64px;
+}
+
+.app-shell .mantine-AppShell-navbar,
+.app-shell .mantine-AppShell-aside,
+.app-shell .mantine-AppShell-main {
+  padding-top: calc(var(--app-shell-header-height, 64px) + var(--mantine-spacing-md));
 }
 
 .app-header {

@@ -37,9 +37,9 @@ function App() {
   return (
     <AppShell
       className="app-shell"
-      header={{ height: 64, offset: true }}
-      navbar={{ width: 260, breakpoint: "sm", offset: true }}
-      aside={{ width: 320, breakpoint: "md", offset: true }}
+      header={{ height: 64, offset: false }}
+      navbar={{ width: 260, breakpoint: "sm", offset: false }}
+      aside={{ width: 320, breakpoint: "md", offset: false }}
       padding="md"
     >
       <AppShell.Header className="app-header">
