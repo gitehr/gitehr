@@ -5,3 +5,5 @@
 ### `gitehr encrypt`
 
 Encrypts the repository using a local or remote key.
+
+Current CLI status: not implemented. The command prints a stub message and echoes any provided arguments.

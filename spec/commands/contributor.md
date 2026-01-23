@@ -5,3 +5,5 @@
 ### `gitehr contributor`
 
 Adds, enables, disables, activates, or deactivates contributors to the GitEHR record.
+
+Current CLI status: not implemented. The command prints a stub message and echoes any provided arguments.

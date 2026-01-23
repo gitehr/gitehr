@@ -4,9 +4,9 @@
 
 Aliases:
 
-### `gitehr journal add <file>`
+### `gitehr journal add <content>`
 
-Appends a new clinical journal entry containing the provided file.
+Appends a new clinical journal entry containing the provided content.
 
 - Requires the current directory to already be a GitEHR repository (presence of `.gitehr`); otherwise, the command aborts with guidance to run `gitehr init` (see [src/main.rs](../../src/main.rs)).
 - Determines the most recent journal entry by filename ordering (timestamps in filenames). If found, calculates its SHA-256 hash and sets that as the new entry’s `parent_hash`; the matching filename is stored as `parent_entry` (see [src/main.rs](../../src/main.rs) and [src/commands/journal.rs](../../src/commands/journal.rs)).
@@ -22,6 +22,8 @@ Validates the integrity of the journal chain (see [src/commands/verify.rs](../..
 - For each entry, parses YAML front matter into a `JournalEntry`; errors if the front matter is missing or invalid.
 - For non-genesis entries, ensures the declared `parent_hash` exists in the map and the recorded `parent_entry` matches the expected filename; otherwise, it reports a broken chain or missing parent.
 - On success, prints “Journal verification successful: N entries verified.”
+
+> TODO: Front matter parsing currently assumes the YAML is delimited by `---` and that non-genesis entries include `parent_entry`. If this changes, update verification logic accordingly.
 
 <!-- - REVIEW/ADD **Adding entries:** `gitehr add` appends immutable journal files that link back to the latest entry, preserving a verifiable chain of custody and chronological ordering (see [src/main.rs](../../src/main.rs) and [src/commands/journal.rs](../../src/commands/journal.rs)). -->
 

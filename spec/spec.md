@@ -28,6 +28,8 @@ When `gitehr init` runs, it copies the template from `gitehr-folder-structure` i
 
 - `/imaging` – Imaging files and metadata such as DICOM, reports, scan metadata, and analyses (see [gitehr-folder-structure/imaging/README.md](../../gitehr-folder-structure/imaging/README.md)).
 
+- `/documents` – Non-imaging clinical documents such as reports, correspondence, and lab results (see [gitehr-folder-structure/documents/README.md](../../gitehr-folder-structure/documents/README.md)).
+
 - `/.gitehr` – Internal configuration directory created at init time (template currently empty; see [src/commands/init.rs](../../src/commands/init.rs)).
 
 ---
@@ -68,6 +70,8 @@ Converts the repository into a single-file format for easier transport. Addition
 
 ### [`gitehr contributor`](commands/contributor.md)
 
+Adds, enables, disables, activates, or deactivates contributors to the GitEHR record.
+
 ### [`gitehr gui`](commands/gui.md)
 
 Opens the GitEHR graphical user interface for easier interaction with the repository.
@@ -78,9 +82,7 @@ Upgrades the GitEHR repository to the latest version, applying any necessary mig
 
 ### [`gitehr version`](commands/version.md)
 
-Displays the current version of the GitEHR CLI.
-
-Adds, enables, disables, activates, or deactivates contributors to the GitEHR record.
+Displays the current GitEHR version shared by the CLI and GUI.
 
 ---
 

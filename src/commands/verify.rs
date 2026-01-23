@@ -65,6 +65,7 @@ pub fn verify_journal() -> Result<()> {
         let content = fs::read_to_string(entry.path())?;
 
         // Parse YAML front matter
+        // TODO: This assumes '---' delimiters and requires parent_entry for non-genesis entries.
         let yaml_content =
             content
                 .split("---")

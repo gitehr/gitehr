@@ -11,3 +11,5 @@ Adds a new remote GitEHR repository.
 Removes an existing remote GitEHR repository.
 
 Aliases: rm
+
+Current CLI status: not implemented. The command prints a stub message and echoes any provided arguments.

@@ -9,3 +9,5 @@ Upgrades an existing GitEHR repository to the latest version of `gitehr` binary 
 Performs any data migrations or upgrades required to ensure compatibility with the latest version.
 
 Records the upgrade in the repository's journal for auditability.
+
+Current CLI status: not implemented. The command prints a stub message and echoes any provided arguments.

@@ -23,6 +23,15 @@ pub fn initialise() -> Result<()> {
     // Create initial directories
     std::fs::create_dir(".gitehr")?;
 
+    // Record the CLI version used for initialization
+    std::fs::write(".gitehr/GITEHR_VERSION", env!("CARGO_PKG_VERSION"))?;
+
+    // Placeholder for future bundled binary install
+    std::fs::write(
+        ".gitehr/GITEHR_BINARY_PLACEHOLDER",
+        "Binary bundling not implemented yet. This file is a placeholder.",
+    )?;
+
     // Read and copy contents from template directory
     for entry in std::fs::read_dir(&template_path)? {
         let entry = entry?;

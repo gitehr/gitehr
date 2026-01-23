@@ -162,7 +162,7 @@ This keeps the Cargo version, git history, and published binaries aligned.
    - YAML front matter contains `parent_hash` (not `null`) and `timestamp`
    - The body text matches the genesis description
 
-### 2. `gitehr add`
+### 2. `gitehr journal add`
 
 Adds a new clinical entry to the `journal/` directory of the current GitEHR repository.
 
@@ -183,7 +183,7 @@ Adds a new clinical entry to the `journal/` directory of the current GitEHR repo
 
    ```sh
    cd /home/marcus/code/gitehr/test-ehr
-   gitehr add "First clinical entry"
+   gitehr journal add "First clinical entry"
    ```
 
 2. List the journal files:
@@ -250,7 +250,7 @@ From the CLI repo root (`gitehr/`):
    cd test-ehr
 
    gitehr init
-   gitehr add "Test entry"
+   gitehr journal add "Test entry"
    ```
 
 4. Inspect generated files and adjust implementation as needed.
