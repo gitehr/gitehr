@@ -9,7 +9,7 @@
 - Journal is append-only: entries live in `journal/` with YAML front matter and SHA-256 hash chaining (see `src/commands/journal.rs`, `src/commands/verify.rs`).
 
 ## Key paths & patterns
-- CLI entrypoint: `src/main.rs` (clap subcommands; most non-core commands are stubs). No-args prints version and help.
+- CLI entrypoint: `src/main.rs` (clap subcommands). No-args prints version and help.
 - Init flow: `src/commands/init.rs` copies template + creates genesis entry with random seed hash.
 - Journal format: `journal/<YYYYMMDDTHHMMSS.mmmZ>-<UUID>.md` and YAML front matter delimited by `---`.
 - YAML serialization: uses `serde_yml` (not `serde_yaml`). Keep this consistent.
@@ -17,14 +17,14 @@
 
 ## Dev workflows (project-specific)
 - CLI build: `cargo build` from repo root; install via `cargo install --path .` (see `docs/developers/developers.md`).
-- Manual CLI tests: create a throwaway repo, run `gitehr init`, then `gitehr add "..."` (see `docs/developers/developers.md`).
+- Manual CLI tests: create a throwaway repo, run `gitehr init`, then `gitehr journal add "..."` (see `docs/developers/developers.md`).
 - GUI dev: `cd gui/gitehr-gui && npm install && npm run tauri dev` (requires Tauri system deps; documented in developers guide).
 - Docs: `docker compose up` runs MkDocs on :8766 (see `docker-compose.yml`).
 
 ## Conventions
-- Repository template lives under `gitehr-folder-structure/` and is copied verbatim on init; update both template + CLI logic when needed.
+- Repository template lives under `gitehr-folder-structure/` and is copied verbatim on `gitehr init`; update both template + CLI logic when needed.
 - Use SHA-256 hashes for journal chain verification (`sha2` crate); verify scans all entries and maps hash -> filename.
-- Keep CLI subcommand stubs consistent with current behavior (print “not implemented yet” with args).
+- Keep command specs aligned with current CLI behavior.
 
 ## Integration points
 - Docs theming is in `mkdocs.yml` + `docs/stylesheets/extra.css`.
