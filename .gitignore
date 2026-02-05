@@ -75,3 +75,5 @@ ipython_config.py
 
 # mkdocs build output
 /site
+
+.sisyphus/
