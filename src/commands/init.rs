@@ -4,35 +4,50 @@ use rand::Rng;
 use sha2::{Digest, Sha256};
 use std::path::PathBuf;
 
-use super::journal;
+use super::{git, journal};
+
+fn get_current_exe_path() -> Result<PathBuf> {
+    std::env::current_exe()
+        .map_err(|e| anyhow::anyhow!("Failed to get current executable path: {}", e))
+}
+
+fn copy_binary_to_repo() -> Result<()> {
+    let source = get_current_exe_path()?;
+    let dest = PathBuf::from(".gitehr/gitehr");
+
+    std::fs::copy(&source, &dest)?;
+
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let mut perms = std::fs::metadata(&dest)?.permissions();
+        perms.set_mode(0o755);
+        std::fs::set_permissions(&dest, perms)?;
+    }
+
+    Ok(())
+}
 
 pub fn initialise() -> Result<()> {
-    // Check if .gitehr directory already exists
     let gitehr_dir = PathBuf::from(".gitehr");
     if gitehr_dir.exists() {
         anyhow::bail!("GitEHR repository already exists in this directory");
     }
 
-    // Get the path to the folder structure template
     let template_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("gitehr-folder-structure");
 
     if !template_path.exists() {
         anyhow::bail!("Could not find template directory");
     }
 
-    // Create initial directories
     std::fs::create_dir(".gitehr")?;
 
-    // Record the CLI version used for initialization
+    git::git_init()?;
+
     std::fs::write(".gitehr/GITEHR_VERSION", env!("CARGO_PKG_VERSION"))?;
 
-    // Placeholder for future bundled binary install
-    std::fs::write(
-        ".gitehr/GITEHR_BINARY_PLACEHOLDER",
-        "Binary bundling not implemented yet. This file is a placeholder.",
-    )?;
+    copy_binary_to_repo()?;
 
-    // Read and copy contents from template directory
     for entry in std::fs::read_dir(&template_path)? {
         let entry = entry?;
         let target_name = entry.file_name();
@@ -46,7 +61,6 @@ pub fn initialise() -> Result<()> {
         }
     }
 
-    // Create genesis entry with random seed
     let mut rng = rand::rng();
     let mut seed = [0u8; 32];
     rng.fill(&mut seed);

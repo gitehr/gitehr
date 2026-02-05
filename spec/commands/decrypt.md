@@ -2,8 +2,14 @@
 
 # `gitehr decrypt`
 
-### `gitehr decrypt`
+### `gitehr decrypt [--key <source>]`
 
-Decrypts the repository using a local or remote key.
+Removes the encryption marker for the repository. This is a placeholder implementation for future full-file decryption.
 
-Current CLI status: not implemented. The command prints a stub message and echoes any provided arguments.
+Options:
+- `--key <source>`: Key source identifier (for example, `local` or a remote URL). Defaults to `local` when omitted.
+
+Behavior:
+- Fails if the current directory is not a GitEHR repository.
+- Fails if the repository is not marked as encrypted.
+- Removes `.gitehr/ENCRYPTED` and prints a note that full decryption is pending.

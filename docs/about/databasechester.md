@@ -16,4 +16,6 @@ As the Council needs to communicate with more and more departments and teams, th
 
 Nobody would be surprised if a city which managed simple documents like this could achieve very little, despite huge amounts of money being spent on interoperability.
 
-Is this starting so sound familiar to anyone working in health tech? The absence of any kind of file format for medical records has created this exact scenario within the NHS. The NHS is a city of databases, with no document file format.
+Is this starting so sound familiar to anyone working in health tech? The absence of any kind of file format for medical records has created this exact scenario within the NHS. 
+
+The NHS is a city of databases, with no document file format.

@@ -24,13 +24,6 @@ body {
 .app-shell {
   min-height: 100vh;
   animation: fade-in 480ms ease-out;
-  --app-shell-header-height: 64px;
-}
-
-.app-shell .mantine-AppShell-navbar,
-.app-shell .mantine-AppShell-aside,
-.app-shell .mantine-AppShell-main {
-  padding-top: calc(var(--app-shell-header-height, 64px) + var(--mantine-spacing-md));
 }
 
 .app-header {
@@ -102,5 +95,22 @@ body {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@media (max-width: 768px) {
+  .search-input {
+    display: none;
+  }
+  
+  .main-surface {
+    padding: 12px;
+    border-radius: 16px;
+  }
+}
+
+@media (max-width: 992px) {
+  .search-input input {
+    min-width: 180px;
   }
 }

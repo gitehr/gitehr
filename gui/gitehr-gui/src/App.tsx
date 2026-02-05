@@ -5,35 +5,237 @@ import {
   Box,
   Button,
   Card,
+  Center,
   Divider,
   Group,
-  List,
+  Loader,
   NavLink,
-  Progress,
-  SimpleGrid,
   Stack,
   Text,
+  Textarea,
   TextInput,
   ThemeIcon,
   Title,
+  Alert,
 } from "@mantine/core";
 import {
   IconActivity,
+  IconAlertCircle,
   IconCalendar,
   IconChartBar,
-  IconClipboardHeart,
   IconFileText,
-  IconMapPin,
-  IconMessagePlus,
+  IconFolderOpen,
   IconSearch,
   IconSettings,
-  IconStethoscope,
   IconUser,
+  IconPlus,
 } from "@tabler/icons-react";
+import { useEffect, useState } from "react";
 import gitehrLogo from "./assets/gitehr-logo.svg";
 import "./App.css";
+import {
+  addJournalEntry,
+  getCurrentDir,
+  getJournalEntries,
+  getStateFiles,
+  getStatus,
+  isGitehrRepo,
+  pickFolder,
+  initRepo,
+  type JournalEntryInfo,
+  type RepoStatusInfo,
+  type StateFileInfo,
+} from "./api/gitehr";
 
 function App() {
+  const [repoPath, setRepoPath] = useState<string | null>(null);
+  const [repoChecked, setRepoChecked] = useState(false);
+  const [status, setStatus] = useState<RepoStatusInfo | null>(null);
+  const [entries, setEntries] = useState<JournalEntryInfo[]>([]);
+  const [stateFiles, setStateFiles] = useState<StateFileInfo[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
+
+  const [newEntryContent, setNewEntryContent] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    const checkInitialRepo = async () => {
+      try {
+        const cwd = await getCurrentDir();
+        const isRepo = await isGitehrRepo(cwd);
+        if (isRepo) {
+          setRepoPath(cwd);
+        }
+      } catch (err) {
+        console.error("Failed to check initial repo:", err);
+      } finally {
+        setRepoChecked(true);
+      }
+    };
+    checkInitialRepo();
+  }, []);
+
+  const handlePickFolder = async () => {
+    try {
+      const folder = await pickFolder();
+      if (folder) {
+        const isRepo = await isGitehrRepo(folder);
+        if (isRepo) {
+          setRepoPath(folder);
+          setError(null);
+        } else {
+          setError("Selected folder is not a GitEHR repository (no .gitehr directory found).");
+        }
+      }
+    } catch (err) {
+      console.error("Failed to pick folder:", err);
+      setError("Failed to open folder picker.");
+    }
+  };
+
+  const handleInitRepo = async () => {
+    try {
+      const folder = await pickFolder();
+      if (folder) {
+        setCreating(true);
+        setError(null);
+        try {
+          await initRepo(folder);
+          setRepoPath(folder);
+        } catch (err) {
+          console.error("Failed to init repo:", err);
+          const message = typeof err === "string" ? err : String(err);
+          if (message.includes("GitEHR CLI not found")) {
+            setError(message);
+          } else {
+            setError("Failed to create repository: " + message);
+          }
+        } finally {
+          setCreating(false);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to pick folder:", err);
+      setError("Failed to open folder picker.");
+    }
+  };
+
+  const fetchData = async () => {
+    if (!repoPath) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const [statusData, entriesData, stateFilesData] = await Promise.all([
+        getStatus(repoPath),
+        getJournalEntries(repoPath, { limit: 10, reverse: true }),
+        getStateFiles(repoPath),
+      ]);
+      setStatus(statusData);
+      setEntries(entriesData);
+      setStateFiles(stateFilesData);
+    } catch (err) {
+      console.error("Failed to fetch data:", err);
+      setError(
+        "Failed to load GitEHR data. Please ensure the backend is running and the repo path is correct."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (repoPath) {
+      fetchData();
+    }
+  }, [repoPath]);
+
+  const handleAddEntry = async () => {
+    if (!repoPath || !newEntryContent.trim()) return;
+    setSubmitting(true);
+    try {
+      await addJournalEntry(repoPath, newEntryContent);
+      setNewEntryContent("");
+      fetchData();
+    } catch (err) {
+      console.error("Failed to add entry:", err);
+      alert("Failed to add entry: " + err);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const getStateContent = (filename: string) => {
+    const file = stateFiles.find((f) => f.name === filename || f.name === filename + ".md");
+    if (!file) return "Not documented";
+    // Strip markdown headers if present (simple heuristic)
+    return file.content.replace(/^#+\s+/gm, "").trim();
+  };
+
+  // Loading state while checking initial repo
+  if (!repoChecked) {
+    return (
+      <Center h="100vh">
+        <Stack align="center" gap="md">
+          <Loader size="lg" color="teal" />
+          <Text c="dimmed">Checking for GitEHR repository...</Text>
+        </Stack>
+      </Center>
+    );
+  }
+
+  // No repo detected - show folder picker
+  if (!repoPath) {
+    return (
+      <Center h="100vh" bg="gray.0">
+        <Card radius="lg" shadow="md" p="xl" w={400}>
+          <Stack align="center" gap="lg">
+            <Box className="brand-mark" style={{ width: 80, height: 80 }}>
+              <img src={gitehrLogo} alt="GitEHR logo" style={{ width: "100%", height: "100%" }} />
+            </Box>
+            <Stack align="center" gap="xs">
+              <Title order={3}>No GitEHR Repository Detected</Title>
+              <Text size="sm" c="dimmed" ta="center">
+                Select a folder containing a GitEHR repository to get started.
+              </Text>
+            </Stack>
+            {error && (
+              <Alert
+                icon={<IconAlertCircle size={16} />}
+                color={error.includes("GitEHR CLI not found") ? "yellow" : "red"}
+                w="100%"
+                onClose={() => setError(null)}
+                withCloseButton
+              >
+                {error}
+              </Alert>
+            )}
+            <Button
+              size="md"
+              leftSection={<IconFolderOpen size={18} />}
+              onClick={handlePickFolder}
+              fullWidth
+            >
+              Open Repository
+            </Button>
+            <Button
+              size="md"
+              variant="light"
+              leftSection={<IconPlus size={18} />}
+              onClick={handleInitRepo}
+              loading={creating}
+              fullWidth
+            >
+              Create New Repository
+            </Button>
+          </Stack>
+        </Card>
+      </Center>
+    );
+  }
+
+  // Normal app view when repo is loaded
   return (
     <AppShell
       className="app-shell"
@@ -64,13 +266,6 @@ function App() {
               size="sm"
               className="search-input"
             />
-            <Button
-              size="sm"
-              leftSection={<IconMessagePlus size={16} />}
-              radius="md"
-            >
-              New Entry
-            </Button>
           </Group>
         </Group>
       </AppShell.Header>
@@ -94,20 +289,33 @@ function App() {
           <Card className="sidebar-card" radius="lg" mt="md">
             <Stack gap={6}>
               <Text size="xs" tt="uppercase" fw={600} c="dimmed">
-                Snapshot
+                Repo Status
               </Text>
-              <Group justify="space-between">
-                <Text size="sm">Active patients</Text>
-                <Badge variant="light" color="teal">
-                  32
-                </Badge>
-              </Group>
-              <Group justify="space-between">
-                <Text size="sm">Alerts</Text>
-                <Badge variant="light" color="orange">
-                  4
-                </Badge>
-              </Group>
+              {status && (
+                <>
+                  <Group justify="space-between">
+                    <Text size="sm">Entries</Text>
+                    <Badge variant="light" color="teal">
+                      {status.journal_entry_count}
+                    </Badge>
+                  </Group>
+                  <Group justify="space-between">
+                    <Text size="sm">Encrypted</Text>
+                    <Badge
+                      variant="light"
+                      color={status.is_encrypted ? "green" : "gray"}
+                    >
+                      {status.is_encrypted ? "Yes" : "No"}
+                    </Badge>
+                  </Group>
+                  <Group justify="space-between">
+                    <Text size="sm">Version</Text>
+                    <Text size="sm" c="dimmed">
+                      {status.gitehr_version || "N/A"}
+                    </Text>
+                  </Group>
+                </>
+              )}
             </Stack>
           </Card>
         </Stack>
@@ -116,7 +324,18 @@ function App() {
       <AppShell.Main className="app-main">
         <Box className="main-surface">
           <Stack gap="md">
-          <Group justify="space-between" align="flex-end">
+            {error && (
+              <Alert
+                icon={<IconAlertCircle size={16} />}
+                title="Error"
+                color="red"
+                withCloseButton
+                onClose={() => setError(null)}
+              >
+                {error}
+              </Alert>
+            )}
+            <Group justify="space-between" align="flex-end">
             <Box>
               <Title order={2}>Patient Overview</Title>
               <Text size="sm" c="dimmed">
@@ -133,118 +352,60 @@ function App() {
             </Group>
           </Group>
 
-          <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
-            <Card radius="lg" className="panel-card">
+          <Card radius="lg" className="panel-card">
               <Group justify="space-between" mb="md">
                 <Group gap="xs">
                   <ThemeIcon variant="light" color="teal">
-                    <IconClipboardHeart size={18} />
+                    <IconFileText size={18} />
                   </ThemeIcon>
-                  <Text fw={600}>Care timeline</Text>
+                  <Text fw={600}>Journal</Text>
                 </Group>
-                <Badge variant="outline">Last 30 days</Badge>
+                <Badge variant="outline">{entries.length} entries</Badge>
               </Group>
-              <List spacing="sm" size="sm">
-                <List.Item icon={<IconStethoscope size={16} />}>
-                  Follow-up visit for post-op assessment
-                </List.Item>
-                <List.Item icon={<IconFileText size={16} />}>
-                  New journal entry: Cardio rehab plan v2
-                </List.Item>
-                <List.Item icon={<IconCalendar size={16} />}>
-                  Remote consult scheduled for Thursday
-                </List.Item>
-                <List.Item icon={<IconMapPin size={16} />}>
-                  Imaging uploaded from Outreach Lab
-                </List.Item>
-              </List>
-            </Card>
 
-            <Card radius="lg" className="panel-card">
-              <Group justify="space-between" mb="md">
-                <Group gap="xs">
-                  <ThemeIcon variant="light" color="orange">
-                    <IconActivity size={18} />
-                  </ThemeIcon>
-                  <Text fw={600}>Clinical summary</Text>
-                </Group>
-                <Badge variant="outline" color="orange">
-                  Auto-generated
-                </Badge>
+              <Group align="flex-start" gap="sm" mb="md">
+                <Textarea
+                  placeholder="Write a new journal entry..."
+                  style={{ flex: 1 }}
+                  minRows={2}
+                  maxRows={4}
+                  autosize
+                  value={newEntryContent}
+                  onChange={(e) => setNewEntryContent(e.currentTarget.value)}
+                  disabled={submitting}
+                />
+                <Button
+                  onClick={handleAddEntry}
+                  loading={submitting}
+                  disabled={!newEntryContent.trim()}
+                >
+                  Add
+                </Button>
               </Group>
-              <Stack gap="sm">
-                <Box>
-                  <Group justify="space-between" mb={6}>
-                    <Text size="sm">Medication adherence</Text>
-                    <Text size="sm" c="dimmed">
-                      92%
-                    </Text>
-                  </Group>
-                  <Progress value={92} color="teal" />
-                </Box>
-                <Box>
-                  <Group justify="space-between" mb={6}>
-                    <Text size="sm">Recovery goals</Text>
-                    <Text size="sm" c="dimmed">
-                      64%
-                    </Text>
-                  </Group>
-                  <Progress value={64} color="orange" />
-                </Box>
-                <Box>
-                  <Group justify="space-between" mb={6}>
-                    <Text size="sm">Vitals stability</Text>
-                    <Text size="sm" c="dimmed">
-                      78%
-                    </Text>
-                  </Group>
-                  <Progress value={78} color="blue" />
-                </Box>
-              </Stack>
-            </Card>
-          </SimpleGrid>
 
-          <SimpleGrid cols={{ base: 1, md: 3 }} spacing="md">
-            <Card radius="lg" className="panel-card">
-              <Text fw={600} mb="xs">
-                Recent notes
-              </Text>
-              <Text size="sm" c="dimmed">
-                New allergy documented: acetaminophen sensitivity, mild reaction
-                noted.
-              </Text>
-              <Divider my="sm" />
-              <Text size="sm" c="dimmed">
-                Physical therapy: range of motion improved by 12% over baseline.
-              </Text>
+              <Divider mb="md" />
+
+              {loading ? (
+                <Center py="md">
+                  <Loader size="sm" />
+                </Center>
+              ) : entries.length === 0 ? (
+                <Text size="sm" c="dimmed" ta="center" py="md">
+                  No journal entries yet. Add your first entry above.
+                </Text>
+              ) : (
+                <Stack gap="sm">
+                  {entries.map((entry, i) => (
+                    <Card key={i} withBorder padding="sm" radius="md">
+                      <Text size="sm">{entry.content_preview}</Text>
+                      <Text size="xs" c="dimmed" mt="xs">
+                        {new Date(entry.timestamp).toLocaleString()} · {entry.author || "Unknown"}
+                      </Text>
+                    </Card>
+                  ))}
+                </Stack>
+              )}
             </Card>
-            <Card radius="lg" className="panel-card">
-              <Text fw={600} mb="xs">
-                Outstanding tasks
-              </Text>
-              <List spacing="xs" size="sm">
-                <List.Item>Confirm lab results delivery</List.Item>
-                <List.Item>Schedule nurse check-in</List.Item>
-                <List.Item>Review imaging delta</List.Item>
-              </List>
-            </Card>
-            <Card radius="lg" className="panel-card">
-              <Text fw={600} mb="xs">
-                Alerts
-              </Text>
-              <Stack gap="xs">
-                <Badge color="red" variant="light">
-                  Medication refill required
-                </Badge>
-                <Badge color="yellow" variant="light">
-                  Consent expiring in 14 days
-                </Badge>
-                <Badge color="teal" variant="light">
-                  Sync healthy
-                </Badge>
-              </Stack>
-            </Card>
-          </SimpleGrid>
           </Stack>
         </Box>
       </AppShell.Main>
@@ -275,62 +436,68 @@ function App() {
               Stateful summary
             </Text>
             <Stack gap="sm">
-              <Box>
-                <Text size="sm" fw={600}>
-                  Allergies
-                </Text>
-                <Text size="sm" c="dimmed">
-                  Penicillin, acetaminophen
-                </Text>
-              </Box>
-              <Box>
-                <Text size="sm" fw={600}>
-                  Current medications
-                </Text>
-                <Text size="sm" c="dimmed">
-                  Atenolol 25mg, Atorvastatin 40mg
-                </Text>
-              </Box>
-              <Box>
-                <Text size="sm" fw={600}>
-                  Demographics
-                </Text>
-                <Text size="sm" c="dimmed">
-                  London, UK · Preferred pronouns: they/them
-                </Text>
-              </Box>
+              {loading ? (
+                <Loader size="sm" />
+              ) : (
+                <>
+                  <Box>
+                    <Text size="sm" fw={600}>
+                      Allergies
+                    </Text>
+                    <Text size="sm" c="dimmed">
+                      {getStateContent("allergies")}
+                    </Text>
+                  </Box>
+                  <Box>
+                    <Text size="sm" fw={600}>
+                      Current medications
+                    </Text>
+                    <Text size="sm" c="dimmed">
+                      {getStateContent("medications")}
+                    </Text>
+                  </Box>
+                  <Box>
+                    <Text size="sm" fw={600}>
+                      Demographics
+                    </Text>
+                    <Text size="sm" c="dimmed">
+                      {getStateContent("demographics")}
+                    </Text>
+                  </Box>
+                </>
+              )}
             </Stack>
           </Card>
 
-          <Card radius="lg" className="panel-card">
-            <Text size="xs" tt="uppercase" fw={600} c="dimmed" mb="xs">
-              Activity feed
-            </Text>
-            <Stack gap="sm">
-              <Group align="flex-start">
-                <ThemeIcon variant="light" color="teal">
-                  <IconFileText size={16} />
-                </ThemeIcon>
-                <Box>
-                  <Text size="sm">Journal entry signed by Dr. Malik</Text>
-                  <Text size="xs" c="dimmed">
-                    18 minutes ago
-                  </Text>
-                </Box>
-              </Group>
-              <Group align="flex-start">
-                <ThemeIcon variant="light" color="blue">
-                  <IconCalendar size={16} />
-                </ThemeIcon>
-                <Box>
-                  <Text size="sm">Appointment updated to telehealth</Text>
-                  <Text size="xs" c="dimmed">
-                    2 hours ago
-                  </Text>
-                </Box>
-              </Group>
-            </Stack>
-          </Card>
+            <Card radius="lg" className="panel-card">
+              <Text size="xs" tt="uppercase" fw={600} c="dimmed" mb="xs">
+                Activity feed
+              </Text>
+              <Stack gap="sm">
+                {loading ? (
+                  <Loader size="sm" />
+                ) : (
+                  entries.slice(0, 3).map((entry, i) => (
+                    <Group align="flex-start" key={i}>
+                      <ThemeIcon variant="light" color="teal">
+                        <IconFileText size={16} />
+                      </ThemeIcon>
+                      <Box>
+                        <Text size="sm">
+                          Journal entry by {entry.author || "Unknown"}
+                        </Text>
+                        <Text size="xs" c="dimmed">
+                          {new Date(entry.timestamp).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </Text>
+                      </Box>
+                    </Group>
+                  ))
+                )}
+              </Stack>
+            </Card>
         </Stack>
       </AppShell.Aside>
     </AppShell>

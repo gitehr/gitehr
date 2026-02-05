@@ -1,0 +1,17 @@
+{
+  "name": "gitehr-e2e",
+  "version": "1.0.0",
+  "description": "E2E tests for GitEHR GUI",
+  "type": "module",
+  "scripts": {
+    "test": "npm run test:no-repo && npm run test:with-repo",
+    "test:no-repo": "wdio run wdio.conf.js",
+    "test:with-repo": "E2E_WITH_REPO=true wdio run wdio.conf.js"
+  },
+  "devDependencies": {
+    "@wdio/cli": "^9.23.3",
+    "@wdio/local-runner": "^9.23.3",
+    "@wdio/mocha-framework": "^9.23.3",
+    "@wdio/spec-reporter": "^9.23.3"
+  }
+}

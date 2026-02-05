@@ -2,6 +2,10 @@
 
 This document explains how to build and manually test GitEHR. Initially it focuses on the Linux platform, because that is what I'm using, but I will expand this to add other platforms as I can.
 
+## CLI reference
+
+See [CLI Reference](cli.md) for command syntax and behavior. The CLI is intended for developers and automation, not clinical end users.
+
 ## Prerequisites (CLI)
 
 - `cargo` available on your PATH
@@ -311,16 +315,3 @@ cargo build      # or: cargo install --path .
    ```
 
 This keeps the Cargo version, git history, and published binaries aligned.
-
-## Notes / Future Hooks
-
-- The current CLI is intentionally small and focused on:
-  - Repository initialization
-  - Journal entry creation and chaining
-- Planned future commands (not yet implemented):
-  - `gitehr status`
-  - `gitehr encrypt` / `gitehr decrypt`
-  - `gitehr transport` / `gitehr extract`
-- GUI (`gitehr-gui/`) will eventually sit alongside this CLI and talk to the same on-disk structure.
-
-Keep this document updated as new commands and behaviours are added.

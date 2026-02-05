@@ -1,5 +1,5 @@
 use crate::commands::journal::JournalEntry;
-use anyhow::{Result, anyhow};
+use anyhow::{anyhow, Result};
 use sha2::{Digest, Sha256};
 use std::fs;
 use std::path::PathBuf;
@@ -39,14 +39,25 @@ impl std::fmt::Display for JournalVerificationError {
 
 impl std::error::Error for JournalVerificationError {}
 
+fn is_journal_entry_file(filename: &str) -> bool {
+    filename.contains('T') && filename.contains('-') && filename.ends_with(".md")
+}
+
 pub fn verify_journal() -> Result<()> {
     let journal_dir = PathBuf::from("journal");
     if !journal_dir.exists() {
         return Err(anyhow!("Journal directory not found"));
     }
 
-    // Get all entries
-    let mut entries: Vec<_> = fs::read_dir(&journal_dir)?.filter_map(|e| e.ok()).collect();
+    let mut entries: Vec<_> = fs::read_dir(&journal_dir)?
+        .filter_map(|e| e.ok())
+        .filter(|e| {
+            e.file_name()
+                .to_str()
+                .map(is_journal_entry_file)
+                .unwrap_or(false)
+        })
+        .collect();
 
     // Sort by filename (which contains timestamp)
     entries.sort_by_key(|e| e.file_name());
@@ -60,12 +71,11 @@ pub fn verify_journal() -> Result<()> {
     }
 
     // Verify each entry
-    for entry in &entries {
+    for (idx, entry) in entries.iter().enumerate() {
         let filename = entry.file_name().to_string_lossy().to_string();
         let content = fs::read_to_string(entry.path())?;
 
         // Parse YAML front matter
-        // TODO: This assumes '---' delimiters and requires parent_entry for non-genesis entries.
         let yaml_content =
             content
                 .split("---")
@@ -81,6 +91,15 @@ pub fn verify_journal() -> Result<()> {
                 reason: format!("Invalid YAML: {}", e),
             }
         })?;
+
+        // Genesis entry detection: first chronological entry with parent_hash but no parent_entry
+        // (parent_hash points to random seed, not an actual journal file)
+        let is_genesis =
+            idx == 0 && entry_data.parent_hash.is_some() && entry_data.parent_entry.is_none();
+
+        if is_genesis {
+            continue;
+        }
 
         // For non-genesis entries, verify parent hash exists and matches
         if let Some(parent_hash) = entry_data.parent_hash {

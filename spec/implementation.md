@@ -7,6 +7,7 @@
 - The GitEHR CLI is implemented in Rust, which enables a compiled, cross-platform binary to be shipped inside each GitEHR repository for portability.
 - The CLI uses the `clap` crate for command-line argument parsing.
 - The CLI commands are implemented in the `src/commands` directory, with each command in its own module. Specifications for each command are detailed in their respective files in the `spec/commands` directory.
+- the CLI includes completions for popular shells (bash, zsh, fish, powershell) to enhance the user experience.
 
 ### GUI
 
@@ -15,7 +16,9 @@
 
 ## Versioning
 
-At the moment GitEHR uses semantic versioning (semver) for releases, with versions in the format `MAJOR.MINOR.PATCH`. The primary source of truth for the current version is the `version` field in `gitehr/Cargo.toml`. In future we may switch to a date-based versioning scheme (CalVer) in which versions will look something like `YYYY.MM.minor`), if that proves more informative for end users and developers.
+- At the moment GitEHR uses semantic versioning (semver) for releases, with versions in the format `MAJOR.MINOR.PATCH`.
+- The primary source of truth for the current version is the `version` field in `gitehr/Cargo.toml`.
+- In future we may switch to a date-based versioning scheme (CalVer) in which versions will look something like `YYYY.MM.minor`), if that proves more intuitively informative for end users and developers.
 
 ## Licensing in source files
 

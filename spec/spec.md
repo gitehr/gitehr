@@ -68,9 +68,9 @@ Displays the current status of the GitEHR repository, including any uncommitted 
 
 Converts the repository into a single-file format for easier transport. Additional encryption layers can be applied at this stage.
 
-### [`gitehr contributor`](commands/contributor.md)
+### [`gitehr user`](commands/user.md)
 
-Adds, enables, disables, activates, or deactivates contributors to the GitEHR record.
+Adds, enables, disables, activates, or deactivates users for the GitEHR record.
 
 ### [`gitehr gui`](commands/gui.md)
 
@@ -78,7 +78,11 @@ Opens the GitEHR graphical user interface for easier interaction with the reposi
 
 ### [`gitehr upgrade`](commands/upgrade.md)
 
-Upgrades the GitEHR repository to the latest version, applying any necessary migrations.
+Upgrades the GitEHR repository to the latest version, applying any necessary migrations and updating the bundled binary.
+
+### [`gitehr upgrade-binary`](commands/upgrade-binary.md)
+
+Updates the bundled binary in `.gitehr/gitehr` to match the current CLI version.
 
 ### [`gitehr version`](commands/version.md)
 
@@ -88,83 +92,68 @@ Displays the current GitEHR version shared by the CLI and GUI.
 
 ## The GitEHR Journal
 
-The journal is an append-only logbook of clinical interactions organised per patient.
+The journal is an append-only logbook of clinical interactions. Each GitEHR repository represents a single patient's complete medical record.
 
 ## Layout
 
 ```
 journal/
-  patients/
-    <patient_id>/
-      <ISO8601-event-timestamp>--<event_id>.md
+  <ISO8601-timestamp>-<uuid>.md
 ```
 
-- `patient_id` should be a stable GitEHR identifier (for example `pat-1234`).
-- `ISO8601-event-timestamp` must represent when the interaction happened (UTC), e.g. `2025-11-28T12-34-56Z`.
-- `event_id` is a short GUID/slug (`c01`, `evt-uuid`) to guarantee uniqueness.
+- Each file is named with its creation timestamp (UTC, millisecond precision) followed by a UUID to guarantee uniqueness.
+- Example: `20260205T032720.630Z-dab47f45-f5ff-45a2-b6b4-6f2285b173ac.md`
+- Files are sorted chronologically by filename.
+- The first entry (genesis) is created automatically by `gitehr init` and anchors the chain with a random seed hash.
 
 ## File format
 
-Each file describes one interaction and uses **YAML front matter + Markdown body**:
-Need to strongly consider the cons of using markdown through out
-
-Proposed yaml header structure:
+Each file describes one clinical interaction and uses **YAML front matter + Markdown body**:
 
 ```yaml
 ---
-gitehr_event_id: c01
-gitehr_patient_id: pat-1234
-recorded_at: 2025-11-28T12:34:56Z
-author:
-  id: user-dr-osutuk
-  name: "Akan Osutuk"
-  role: "ST2 Paediatrics"
-context:
-  location: "Ward 3B"
-  encounter_id: "enc-987"
-  episode_id: "ep-ALL-block1"
-links:
-  related_imaging:
-    - "imaging/pat-1234/studies/study-abc/meta.json"
-  related_files:
-    - "attachments/pat-1234/letters/2025-11-28-discharge.pdf"
-codes:
-  diagnoses:
-    - system: "snomed"
-      code: "123456"
-      display: "Acute lymphoblastic leukaemia"
-  procedures: []
-correction_of: null
+parent_hash: '<SHA-256 hash of parent entry content, or random seed for genesis>'
+parent_entry: '<filename of parent entry, or null for genesis>'
+timestamp: '<ISO 8601 UTC timestamp>'
+author: '<optional user ID>'
 ---
+
 Markdown narrative of the clinical interaction...
 ```
 
-- YAML captures machine-readable metadata and references.
-- The Markdown body is the human narrative, free-form but diffable.
+- `parent_hash` links this entry to its parent, forming a tamper-evident chain.
+- `parent_entry` records the filename of the parent for human readability.
+- `timestamp` is the creation time of this entry.
+- `author` (optional) identifies the user who created this entry.
+- The Markdown body contains the human-readable clinical narrative.
 
 ---
 
-## Repository Lifecycle Summary
-
-- **Verification:** `gitehr journal verify` recomputes hashes to ensure every non-genesis entry’s declared parent exists and matches, flagging missing links or mismatched filenames (see [src/commands/verify.rs](../../src/commands/verify.rs)).
-
-## GitEHR repository lifecycle
+## Repository Lifecycle
 
 ### Initialization
 
-### Adding entries
+Running `gitehr init` creates a new repository with:
+- The folder structure from the template (`journal/`, `state/`, `imaging/`, `documents/`)
+- A `.gitehr/` configuration directory with version information
+- A genesis journal entry that anchors the hash chain with a random seed
 
-### Journal file contents
+### Adding Entries
 
-Each new file should have YAML front matter with the following fields:
+Use `gitehr journal add "<content>"` to append new entries. Each entry:
+- Links to the previous entry via `parent_hash` and `parent_entry`
+- Gets a unique filename based on timestamp and UUID
+- Becomes immutable once committed to Git
 
-- date: the date of the entry
-- time: the time of the entry
-- location: the location of the entry
-- provider: the provider of the entry
-- type: the type of the entry
-- tags: a list of tags for the entry
+### Verification
 
-`.gitehr` contains hidden files including internal GitEHR config.
+`gitehr journal verify` validates the integrity of the journal chain by:
+- Checking that every non-genesis entry's `parent_hash` exists in the journal
+- Verifying that `parent_entry` matches the expected filename
+- Confirming the hash chain is unbroken from genesis to the latest entry
 
-All other folders are for clinical information.
+### Documentation site
+
+The GitEHr repo includes a Material for MkDocs documentation site that provides an overview of the repository structure and usage. It is generated from the `docs/` directory and can be served locally with `mkdocs serve` or built into static files with `mkdocs build`.
+
+The documsntation site has nav sections for GUI and CLI usage, as well as detailed explanations of the journal and state structures. It serves as a user-friendly reference for both clinicians and developers interacting with GitEHR repositories.
