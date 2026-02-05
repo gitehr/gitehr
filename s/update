@@ -1,0 +1,18 @@
+#!/bin/sh
+# Update Rust (cargo) and Node (npm) dependencies for the project
+
+set -e
+
+# Update Rust dependencies
+echo "Updating Rust (cargo) dependencies..."
+cargo update
+
+# Update Node dependencies
+if [ -f "gui/gitehr-gui/package.json" ]; then
+  echo "Updating Node (npm) dependencies in gui/gitehr-gui..."
+  cd gui/gitehr-gui
+  npm update
+  cd - > /dev/null
+fi
+
+echo "All dependencies updated."
