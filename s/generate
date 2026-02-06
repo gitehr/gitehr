@@ -1,0 +1,215 @@
+#!/usr/bin/env python3
+
+import argparse
+import base64
+import datetime as dt
+import hashlib
+import json
+import os
+import secrets
+import sys
+import uuid
+
+
+def eprint(*args):
+    print(*args, file=sys.stderr)
+
+
+def now_utc():
+    return dt.datetime.now(dt.timezone.utc)
+
+
+def iso_utc(ts):
+    return ts.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def iso_utc_ms(ts):
+    return ts.strftime("%Y%m%dT%H%M%S.%f")[:-3] + "Z"
+
+
+def uuidv7():
+    # UUIDv7 draft: 48-bit unix epoch ms, 12-bit rand, version=7, 62-bit rand with variant
+    ts_ms = int(now_utc().timestamp() * 1000)
+    if ts_ms >= 2**48:
+        raise RuntimeError("timestamp out of range for UUIDv7")
+
+    rand_a = secrets.randbits(12)
+    rand_b = secrets.randbits(62)
+
+    uuid_int = (ts_ms << 80) | (rand_a << 68) | (0x7 << 64) | rand_b
+
+    # Set RFC 4122 variant (10xx) in the correct position
+    uuid_int &= ~(0x3 << 62)
+    uuid_int |= (0x2 << 62)
+
+    return uuid.UUID(int=uuid_int)
+
+
+def crockford_base32(uuid_bytes):
+    # Use base32 and translate to Crockford alphabet; strip padding.
+    b32 = base64.b32encode(uuid_bytes).decode("ascii").rstrip("=")
+    # RFC4648 base32 alphabet: A-Z2-7; Crockford: 0-9A-Z (no I,L,O,U)
+    trans = str.maketrans(
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567",
+        "0123456789ABCDEFGHJKMNPQRSTVWXYZ",
+    )
+    return b32.translate(trans)
+
+
+def sha256_hex(data):
+    return hashlib.sha256(data).hexdigest()
+
+
+def load_or_init_mpi(path):
+    if not os.path.exists(path):
+        return {"version": 1, "updated_at": iso_utc(now_utc()), "patients": []}
+    with open(path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def write_mpi(path, mpi):
+    mpi["updated_at"] = iso_utc(now_utc())
+    tmp_path = path + ".tmp"
+    with open(tmp_path, "w", encoding="utf-8") as f:
+        json.dump(mpi, f, indent=2, sort_keys=False)
+    os.replace(tmp_path, path)
+
+
+def ensure_dir(path):
+    os.makedirs(path, exist_ok=True)
+
+
+def copy_tree(src, dst):
+    for root, dirs, files in os.walk(src):
+        rel = os.path.relpath(root, src)
+        out_dir = os.path.join(dst, rel) if rel != "." else dst
+        os.makedirs(out_dir, exist_ok=True)
+        for d in dirs:
+            os.makedirs(os.path.join(out_dir, d), exist_ok=True)
+        for name in files:
+            src_path = os.path.join(root, name)
+            dst_path = os.path.join(out_dir, name)
+            with open(src_path, "rb") as fsrc, open(dst_path, "wb") as fdst:
+                fdst.write(fsrc.read())
+
+
+def get_version():
+    cargo_toml = os.path.join(os.getcwd(), "Cargo.toml")
+    if not os.path.exists(cargo_toml):
+        return "0.0.0"
+    with open(cargo_toml, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if line.startswith("version") and "=" in line:
+                return line.split("=", 1)[1].strip().strip('"')
+    return "0.0.0"
+
+
+def write_journal_entries(journal_dir, count):
+    if count < 1:
+        return
+
+    parent_hash = sha256_hex(secrets.token_bytes(32))
+    parent_entry = "null"
+    ts = now_utc()
+
+    for i in range(count):
+        filename = f"{iso_utc_ms(ts)}-{uuid.uuid4()}.md"
+        path = os.path.join(journal_dir, filename)
+
+        body = f"Generated entry {i + 1}."
+        content = (
+            "---\n"
+            f"parent_hash: '{parent_hash}'\n"
+            f"parent_entry: {parent_entry}\n"
+            f"timestamp: '{iso_utc(ts)}'\n"
+            "author: null\n"
+            "---\n\n"
+            f"{body}\n"
+        )
+
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(content)
+
+        parent_hash = sha256_hex(content.encode("utf-8"))
+        parent_entry = f"'{filename}'"
+        ts += dt.timedelta(seconds=1)
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Generate many GitEHR repos for benchmarking")
+    parser.add_argument("-repos", type=int, required=True, dest="repos")
+    parser.add_argument("-journal-entries", type=int, required=True, dest="journal_entries")
+    parser.add_argument("--yes", action="store_true", help="Skip confirmation")
+    args = parser.parse_args()
+
+    if args.repos <= 0 or args.journal_entries <= 0:
+        eprint("-repos and -journal-entries must be positive integers")
+        sys.exit(1)
+
+    store_root = os.getcwd()
+    if os.path.isdir(os.path.join(store_root, ".gitehr")):
+        eprint("Refusing to run inside a GitEHR repo. Run from the store root.")
+        sys.exit(1)
+
+    if not args.yes:
+        eprint("This will generate large numbers of repos and files.")
+        eprint(f"Store root: {store_root}")
+        eprint(f"Repos: {args.repos}")
+        eprint(f"Journal entries per repo: {args.journal_entries}")
+        eprint("Type the full store root path to confirm:")
+        confirm = sys.stdin.readline().strip()
+        if confirm != store_root:
+            eprint("Confirmation failed. Aborting.")
+            sys.exit(1)
+
+    mpi_path = os.path.join(store_root, "gitehr-mpi.json")
+    mpi = load_or_init_mpi(mpi_path)
+
+    repos_root = os.path.join(store_root, "repos")
+    ensure_dir(repos_root)
+    template_dir = os.path.join(store_root, "gitehr-folder-structure")
+    if not os.path.isdir(template_dir):
+        eprint("Missing gitehr-folder-structure in store root.")
+        sys.exit(1)
+
+    version = get_version()
+
+    for _ in range(args.repos):
+        patient_uuid = uuidv7()
+        patient_id = str(patient_uuid)
+        base32_id = crockford_base32(patient_uuid.bytes)
+        shard = sha256_hex(patient_id.encode("utf-8"))
+        shard_a = shard[0:2]
+        shard_b = shard[2:4]
+
+        repo_dir = os.path.join(repos_root, shard_a, shard_b, base32_id)
+        ensure_dir(repo_dir)
+
+        # Add to MPI
+        mpi["patients"].append(
+            {
+                "patient_id": patient_id,
+                "repo_path": os.path.relpath(repo_dir, store_root),
+                "status": "active",
+                "merged_into": None,
+                "updated_at": iso_utc(now_utc()),
+                "identifiers": [],
+            }
+        )
+
+        # Initialize repo structure
+        ensure_dir(os.path.join(repo_dir, ".gitehr"))
+        with open(os.path.join(repo_dir, ".gitehr", "GITEHR_VERSION"), "w", encoding="utf-8") as f:
+            f.write(version + "\n")
+
+        copy_tree(template_dir, repo_dir)
+        journal_dir = os.path.join(repo_dir, "journal")
+        ensure_dir(journal_dir)
+        write_journal_entries(journal_dir, args.journal_entries)
+
+    write_mpi(mpi_path, mpi)
+
+
+if __name__ == "__main__":
+    main()

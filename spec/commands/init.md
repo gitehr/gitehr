@@ -6,15 +6,19 @@ Aliases: `init`, `initialize`
 
 ### `gitehr init`
 
-Initialises a new GitEHR repository in the current working directory. Behaviour (see [src/commands/init.rs](../../src/commands/init.rs)):
+Initialises a new GitEHR repository **from the store root** (the directory that contains `gitehr-mpi.json`). The command creates a new repo directory named with a **Crockford Base32 UUIDv7**, adds the record to the MPI, and then runs the standard initialization steps inside that new directory. Behaviour (see [src/commands/init.rs](../../src/commands/init.rs)):
 
-1. Fails if `.gitehr` already exists to avoid overwriting an existing record.
-2. Creates `.gitehr` directory.
-3. Records the version of GitEHR used for initialization in `.gitehr/GITEHR_VERSION`.
-4. Copies the current `gitehr` binary to `.gitehr/gitehr` for portability (the repository is self-contained).
-5. Copies the template structure (including journal, state, imaging, and README files) from `gitehr-folder-structure` into the working directory.
-6. Generates a 32-byte random seed, hashes it with SHA-256, and writes a genesis journal entry whose `parent_hash` references that seed to anchor the chain.
-7. Prints confirmation: "Initialized empty GitEHR repository"
+1. If `gitehr-mpi.json` is not found in the current directory (store root), creates a new MPI file using the v1 schema.
+2. Generates a new UUIDv7 and encodes it using Crockford Base32 to create the repo directory name.
+3. Creates the new repo directory and fails if it already exists.
+4. Adds a new patient record to the MPI (with `patient_id` = UUIDv7, `repo_path`, `status = active`, empty identifiers).
+5. Creates `.gitehr` directory inside the new repo.
+6. Runs `git init` to initialize a git repository.
+7. Records the version of GitEHR used for initialization in `.gitehr/GITEHR_VERSION`.
+8. Copies the current `gitehr` binary to `.gitehr/gitehr` for portability (the repository is self-contained).
+9. Copies the template structure (including journal, state, imaging, and README files) from `gitehr-folder-structure` into the new repo directory.
+10. Generates a 32-byte random seed, hashes it with SHA-256, and writes a genesis journal entry whose `parent_hash` references that seed to anchor the chain.
+11. Prints confirmation: "Initialized empty GitEHR repository"
 
 ## Binary Bundling
 

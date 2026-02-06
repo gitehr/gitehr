@@ -42,7 +42,7 @@ The CLI currently provides the following commands.
 
 ### [`gitehr init`](commands/init.md)
 
-Initializes a new GitEHR repository in the current directory, creating the necessary folder structure, and including a copy of the gitehr binary in the `.gitehr` folder.
+Initializes a new GitEHR repository **from the store root**, creating a new repo directory named with a Crockford Base32 UUIDv7, recording it in the MPI, and then creating the necessary folder structure and bundled binary within that new repo.
 
 ### [`gitehr journal`](commands/journal.md)
 
@@ -71,6 +71,10 @@ Converts the repository into a single-file format for easier transport. Addition
 ### [`gitehr user`](commands/user.md)
 
 Adds, enables, disables, activates, or deactivates users for the GitEHR record.
+
+### [`gitehr mpi`](commands/mpi.md)
+
+Resolves and manages patient identifiers against a local Master Patient Index (MPI).
 
 ### [`gitehr gui`](commands/gui.md)
 
@@ -157,3 +161,112 @@ Use `gitehr journal add "<content>"` to append new entries. Each entry:
 The GitEHr repo includes a Material for MkDocs documentation site that provides an overview of the repository structure and usage. It is generated from the `docs/` directory and can be served locally with `mkdocs serve` or built into static files with `mkdocs build`.
 
 The documsntation site has nav sections for GUI and CLI usage, as well as detailed explanations of the journal and state structures. It serves as a user-friendly reference for both clinicians and developers interacting with GitEHR repositories.
+
+---
+
+## Scaling Many Repos, Sharding, and Patient Indexing
+
+This section captures practical limits and architectural patterns for hosting **hundreds of thousands** of GitEHR repositories on shared storage, and outlines a recommended sharding strategy plus a Master Patient Index (MPI).
+
+### Filesystem Limits and Practical Constraints
+
+Hard limits vary by filesystem and OS, but **practical performance** is usually dictated by:
+- Directory fan-out (too many entries in a single directory slows lookup and listing).
+- Inode availability (for inode-based filesystems like ext4/XFS).
+- Path length, filename length, and per-volume maximum size.
+
+Representative limits (non-exhaustive):
+- **exFAT**: large volume and file size limits, and a per-directory maximum of 2,796,202 entries. citeturn0search48
+- **NTFS (Windows)**: maximum volume and file sizes depend on cluster size, with modern Windows supporting up to 8 PB volumes in current releases. citeturn0search0
+- **ext4 (Linux)**: very large theoretical file system sizes; limits depend on block size and whether the 64‑bit feature is enabled. citeturn0search1turn0search2
+- **XFS (Linux)**: a 64‑bit filesystem with very large theoretical limits (2^64 bytes); OS distributions often publish smaller tested/supported limits. citeturn1search3turn1search4
+
+**Guidance**:
+- Avoid placing many repositories in a single directory. Use deterministic sharding (see below).
+- Keep directory fan‑out modest and stable to reduce metadata hot‑spots.
+- For large multi‑tenant stores, prefer filesystems optimized for large metadata workloads (XFS or ext4 on Linux; NTFS on Windows Server). Always validate with workload‑specific benchmarks.
+
+### Sharding Strategy for “Whole Hospital” Stores
+
+The goal is to avoid pathological directory sizes while keeping repo paths deterministic and easy to resolve.
+
+Recommended pattern:
+- Use a **stable patient identifier hash** to distribute repos across directories.
+- Split by **2–3 levels** of prefix directories.
+
+Example (SHA‑256 prefix):
+```
+repos/
+  3a/
+    7f/
+      3a7f9c.../
+        <gitehr-repo>
+```
+
+Notes:
+- 2 prefix bytes yields 65,536 shards (256×256), which is generally sufficient.
+- 3 prefix bytes yields 16,777,216 shards; only needed at very large scale.
+- Keep the **repo directory name** a deterministic function of the canonical patient ID so it is reproducible and collision‑resistant.
+- For `gitehr init`, the repo directory name is the **Crockford Base32 UUIDv7** generated for the patient.
+
+### Master Patient Index (MPI)
+
+At scale, a Master Patient Index is strongly recommended to map multiple identifiers to a single GitEHR repo. The default, "batteries included" approach is a **single local MPI file** stored in the directory above all repos (the "store root"). More sophisticated deployments can replace or mirror this with a service or API.
+
+MPI responsibilities:
+- **Cross‑reference** identifiers (e.g., NHS number, hospital MRN, national IDs).
+- Handle **identifier changes** and merges (merge/alias history).
+- Provide a **canonical patient ID** used for repo naming and sharding.
+
+Recommended MPI data model (minimal):
+```
+patient_id (canonical UUID)
+  identifiers:
+    - type: "NHS"
+      value: "..."
+    - type: "MRN"
+      value: "..."
+  repo_path: "repos/3a/7f/3a7f9c.../"
+  status: active | merged | inactive
+  merged_into: <patient_id> | null
+  updated_at: <timestamp>
+```
+
+MPI file format (v1, JSON):
+```
+{
+  "version": 1,
+  "updated_at": "2026-02-06T12:00:00Z",
+  "patients": [
+    {
+      "patient_id": "018f0e2c-89f4-7c2d-8f7e-4a20cfd90123",
+      "repo_path": "repos/01/8f/01/8f0e2c.../",
+      "status": "active",
+      "merged_into": null,
+      "updated_at": "2026-02-05T18:22:10Z",
+      "identifiers": [
+        { "type": "NHS", "value": "943-476-5919" },
+        { "type": "MRN", "value": "HOSP-001122" }
+      ]
+    }
+  ]
+}
+```
+`repo_path` is derived from the canonical patient ID (UUIDv7), using the Crockford Base32 form for the repo directory name and its hash‑based shard prefixes.
+
+Operational guidance:
+- The default MPI is a **single file** at the store root (e.g., `gitehr-mpi.json`), no API required.
+- GitEHR repo structure remains deterministic even if identifiers change.
+- All imports and lookups resolve identifiers through the MPI to find the canonical repo.
+- For large deployments, the MPI file can be mirrored or replaced by a service with equivalent semantics.
+
+Performance notes (100k patients, typical SSD):
+- A naive per‑command scan (read + parse + linear search) is generally acceptable for operator use but can be hundreds of milliseconds depending on file size and CPU.
+- Building an **in‑memory index** per command makes lookups effectively O(1) and fast enough for interactive use.
+- If needed, add an **optional cached index file** (e.g., `gitehr-mpi.index.json`) to avoid repeated parsing for heavy workloads.
+
+### Open Questions / Follow‑ups
+
+- Define the **canonical patient ID** source (generated UUID vs national ID hash).
+- Define the **MPI file format** and versioning strategy (JSON vs YAML, schema evolution).
+- Validate filesystem performance with realistic repo sizes and file counts.
