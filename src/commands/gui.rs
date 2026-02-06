@@ -29,42 +29,24 @@ fn find_gui_binary() -> Option<PathBuf> {
     None
 }
 
+/// Launch the GitEHR GUI application
+/// For development, launches with: WEBKIT_DISABLE_DMABUF_RENDERER=1 npm run tauri dev
+/// For release, should launch the compiled, OS-appropriate GUI binary
 pub fn launch_gui() -> Result<()> {
-    let current_dir = env::current_dir()?;
-
+    let current_dir = std::env::current_dir()?;
     if !is_gitehr_repo() {
         println!("Warning: Not in a GitEHR repository. Opening GUI without repository context.");
     }
-
-    match find_gui_binary() {
-        Some(gui_path) => {
-            println!("Launching GitEHR GUI...");
-
-            let mut cmd = Command::new(&gui_path);
-            cmd.current_dir(&current_dir);
-
-            #[cfg(target_os = "linux")]
-            {
-                use std::os::unix::process::CommandExt;
-                let err = cmd.exec();
-                anyhow::bail!("Failed to launch GUI: {}", err);
-            }
-
-            #[cfg(not(target_os = "linux"))]
-            {
-                cmd.spawn()?;
-                Ok(())
-            }
-        }
-        None => {
-            println!("GitEHR GUI not found.");
-            println!();
-            println!("The GUI binary is not bundled in this repository and is not in PATH.");
-            println!("To use the GUI, either:");
-            println!("  1. Run 'gitehr upgrade' to bundle the latest GUI binary");
-            println!("  2. Install gitehr-gui and ensure it's in your PATH");
-            println!("  3. Build the GUI from source in the gui/ directory");
-            Ok(())
-        }
+    // Development mode: run tauri dev
+    let status = Command::new("npm")
+        .arg("run")
+        .arg("tauri")
+        .arg("dev")
+        .env("WEBKIT_DISABLE_DMABUF_RENDERER", "1")
+        .current_dir("gui/gitehr-gui")
+        .status()?;
+    if !status.success() {
+        anyhow::bail!("Failed to launch GUI in dev mode.");
     }
+    Ok(())
 }
