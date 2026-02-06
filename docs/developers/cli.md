@@ -69,6 +69,7 @@ Writes content to a state file, creating `state/` if needed.
 Manage users that can author journal entries. Alias: `gitehr contributor`.
 
 Subcommands:
+- `gitehr user create` (interactive)
 - `gitehr user add <id> <name> [--role <role>] [--email <email>]`
 - `gitehr user enable <id>`
 - `gitehr user disable <id>`
@@ -142,3 +143,18 @@ Updates the bundled binary and writes `.gitehr/GITEHR_VERSION` without recording
 ### `gitehr version`
 
 Prints the CLI version string as `GitEHR <version>`.
+
+### `gitehr completions <shell>`
+
+Generates shell completion scripts for bash, zsh, fish, or powershell.
+
+Example installation:
+
+```sh
+gitehr completions bash > ~/.local/share/bash-completion/completions/gitehr
+gitehr completions zsh > "${fpath[1]}/_gitehr"
+gitehr completions fish > ~/.config/fish/completions/gitehr.fish
+gitehr completions powershell | Out-File -Append $PROFILE
+```
+
+Restart your shell after installation.

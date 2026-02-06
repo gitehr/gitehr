@@ -54,6 +54,7 @@ EOF
 - Determines the most recent journal entry by filename ordering. If found, calculates its SHA-256 hash and sets that as the new entry's `parent_hash`.
 - Creates a new Markdown file named `journal/<timestamp>-<uuid>.md`.
 - Prepends YAML front matter containing `parent_hash`, `parent_entry`, the creation timestamp, and (currently optional) `author`.
+- Runs `git add` on the new file and creates a git commit with message `Journal entry: <filename>`.
 - Prints the created filename on success.
 
 ### `gitehr journal show [OPTIONS]`

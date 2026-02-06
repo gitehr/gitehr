@@ -69,6 +69,19 @@ After install, you should be able to run:
 gitehr --help
 ```
 
+## Shell completions
+
+Generate a completion script and save it to your shell's completion directory.
+
+```sh
+gitehr completions bash > ~/.local/share/bash-completion/completions/gitehr
+gitehr completions zsh > "${fpath[1]}/_gitehr"
+gitehr completions fish > ~/.config/fish/completions/gitehr.fish
+gitehr completions powershell | Out-File -Append $PROFILE
+```
+
+Restart your shell after installation.
+
 ## Repository Layout (CLI)
 
 Relevant paths inside the CLI repo:

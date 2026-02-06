@@ -7,6 +7,7 @@ authors = ["Marcus Baw"]
 
 [dependencies]
 clap = { version = "4.5", features = ["derive"] }
+clap_complete = "4.5"
 anyhow = "1"
 fs_extra = "1"
 uuid = { version = "1", features = ["v4"] }

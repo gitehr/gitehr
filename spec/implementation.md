@@ -7,7 +7,7 @@
 - The GitEHR CLI is implemented in Rust, which enables a compiled, cross-platform binary to be shipped inside each GitEHR repository for portability.
 - The CLI uses the `clap` crate for command-line argument parsing.
 - The CLI commands are implemented in the `src/commands` directory, with each command in its own module. Specifications for each command are detailed in their respective files in the `spec/commands` directory.
-- the CLI includes completions for popular shells (bash, zsh, fish, powershell) to enhance the user experience.
+- The CLI includes shell completion generation for bash, zsh, fish, and powershell via the `gitehr completions <shell>` command.
 
 ### GUI
 

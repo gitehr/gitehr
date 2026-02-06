@@ -2,6 +2,8 @@
 
 use anyhow::Result;
 use clap::{CommandFactory, Parser, Subcommand};
+use clap_complete::{generate, Shell};
+use std::io;
 use std::path::PathBuf;
 
 mod commands;
@@ -59,6 +61,22 @@ enum Commands {
     Version,
     #[command(hide = true)]
     V,
+    #[command(
+        about = "Generate shell completions",
+        long_about = r#"Generate shell completions for gitehr.
+
+Examples:
+  gitehr completions bash > ~/.local/share/bash-completion/completions/gitehr
+  gitehr completions zsh > "${fpath[1]}/_gitehr"
+  gitehr completions fish > ~/.config/fish/completions/gitehr.fish
+  gitehr completions powershell | Out-File -Append $PROFILE
+
+Restart your shell after installing completions."#
+    )]
+    Completions {
+        #[arg(help = "Shell type (bash, zsh, fish, powershell)")]
+        shell: Shell,
+    },
 }
 
 #[derive(Subcommand)]
@@ -141,6 +159,8 @@ enum TransportCommands {
 
 #[derive(Subcommand)]
 enum UserCommands {
+    #[command(about = "Create a user interactively")]
+    Create,
     Add {
         #[arg(help = "Unique identifier for the user")]
         id: String,
@@ -286,6 +306,9 @@ fn main() -> Result<()> {
             }
         },
         Commands::User { command } => match command {
+            Some(UserCommands::Create) => {
+                commands::contributor::create_user_interactive()?;
+            }
             Some(UserCommands::Add {
                 id,
                 name,
@@ -297,6 +320,7 @@ fn main() -> Result<()> {
                     &name,
                     role.as_deref(),
                     email.as_deref(),
+                    None,
                 )?;
             }
             Some(UserCommands::Enable { id }) => {
@@ -335,6 +359,10 @@ fn main() -> Result<()> {
             } else {
                 println!("Git (not found or not installed)");
             }
+        }
+        Commands::Completions { shell } => {
+            let mut cmd = Cli::command();
+            generate(shell, &mut cmd, "gitehr", &mut io::stdout());
         }
     }
 

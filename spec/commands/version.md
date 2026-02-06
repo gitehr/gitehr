@@ -2,6 +2,6 @@
 
 # `gitehr version`
 
-Aliases: `v`, `--version`
+Aliases: `v`
 
 Prints the current GitEHR version shared by the CLI and GUI (see [src/main.rs](../../src/main.rs) and [Cargo.toml](../../Cargo.toml)).
