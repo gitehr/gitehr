@@ -26,6 +26,7 @@ fn test_add_contributor() -> Result<()> {
         "Dr. Smith",
         Some("Physician"),
         Some("smith@example.com"),
+        None,
     )?;
 
     let config_path = Path::new(".gitehr/contributors.json");
@@ -55,7 +56,7 @@ fn test_add_contributor() -> Result<()> {
 fn test_add_contributor_with_minimal_info() -> Result<()> {
     let _temp_dir = setup();
 
-    add_contributor("nurse001", "Jane Doe", None, None)?;
+    add_contributor("nurse001", "Jane Doe", None, None, None)?;
 
     let content = fs::read_to_string(".gitehr/contributors.json")?;
     let config: serde_json::Value = serde_json::from_str(&content)?;
@@ -73,9 +74,9 @@ fn test_add_contributor_with_minimal_info() -> Result<()> {
 fn test_add_duplicate_contributor_fails() -> Result<()> {
     let _temp_dir = setup();
 
-    add_contributor("doc001", "Dr. Smith", None, None)?;
+    add_contributor("doc001", "Dr. Smith", None, None, None)?;
 
-    let result = add_contributor("doc001", "Different Name", None, None);
+    let result = add_contributor("doc001", "Different Name", None, None, None);
     assert!(result.is_err(), "Adding duplicate contributor should fail");
 
     Ok(())
@@ -86,7 +87,7 @@ fn test_add_duplicate_contributor_fails() -> Result<()> {
 fn test_enable_contributor() -> Result<()> {
     let _temp_dir = setup();
 
-    add_contributor("doc001", "Dr. Smith", None, None)?;
+    add_contributor("doc001", "Dr. Smith", None, None, None)?;
     disable_contributor("doc001")?;
 
     let content = fs::read_to_string(".gitehr/contributors.json")?;
@@ -107,7 +108,7 @@ fn test_enable_contributor() -> Result<()> {
 fn test_disable_contributor() -> Result<()> {
     let _temp_dir = setup();
 
-    add_contributor("doc001", "Dr. Smith", None, None)?;
+    add_contributor("doc001", "Dr. Smith", None, None, None)?;
     disable_contributor("doc001")?;
 
     let content = fs::read_to_string(".gitehr/contributors.json")?;
@@ -124,7 +125,7 @@ fn test_disable_contributor() -> Result<()> {
 fn test_disable_deactivates_active_contributor() -> Result<()> {
     let _temp_dir = setup();
 
-    add_contributor("doc001", "Dr. Smith", None, None)?;
+    add_contributor("doc001", "Dr. Smith", None, None, None)?;
     activate_contributor("doc001")?;
 
     let content = fs::read_to_string(".gitehr/contributors.json")?;
@@ -145,7 +146,7 @@ fn test_disable_deactivates_active_contributor() -> Result<()> {
 fn test_activate_contributor() -> Result<()> {
     let _temp_dir = setup();
 
-    add_contributor("doc001", "Dr. Smith", None, None)?;
+    add_contributor("doc001", "Dr. Smith", None, None, None)?;
     activate_contributor("doc001")?;
 
     let content = fs::read_to_string(".gitehr/contributors.json")?;
@@ -162,7 +163,7 @@ fn test_activate_contributor() -> Result<()> {
 fn test_activate_disabled_contributor_fails() -> Result<()> {
     let _temp_dir = setup();
 
-    add_contributor("doc001", "Dr. Smith", None, None)?;
+    add_contributor("doc001", "Dr. Smith", None, None, None)?;
     disable_contributor("doc001")?;
 
     let result = activate_contributor("doc001");
@@ -179,8 +180,8 @@ fn test_activate_disabled_contributor_fails() -> Result<()> {
 fn test_activate_replaces_current_contributor() -> Result<()> {
     let _temp_dir = setup();
 
-    add_contributor("doc001", "Dr. Smith", None, None)?;
-    add_contributor("doc002", "Dr. Jones", None, None)?;
+    add_contributor("doc001", "Dr. Smith", None, None, None)?;
+    add_contributor("doc002", "Dr. Jones", None, None, None)?;
 
     activate_contributor("doc001")?;
 
@@ -205,7 +206,7 @@ fn test_activate_replaces_current_contributor() -> Result<()> {
 fn test_deactivate_contributor() -> Result<()> {
     let _temp_dir = setup();
 
-    add_contributor("doc001", "Dr. Smith", None, None)?;
+    add_contributor("doc001", "Dr. Smith", None, None, None)?;
     activate_contributor("doc001")?;
     deactivate_contributor()?;
 
@@ -223,7 +224,7 @@ fn test_deactivate_contributor() -> Result<()> {
 fn test_get_current_contributor() -> Result<()> {
     let _temp_dir = setup();
 
-    add_contributor("doc001", "Dr. Smith", None, None)?;
+    add_contributor("doc001", "Dr. Smith", None, None, None)?;
 
     let current = get_current_contributor();
     assert!(current.is_none(), "No active contributor initially");
@@ -241,7 +242,7 @@ fn test_get_current_contributor() -> Result<()> {
 fn test_contributor_has_timestamp() -> Result<()> {
     let _temp_dir = setup();
 
-    add_contributor("doc001", "Dr. Smith", None, None)?;
+    add_contributor("doc001", "Dr. Smith", None, None, None)?;
 
     let content = fs::read_to_string(".gitehr/contributors.json")?;
     let config: serde_json::Value = serde_json::from_str(&content)?;
@@ -262,7 +263,7 @@ fn test_contributor_operations_fail_without_gitehr() -> Result<()> {
     let temp_dir = tempdir()?;
     std::env::set_current_dir(&temp_dir)?;
 
-    let result = add_contributor("doc001", "Dr. Smith", None, None);
+    let result = add_contributor("doc001", "Dr. Smith", None, None, None);
     assert!(result.is_err(), "Should fail without .gitehr directory");
 
     Ok(())

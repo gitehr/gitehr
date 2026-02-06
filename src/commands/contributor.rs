@@ -1,10 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use anyhow::Result;
+use rand::Rng;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
+use std::io::{self, Write};
 use std::path::PathBuf;
+use std::process::Command;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Contributor {
@@ -63,6 +66,7 @@ pub fn add_contributor(
     name: &str,
     role: Option<&str>,
     email: Option<&str>,
+    public_key: Option<&str>,
 ) -> Result<()> {
     if !is_gitehr_repo() {
         anyhow::bail!("Not a GitEHR repository (or not in the repository root).");
@@ -79,7 +83,7 @@ pub fn add_contributor(
         name: name.to_string(),
         role: role.map(|s| s.to_string()),
         email: email.map(|s| s.to_string()),
-        public_key: None,
+        public_key: public_key.map(|s| s.to_string()),
         enabled: true,
         active: false,
         added_at: chrono::Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string(),
@@ -207,5 +211,139 @@ pub fn list_contributors() -> Result<()> {
         );
     }
 
+    Ok(())
+}
+
+fn prompt(message: &str) -> Result<String> {
+    print!("{}", message);
+    io::stdout().flush()?;
+    let mut input = String::new();
+    io::stdin().read_line(&mut input)?;
+    Ok(input.trim().to_string())
+}
+
+fn prompt_required(message: &str) -> Result<String> {
+    loop {
+        let value = prompt(message)?;
+        if !value.is_empty() {
+            return Ok(value);
+        }
+        println!("Please enter a value.");
+    }
+}
+
+fn slugify(input: &str) -> String {
+    let mut out = String::new();
+    let mut last_dash = false;
+    for ch in input.chars() {
+        if ch.is_ascii_alphanumeric() {
+            out.push(ch.to_ascii_lowercase());
+            last_dash = false;
+        } else if !last_dash {
+            out.push('-');
+            last_dash = true;
+        }
+    }
+    out.trim_matches('-').to_string()
+}
+
+fn derive_user_id(name: &str, email: &str, config: &ContributorConfig) -> String {
+    let base_from_email = email.split('@').next().unwrap_or("");
+    let mut base = if !base_from_email.is_empty() {
+        slugify(base_from_email)
+    } else {
+        slugify(name)
+    };
+
+    if base.is_empty() {
+        base = "user".to_string();
+    }
+
+    if !config.contributors.contains_key(&base) {
+        return base;
+    }
+
+    let mut rng = rand::rng();
+    loop {
+        let suffix: u16 = rng.random();
+        let candidate = format!("{}-{:04x}", base, suffix);
+        if !config.contributors.contains_key(&candidate) {
+            return candidate;
+        }
+    }
+}
+
+fn get_home_dir() -> Result<PathBuf> {
+    if let Ok(home) = std::env::var("HOME") {
+        return Ok(PathBuf::from(home));
+    }
+    if let Ok(home) = std::env::var("USERPROFILE") {
+        return Ok(PathBuf::from(home));
+    }
+    anyhow::bail!("Could not determine home directory.");
+}
+
+fn generate_keypair(id: &str, email: &str) -> Result<String> {
+    let home = get_home_dir()?;
+    let key_dir = home.join(".gitehr").join("keys");
+    fs::create_dir_all(&key_dir)?;
+
+    let key_path = key_dir.join(format!("{}_ed25519", id));
+    let key_path_str = key_path.to_string_lossy().to_string();
+
+    let output = Command::new("ssh-keygen")
+        .args(["-t", "ed25519", "-f", &key_path_str, "-N", "", "-C", email])
+        .output()
+        .map_err(|e| {
+            if e.kind() == std::io::ErrorKind::NotFound {
+                anyhow::anyhow!(
+                    "ssh-keygen not found. Install OpenSSH or paste an existing public key."
+                )
+            } else {
+                anyhow::anyhow!("Failed to execute ssh-keygen: {}", e)
+            }
+        })?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        anyhow::bail!("ssh-keygen failed: {}", stderr.trim());
+    }
+
+    let pub_key_path = key_path.with_extension("pub");
+    let public_key = fs::read_to_string(&pub_key_path)?.trim().to_string();
+
+    println!("Key pair created at {}", key_path_str);
+    Ok(public_key)
+}
+
+pub fn create_user_interactive() -> Result<()> {
+    if !is_gitehr_repo() {
+        anyhow::bail!("Not a GitEHR repository (or not in the repository root).");
+    }
+
+    let name = prompt_required("Name: ")?;
+    let email = prompt_required("Email: ")?;
+
+    let config = load_config()?;
+    let id = derive_user_id(&name, &email, &config);
+
+    println!("User ID: {}", id);
+
+    let key_input = prompt("Public key (leave blank to generate): ")?;
+    let public_key = if !key_input.is_empty() {
+        Some(key_input)
+    } else {
+        let choice = prompt("Generate an elliptic curve key pair now? [Y/n]: ")?;
+        if choice.is_empty()
+            || choice.eq_ignore_ascii_case("y")
+            || choice.eq_ignore_ascii_case("yes")
+        {
+            Some(generate_keypair(&id, &email)?)
+        } else {
+            None
+        }
+    };
+
+    add_contributor(&id, &name, None, Some(&email), public_key.as_deref())?;
     Ok(())
 }
