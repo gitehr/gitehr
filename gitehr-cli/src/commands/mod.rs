@@ -5,6 +5,7 @@ mod git;
 pub mod gui;
 pub mod init;
 pub mod journal;
+pub mod mcp;
 pub mod remote;
 pub mod state;
 pub mod status;

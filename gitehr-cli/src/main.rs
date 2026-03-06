@@ -2,7 +2,7 @@
 
 use anyhow::Result;
 use clap::{CommandFactory, Parser, Subcommand};
-use clap_complete::{Shell, generate};
+use clap_complete::{generate, Shell};
 use std::io;
 use std::path::PathBuf;
 
@@ -51,6 +51,10 @@ enum Commands {
         command: Option<UserCommands>,
     },
     Gui,
+    Mcp {
+        #[command(subcommand)]
+        command: McpCommands,
+    },
     Upgrade,
     #[command(
         name = "upgrade-binary",
@@ -183,6 +187,17 @@ enum UserCommands {
     },
     Deactivate,
     List,
+}
+
+#[derive(Subcommand)]
+enum McpCommands {
+    #[command(about = "Start MCP server")]
+    Serve {
+        #[arg(long, help = "Use stdio transport (default)")]
+        stdio: bool,
+        #[arg(long, help = "Repository path (default: current directory)")]
+        repo_path: Option<PathBuf>,
+    },
 }
 
 fn is_gitehr_repository() -> bool {
@@ -340,6 +355,11 @@ fn main() -> Result<()> {
         Commands::Gui => {
             commands::gui::launch_gui()?;
         }
+        Commands::Mcp { command } => match command {
+            McpCommands::Serve { stdio: _, repo_path } => {
+                commands::mcp::serve_mcp_stdio(repo_path.clone())?;
+            }
+        },
         Commands::Upgrade => {
             commands::upgrade::upgrade_repository()?;
         }

@@ -1,75 +1,108 @@
-# GitEHR Roadmap (Spec Completion)
+# GitEHR Roadmap (Spec-Aligned)
 
-## Core CLI (Rust)
+This roadmap tracks implementation status against the current `spec/` documents.
 
-- [x] ~~Implement `gitehr init` binary bundling~~ - Copies current executable to `.gitehr/gitehr`.
-- [x] ~~Decide and implement final journal layout~~ - Finalized: `journal/<timestamp>-<uuid>.md`. One repo = one patient.
-- [x] ~~Finalize YAML front matter schema~~ - Finalized: `parent_hash`, `parent_entry`, `timestamp`, optional `author`.
-- [x] ~~Update journal verification to match final schema~~ - Genesis entry detection implemented.
-- [x] ~~Implement `gitehr journal add` file-based input~~ - Supports inline content, `--file <path>`, and stdin (`--file -`).
-- [x] ~~Add author management for journal entries~~ - Journal entries now include active contributor as `author` field.
-- [ ] Implement `gitehr version` output to explicitly show the Git version that is available as well as the CLI version.
+## Core CLI and Repository Lifecycle
 
-## CLI Commands (formerly stubs - now implemented)
+- [x] Implement binary bundling in `gitehr init` (`.gitehr/gitehr`).
+- [x] Implement finalized journal file layout (`journal/<timestamp>-<uuid>.md`).
+- [x] Implement journal YAML front matter fields: `parent_hash`, `parent_entry`, `timestamp`, optional `author`.
+- [x] Implement `gitehr journal add` input modes: inline, `--file <path>`, and stdin via `--file -`.
+- [x] Implement `gitehr journal show` with pagination options.
+- [x] Implement `gitehr journal verify` hash-chain validation.
+- [x] Implement contributor activation so journal entries include current `author`.
+- [x] Implement `gitehr version` output with both GitEHR and Git versions.
+- [x] Implement shell completions generation (`gitehr completions <shell>`).
+- [ ] Update `gitehr init` to follow store-root flow from spec: create/use `gitehr-mpi.json`, create UUIDv7+Crockford repo directory, then initialize inside that repo.
+- [ ] Add robust `gitehr journal verify --verbose` (or equivalent) failure diagnostics per spec TODO.
 
-- [x] Implement `gitehr state` - subcommands: list, get, set for managing state files.
-- [x] Implement `gitehr remote` - subcommands: add, remove (rm), list; stores in `.gitehr/remotes.json`.
-- [x] Implement `gitehr encrypt` - placeholder implementation with encryption marker file.
-- [x] Implement `gitehr decrypt` - removes encryption marker.
-- [x] Implement `gitehr status` - shows repo version, encryption status, journal entries, state files, git changes.
-- [x] Implement `gitehr transport` - subcommands: create (tar.gz), extract.
-- [x] Implement `gitehr user` (alias: `gitehr contributor`) - subcommands: add, enable, disable, activate, deactivate, list.
-- [x] Implement `gitehr gui` launcher - launches bundled or PATH GUI binary.
-- [x] Implement `gitehr upgrade` - updates version file, bundled binary, records upgrade in journal.
-- [x] Implement `gitehr upgrade-binary` - updates only the bundled binary.
-- [x] Implement `gitehr journal show` - lists journal entries with pagination.
+## Command Coverage vs Spec
 
-## Repository Template & Structure
+- [x] Implement `gitehr state` (`list`, `get`, `set`).
+- [x] Implement `gitehr remote` (`add`, `remove`/`rm`, `list`).
+- [x] Implement `gitehr encrypt` placeholder marker flow.
+- [x] Implement `gitehr decrypt` placeholder marker removal flow.
+- [x] Implement `gitehr status` summary output.
+- [x] Implement `gitehr transport` (`create`, `extract`).
+- [x] Implement `gitehr user` (`create`, `add`, `enable`, `disable`, `activate`, `deactivate`, `list`) and `contributor` alias.
+- [x] Implement `gitehr upgrade`.
+- [x] Implement `gitehr upgrade-binary`.
+- [ ] Implement `gitehr mpi` command family (`search`, `link`, `unlink`, `create`, `merge`, `list`, `path`) and MPI path override behavior.
+- [ ] Align `gitehr gui` launcher with command spec (prefer bundled `.gitehr/gitehr-gui`, then PATH `gitehr-gui`; current implementation still launches dev command).
 
-- [x] ~~Ensure `gitehr init` copies all template directories~~ - Verified: all directories from `gitehr-folder-structure/` are copied correctly (documents, imaging, journal, state, .gitehr).
-- [x] ~~Decide on `.gitehr` internal files~~ - Contains: `GITEHR_VERSION`, `gitehr` (bundled binary), `remotes.json`, `contributors.json`.
+## Repository Template and Data Layout
 
-## GUI (Tauri + Mantine)
+- [x] Ensure init copies template directories from `gitehr-folder-structure/`.
+- [x] Persist `.gitehr/GITEHR_VERSION` and bundled binary during init/upgrade paths.
+- [ ] Add `/fhir/` layout (`definitions`, `resources`, `indexes`) to template and lifecycle docs.
+- [ ] Add `/openehr/` layout and storage conventions from spec.
 
-- [x] ~~Connect GUI actions to CLI commands~~ - Tauri backend wraps gitehr crate, React frontend uses API layer.
-- [x] ~~Implement timeline, summaries, and stateful panels tied to on-disk `journal/` and `state/` data~~ - Real data flows from CLI to GUI.
-- [x] ~~Resolve layout overlap issues in Mantine UI across breakpoints~~ - Removed conflicting padding-top CSS, added responsive breakpoints.
-- [x] ~~Add GUI "New Entry" workflow that writes journal entries using the finalized schema~~ - Modal with textarea, saves via CLI.
-- [x] ~~Add dynamic repo path detection with folder picker~~ - Auto-detects GitEHR repo on startup; shows folder picker if none found.
+## FHIR v5 Workstream
 
-## Documentation & Spec Alignment
+- [ ] Add/confirm spec-linked lifecycle docs for FHIR storage and journaling.
+- [ ] Build tooling to download pinned FHIR v5 definitions into `/fhir/definitions`.
+- [ ] Implement Rust FHIR modules (`src/fhir/`) for definitions loading and resource validation.
+- [ ] Add CLI commands for FHIR import and validation.
+- [ ] Add journal structured references for FHIR resource provenance.
+- [ ] Add tests and documentation for FHIR workflows.
 
-- [x] ~~Update `spec/spec.md` journal layout and YAML schema~~ - Updated to match implementation.
-- [x] ~~Add/expand spec sections for repository lifecycle~~ - Added Initialization, Adding entries, Verification.
-- [x] Keep command specs aligned with actual CLI behavior (stubs vs implemented).
+## openEHR Workstream
 
-## Tests & QA
+- [ ] Design and implement native openEHR RM storage model.
+- [ ] Implement required openEHR REST endpoints and content negotiation.
+- [ ] Add archetype/template validation integration.
+- [ ] Implement versioning/audit/contribution semantics for openEHR entities.
+- [ ] Add AQL query support and conformance manifest/OPTIONS support.
+- [ ] Add conformance testing and implementation documentation.
 
-- [x] ~~Add tests for new commands and finalized journal schema~~ - 86 tests total (83 passing, 3 ignored for unimplemented features).
-- [x] ~~Add tests for `gitehr init` artifact creation~~ - Tests cover template copy, version file, binary bundle.
-- [x] ~~Add GUI E2E tests~~ - WebDriverIO + tauri-driver tests in `gui/gitehr-gui/e2e/`. Tests initial load, journal entries, sidebar. Requires `webkit2gtk-driver` on Linux.
+## GUI and UX
 
-## Packaging & Distribution
+- [x] Implement GUI shell and data panels connected to CLI-backed repository data.
+- [x] Implement new-entry flow from GUI to journal.
+- [x] Implement repo detection/folder selection flow.
+- [ ] Keep GUI launch behavior aligned with CLI command spec for bundled-binary-first execution.
+- [ ] Add/restore GUI E2E coverage and keep it green in CI.
 
-- [ ] Decide how CLI + GUI are packaged together for end users (spec implies bundling inside repo).
-- [ ] Document upgrade/migration strategy and version compatibility rules.
+## Clinical Calculators Workstream
 
-## Documentation Site
+- [ ] Convert to Cargo workspace structure (root, gitehr-cli, gitehr-calculators, gitehr-mcp).
+- [ ] Create `gitehr-calculators` crate with modular calculator library.
+- [ ] Implement RCPCH digital growth charts (UK-WHO 0-4y, UK90 4-20y).
+- [ ] Implement core cardiology calculators (CHADS2, CHA2DS2-VASc, Wells, GRACE, TIMI).
+- [ ] Implement renal calculators (eGFR, CrCl, FENa).
+- [ ] Implement respiratory calculators (CURB-65, PSI/PORT).
+- [ ] Implement emergency medicine calculators (GCS, qSOFA, MEWS).
+- [ ] Add `gitehr calc` CLI command with subcommands for each calculator.
+- [ ] Integrate calculator results with journal (structured metadata, citations).
+- [ ] Add state file storage for latest calculator results (`state/calculations/`).
+- [ ] Add GUI calculator panel with dynamic forms and result display.
+- [ ] Add Tauri command for calculator invocation from GUI.
+- [ ] Validate all calculators against published test cases and literature.
+- [ ] Document clinical references, citations, and validation studies for each calculator.
 
-- [x] ~~Add documentation site using Material for MkDocs~~ - Added in `docs
-- [ ] Expand documentation site with usage guides, CLI reference, GUI walkthroughs, and repository structure explanations.
-- [ ] Ensure documentation site is kept up to date with any changes in CLI/GUI features or repository structure.
-- [ ] Consider adding a "Getting Started" guide for new users to quickly learn how to initialize a repo, add entries, and use the GUI.
-- [ ] Add troubleshooting section to documentation site for common issues and how to resolve them.
-- [ ] Add contribution guidelines to documentation site for developers who want to contribute to GitEHR development.
-- [ ] Add changelog and release notes section on documentation site to track changes across versions.
+## Model Context Protocol (MCP) Server
 
-## Journal Command TODOs (from spec/commands/journal.md)
+- [ ] Create `gitehr-mcp` crate for MCP server implementation.
+- [ ] Implement MCP JSON-RPC 2.0 protocol with stdio/HTTP/SSE transports.
+- [ ] Add MCP resource handlers (journal, state, imaging, documents, status).
+- [ ] Add MCP tool handlers (add_journal_entry, update_state, calculate_clinical, verify_journal, search).
+- [ ] Add MCP prompt templates (SOAP note, discharge summary, referral, medication review).
+- [ ] Implement token-based authentication with `.gitehr/mcp-tokens.json`.
+- [ ] Add MCP audit logging to journal entries.
+- [ ] Create `gitehr mcp serve` CLI command (stdio, HTTP, config-based).
+- [ ] Implement encryption awareness (respect `.gitehr/ENCRYPTED` marker).
+- [ ] Add MCP configuration system (`.gitehr/mcp.json`).
+- [ ] Integrate MCP with clinical calculators crate.
+- [ ] Add GUI MCP client panel for LLM chat interface.
+- [ ] Document MCP integration guide and API reference.
+- [ ] Add MCP client libraries (Python/TypeScript) for testing.
 
-- Front matter parsing currently assumes the YAML is delimited by `---` and that non-genesis entries include `parent_entry`. If this changes, update verification logic accordingly.
-- Add an option to `gitehr journal verify` for increased verbosity to show details of any verification failures (e.g., which entry is broken, expected vs actual parent hash/entry). This will be crucial for debugging integrity issues in the journal chain.
+## Documentation and Operations
 
-## Repo organisation
-
-- [ ] gitehr CLI should be contained in a folder called cli/ This might be as simple as moving the src/ folder into cli/src/ and adjusting the Cargo.toml accordingly.
-- [ ]
+- [x] Maintain MkDocs site scaffolding (`docs/`, `mkdocs.yml`).
+- [ ] Keep command docs consistently aligned with runtime behavior.
+- [ ] Expand user-facing docs (getting started, CLI reference, GUI walkthroughs, troubleshooting).
+- [ ] Document packaging strategy for CLI+GUI distribution and upgrade/migration compatibility.
+- [ ] Add calculator usage guide with clinical examples and validation references.
+- [ ] Add MCP integration guide for LLM application developers.
+- [ ] Document long-term strategic considerations (EHDS, EHRxF, quantum crypto, federated learning).

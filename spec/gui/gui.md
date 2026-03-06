@@ -27,3 +27,12 @@ Upon launching the GUI, users will be prompted to select an existing GitEHR repo
 * **Main Content Area**: Displays clinical data, forms, and visualizations.
 * **New Entry Button**: Quick access to add new journal entries.
 * **Stateful Area**: Displays information from the `state/` directory, such as allergies, current medications, and demographic information.
+
+## Launch Behavior
+
+`gitehr gui` launches a compiled GUI binary when available.
+
+Behavior:
+- Uses `.gitehr/gitehr-gui` (or `.gitehr/gitehr-gui.exe` on Windows) if present.
+- Falls back to `gitehr-gui` in PATH.
+- If no GUI binary is found, prints guidance on how to install or build it.
