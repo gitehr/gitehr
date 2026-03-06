@@ -13,12 +13,25 @@ fn setup() -> tempfile::TempDir {
     tempdir().unwrap()
 }
 
+fn setup_with_git() -> Result<tempfile::TempDir> {
+    let temp_dir = tempdir()?;
+    std::env::set_current_dir(&temp_dir)?;
+    fs::create_dir("journal")?;
+    // Initialize git repository
+    std::process::Command::new("git").args(["init"]).output()?;
+    std::process::Command::new("git")
+        .args(["config", "user.name", "Test User"])
+        .output()?;
+    std::process::Command::new("git")
+        .args(["config", "user.email", "test@example.com"])
+        .output()?;
+    Ok(temp_dir)
+}
+
 #[test]
 #[serial]
 fn test_create_journal_entry() -> Result<()> {
-    let temp_dir = setup();
-    std::env::set_current_dir(&temp_dir)?;
-    fs::create_dir("journal")?;
+    let _temp_dir = setup_with_git()?;
 
     let content = "Test entry";
     let parent_hash = Some("test_hash".to_string());
@@ -71,9 +84,7 @@ fn test_create_journal_entry() -> Result<()> {
 #[test]
 #[serial]
 fn test_get_latest_journal_entry() -> Result<()> {
-    let temp_dir = setup();
-    std::env::set_current_dir(&temp_dir)?;
-    fs::create_dir("journal")?;
+    let _temp_dir = setup_with_git()?;
 
     create_journal_entry("First entry", None)?;
     std::thread::sleep(std::time::Duration::from_millis(10));
@@ -98,9 +109,7 @@ fn test_get_latest_journal_entry() -> Result<()> {
 #[test]
 #[serial]
 fn test_parent_entry_linking() -> Result<()> {
-    let temp_dir = setup();
-    std::env::set_current_dir(&temp_dir)?;
-    fs::create_dir("journal")?;
+    let _temp_dir = setup_with_git()?;
 
     create_journal_entry("First entry", None)?;
 
@@ -135,9 +144,7 @@ fn test_parent_entry_linking() -> Result<()> {
 #[test]
 #[serial]
 fn test_timestamp_ordering() -> Result<()> {
-    let temp_dir = setup();
-    std::env::set_current_dir(&temp_dir)?;
-    fs::create_dir("journal")?;
+    let _temp_dir = setup_with_git()?;
 
     for i in 0..5 {
         create_journal_entry(&format!("Entry {}", i), None)?;
