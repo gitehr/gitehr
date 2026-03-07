@@ -44,6 +44,7 @@ import {
   getMpi,
   pickFolder,
   initRepo,
+  initStoreRoot,
   type JournalEntryInfo,
   type RepoStatusInfo,
   type StateFileInfo,
@@ -148,18 +149,19 @@ function App() {
         setCreating(true);
         setError(null);
         try {
-          await initRepo(folder);
+          await initStoreRoot(folder);
           const mpiData = await getMpi(folder);
           setMpi(mpiData);
           setStoreRoot(mpiData.store_root);
-          selectLatestPatientRepo(mpiData);
+          // Don't auto-select a patient since store is empty
+          // selectLatestPatientRepo(mpiData);
         } catch (err) {
-          console.error("Failed to init repo:", err);
+          console.error("Failed to init store root:", err);
           const message = typeof err === "string" ? err : String(err);
           if (message.includes("GitEHR CLI not found")) {
             setError(message);
           } else {
-            setError("Failed to create repository: " + message);
+            setError("Failed to create store root: " + message);
           }
         } finally {
           setCreating(false);

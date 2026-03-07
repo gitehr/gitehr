@@ -9,6 +9,7 @@ pub mod mcp;
 pub mod remote;
 pub mod state;
 pub mod status;
+pub mod store;
 pub mod transport;
 pub mod upgrade;
 pub mod verify;

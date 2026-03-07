@@ -51,6 +51,10 @@ enum Commands {
         command: Option<UserCommands>,
     },
     Gui,
+    Store {
+        #[command(subcommand)]
+        command: StoreCommands,
+    },
     Mcp {
         #[command(subcommand)]
         command: McpCommands,
@@ -157,6 +161,14 @@ enum TransportCommands {
         #[arg(short, long, help = "Output directory")]
         output: Option<String>,
     },
+}
+
+#[derive(Subcommand)]
+enum StoreCommands {
+    #[command(about = "Initialize a new store root (multi-patient)")]
+    Init,
+    #[command(about = "List all patients in the store")]
+    List,
 }
 
 #[derive(Subcommand)]
@@ -355,6 +367,14 @@ fn main() -> Result<()> {
         Commands::Gui => {
             commands::gui::launch_gui()?;
         }
+        Commands::Store { command } => match command {
+            StoreCommands::Init => {
+                commands::store::init()?;
+            }
+            StoreCommands::List => {
+                commands::store::list()?;
+            }
+        },
         Commands::Mcp { command } => match command {
             McpCommands::Serve { stdio: _, repo_path } => {
                 commands::mcp::serve_mcp_stdio(repo_path.clone())?;

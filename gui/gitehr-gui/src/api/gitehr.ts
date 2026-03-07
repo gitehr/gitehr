@@ -152,3 +152,7 @@ export async function activateContributor(
 export async function initRepo(path: string): Promise<string> {
   return invoke<string>("init_repo", { path });
 }
+
+export async function initStoreRoot(path: string): Promise<string> {
+  return invoke<string>("init_store_root", { path });
+}

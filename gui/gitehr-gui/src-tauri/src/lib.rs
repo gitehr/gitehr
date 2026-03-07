@@ -320,13 +320,42 @@ fn init_repo(path: String) -> Result<String, String> {
     }
 }
 
+#[tauri::command]
+fn init_store_root(path: String) -> Result<String, String> {
+    let output = std::process::Command::new("gitehr")
+        .arg("store")
+        .arg("init")
+        .current_dir(&path)
+        .output()
+        .map_err(|e| {
+            if e.kind() == ErrorKind::NotFound {
+                "GitEHR CLI not found. Install gitehr or ensure it is in PATH.".to_string()
+            } else {
+                format!("Failed to execute gitehr binary: {}", e)
+            }
+        })?;
+
+    if output.status.success() {
+        Ok(String::from_utf8_lossy(&output.stdout).to_string())
+    } else {
+        Err(String::from_utf8_lossy(&output.stderr).to_string())
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     const APP_ICON: &[u8] = include_bytes!("../icons/icon.png");
 
-    tauri::Builder::default()
+    let mut builder = tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
-        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_dialog::init());
+
+    #[cfg(debug_assertions)]
+    {
+        builder = builder.plugin(tauri_plugin_mcp_bridge::init());
+    }
+
+    builder
         .invoke_handler(tauri::generate_handler![
             get_current_dir,
             is_gitehr_repo,
@@ -343,6 +372,7 @@ pub fn run() {
             get_current_contributor,
             activate_contributor,
             init_repo,
+            init_store_root,
         ])
         .setup(|app| {
             if let Some(window) = app.get_webview_window("main") {
