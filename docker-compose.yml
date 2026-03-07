@@ -1,20 +1,15 @@
 # This is a Docker Compose file for local development.
 services:
 
-  mkdocs:
-    build:
-      context: .
-      dockerfile: Dockerfile.mkdocs
+  docs:
+    image: node:22-alpine
     ports:
-      - "8766:8766"
+      - "3000:3000"
     volumes:
-      - .:/project
+      - ./docs:/project
     working_dir: /project
     restart: unless-stopped
-    # NOTE: explicit --live-reload because of upstream Click bug
-    # https://github.com/squidfunk/mkdocs-material/issues/8478
-    # Can be removed when MkDocs/Click is fixed
-    command: sh -c "mkdocs serve --livereload --dev-addr=0.0.0.0:8766"
+    command: sh -c "npm install && npm start -- --host 0.0.0.0 --port 3000"
 
 # COMMENTED AS TAURI NEEDS A DESKTOP ENVIRONMENT WHICH DOCKER CAN'T PROVIDE EASILY
 # gitehr-gui:
