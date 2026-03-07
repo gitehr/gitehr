@@ -164,6 +164,94 @@ pub fn list() -> Result<()> {
     Ok(())
 }
 
+/// Add a patient repository to the store
+pub fn add_patient(
+    patient_id: String,
+    repo_path: String,
+    identifiers: Vec<(String, String)>,
+) -> Result<()> {
+    if !Path::new("gitehr-mpi.json").exists() {
+        anyhow::bail!("Not a GitEHR store root (gitehr-mpi.json not found)");
+    }
+
+    // Read existing MPI
+    let mpi_content = fs::read_to_string("gitehr-mpi.json")?;
+    let mut mpi: MpiInfo = serde_json::from_str(&mpi_content)?;
+
+    // Check if patient already exists
+    if mpi.patients.iter().any(|p| p.patient_id == patient_id) {
+        anyhow::bail!("Patient {} already exists in the MPI", patient_id);
+    }
+
+    // Verify the repository path exists and is a gitehr repo
+    let full_repo_path = Path::new(&repo_path);
+    if !full_repo_path.exists() {
+        anyhow::bail!("Repository path does not exist: {}", repo_path);
+    }
+
+    let gitehr_path = full_repo_path.join(".gitehr");
+    if !gitehr_path.exists() {
+        anyhow::bail!(
+            "Path is not a GitEHR repository (no .gitehr directory): {}",
+            repo_path
+        );
+    }
+
+    // Create patient entry
+    let patient = MpiPatient {
+        patient_id: patient_id.clone(),
+        repo_path: repo_path.clone(),
+        status: "active".to_string(),
+        merged_into: None,
+        updated_at: chrono::Utc::now().to_rfc3339(),
+        identifiers: identifiers
+            .into_iter()
+            .map(|(id_type, value)| MpiIdentifier { id_type, value })
+            .collect(),
+    };
+
+    // Add to MPI
+    mpi.patients.push(patient);
+    mpi.updated_at = chrono::Utc::now().to_rfc3339();
+
+    // Write updated MPI
+    fs::write("gitehr-mpi.json", serde_json::to_string_pretty(&mpi)?)?;
+
+    println!("✓ Added patient {} to MPI", patient_id);
+    println!("  Repository: {}", repo_path);
+
+    Ok(())
+}
+
+/// Remove a patient repository from the store (does not delete files)
+pub fn remove_patient(patient_id: String) -> Result<()> {
+    if !Path::new("gitehr-mpi.json").exists() {
+        anyhow::bail!("Not a GitEHR store root (gitehr-mpi.json not found)");
+    }
+
+    // Read existing MPI
+    let mpi_content = fs::read_to_string("gitehr-mpi.json")?;
+    let mut mpi: MpiInfo = serde_json::from_str(&mpi_content)?;
+
+    // Find and remove patient
+    let initial_count = mpi.patients.len();
+    mpi.patients.retain(|p| p.patient_id != patient_id);
+
+    if mpi.patients.len() == initial_count {
+        anyhow::bail!("Patient {} not found in MPI", patient_id);
+    }
+
+    mpi.updated_at = chrono::Utc::now().to_rfc3339();
+
+    // Write updated MPI
+    fs::write("gitehr-mpi.json", serde_json::to_string_pretty(&mpi)?)?;
+
+    println!("✓ Removed patient {} from MPI", patient_id);
+    println!("  Note: Patient repository files were not deleted");
+
+    Ok(())
+}
+
 /// Check if current directory is a store root
 pub fn is_store_root() -> Result<bool> {
     Ok(Path::new("gitehr-mpi.json").exists())

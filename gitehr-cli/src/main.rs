@@ -173,6 +173,20 @@ enum StoreCommands {
     Init,
     #[command(about = "List all patients in the store")]
     List,
+    #[command(about = "Add a patient repository to the store")]
+    AddPatient {
+        #[arg(help = "Patient ID (UUID or other unique identifier)")]
+        patient_id: String,
+        #[arg(help = "Path to patient repository (e.g., patients/patient-uuid)")]
+        repo_path: String,
+        #[arg(long, help = "Identifiers in format type:value (e.g., NHS:1234567890). Can be specified multiple times.")]
+        identifier: Vec<String>,
+    },
+    #[command(about = "Remove a patient repository from the store")]
+    RemovePatient {
+        #[arg(help = "Patient ID to remove")]
+        patient_id: String,
+    },
 }
 
 #[derive(Subcommand)]
@@ -409,6 +423,24 @@ fn main() -> Result<()> {
             }
             StoreCommands::List => {
                 commands::store::list()?;
+            }
+            StoreCommands::AddPatient { patient_id, repo_path, identifier } => {
+                // Parse identifiers from type:value format
+                let identifiers: Result<Vec<(String, String)>> = identifier
+                    .iter()
+                    .map(|id_str| {
+                        let parts: Vec<&str> = id_str.splitn(2, ':').collect();
+                        if parts.len() != 2 {
+                            anyhow::bail!("Invalid identifier format '{}'. Use type:value (e.g., NHS:1234567890)", id_str);
+                        }
+                        Ok((parts[0].to_string(), parts[1].to_string()))
+                    })
+                    .collect();
+                
+                commands::store::add_patient(patient_id.clone(), repo_path.clone(), identifiers?)?;
+            }
+            StoreCommands::RemovePatient { patient_id } => {
+                commands::store::remove_patient(patient_id.clone())?;
             }
         },
         Commands::Attach { command } => match command {
