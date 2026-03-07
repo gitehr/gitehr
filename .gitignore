@@ -85,3 +85,6 @@ ipython_config.py
 
 # Other generated files
 .sisyphus/
+
+# Personal notes and session summaries
+.marcus/
