@@ -1,3 +1,4 @@
+pub mod attach;
 pub mod contributor;
 pub mod decrypt;
 pub mod encrypt;
