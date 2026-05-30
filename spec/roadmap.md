@@ -109,7 +109,7 @@ This roadmap tracks implementation status against the current `spec/` documents.
 
 ## Documentation and Operations
 
-- [x] Maintain MkDocs site scaffolding (`docs/`, `mkdocs.yml`).
+- [x] Maintain Zensical site scaffolding (`docs/`, `mkdocs.yml`, `requirements.txt`).
 - [ ] Keep command docs consistently aligned with runtime behavior.
 - [ ] Expand user-facing docs (getting started, CLI reference, GUI walkthroughs, troubleshooting).
 - [ ] Document packaging strategy for CLI+GUI distribution and upgrade/migration compatibility.

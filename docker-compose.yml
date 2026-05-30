@@ -1,11 +1,14 @@
 # This is a Docker Compose file for local development.
 services:
-  docs:
-    image: node:22-alpine
+  zensical:
+    image: python:3.13-slim
     ports:
-      - "6173:3000"
+      - "8766:8000"
     volumes:
-      - ./docs:/project
-    working_dir: /project
+      - .:/app
+    working_dir: /app
+    environment:
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONUNBUFFERED=1
+    command: sh -c "pip install --no-cache-dir -r requirements.txt && zensical serve --dev-addr=0.0.0.0:8000"
     restart: unless-stopped
-    command: sh -c "npm install && npm start -- --host 0.0.0.0 --port 3000"

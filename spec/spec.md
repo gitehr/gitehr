@@ -189,7 +189,7 @@ Use `gitehr journal add "<content>"` to append new entries. Each entry:
 
 ### Documentation site
 
-The GitEHr repo includes a Material for MkDocs documentation site that provides an overview of the repository structure and usage. It is generated from the `docs/` directory and can be served locally with `mkdocs serve` or built into static files with `mkdocs build`.
+The GitEHR repo includes a Zensical documentation site that provides an overview of the repository structure and usage. It is generated from the `docs/` directory (config in `mkdocs.yml` at the repo root) and can be served locally with `zensical serve` or built into static files with `zensical build --clean`.
 
 The documsntation site has nav sections for GUI and CLI usage, as well as detailed explanations of the journal and state structures. It serves as a user-friendly reference for both clinicians and developers interacting with GitEHR repositories.
 

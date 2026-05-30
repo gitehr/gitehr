@@ -6,12 +6,12 @@ set -e  # Exit on error
 # UNIX based systems may require special permissions to run this file
 # run chmod +x s/<filename> to allow this
 
-# starts up the docker compose development environment
+# starts the Zensical docs site via docker compose
 docker compose up -d "$@"
 
 # open docs in the default browser
 if command -v xdg-open >/dev/null 2>&1; then
-	xdg-open http://localhost:6173 >/dev/null 2>&1 &
+	xdg-open http://localhost:8766 >/dev/null 2>&1 &
 fi
 
 # follow logs

@@ -19,7 +19,7 @@
 - CLI build: `cargo build` from repo root; install via `cargo install --path .` (see `docs/developers/developers.md`).
 - Manual CLI tests: create a throwaway repo, run `gitehr init`, then `gitehr journal add "..."` (see `docs/developers/developers.md`).
 - GUI dev: `cd gui && npm install && npm run tauri dev` (requires Tauri system deps; documented in developers guide).
-- Docs: `docker compose up` runs MkDocs on :8766 (see `docker-compose.yml`).
+- Docs: `docker compose up` runs Zensical on :8766 (see `docker-compose.yml`). Or locally: `pip install -r requirements.txt && zensical serve`.
 
 ## Conventions
 - Repository template lives under `folder-structure/` and is copied verbatim on `gitehr init`; update both template + CLI logic when needed.

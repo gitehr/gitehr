@@ -1,0 +1,95 @@
+# site
+site_name: GitEHR
+site_url: https://gitehr.org/
+
+# repo
+repo_url: https://github.com/gitehr/gitehr
+repo_name: gitehr/gitehr
+edit_uri: edit/main/docs/
+
+nav:
+  - Home: index.md
+  - Getting Started: getting-started.md
+  - About:
+      - The GitEHR Story: about/the-gitehr-story.md
+      - Databasechester: about/databasechester.md
+      - Contributors: about/contributors.md
+      - Foundation: about/foundation.md
+  - Design:
+      - Overview: design/design.md
+      - Patient Centricity: design/patient-centricity.md
+      - Structure: design/structure.md
+      - Audit Trail: design/audit-trail.md
+      - Provenance: design/provenance.md
+      - Forensics: design/forensics.md
+      - Security: design/security.md
+      - Redundancy: design/redundancy.md
+      - Portability: design/portability.md
+      - No Lock-in: design/no-lock-in.md
+      - Longevity: design/longevity.md
+      - Simplicity: design/simplicity.md
+  - Guides:
+      - GUI Walkthrough: guides/gui-walkthrough.md
+      - Repository Structure: guides/repository-structure.md
+  - Developers:
+      - Developer Guide: developers/developers.md
+      - CLI Reference: developers/cli.md
+  - More:
+      - Glossary: glossary.md
+      - References: references/references.md
+      - MCP Usage: mcp-usage.md
+
+copyright: >
+  GitEHR is copyright &copy; 2022-26 Baw Medical Ltd, licensed under <a rel="license" href="https://creativecommons.org/licenses/by-sa/4.0/">CC-BY-SA 4.0</a> (GitEHR concepts and data) or <a rel="license" href="https://www.gnu.org/licenses/agpl-3.0.en.html">AGPL-3.0</a> (GitEHR code).
+
+theme:
+  variant: classic
+  logo: assets/images/gitehr-logo.svg
+  favicon: assets/images/gitehr-logo.svg
+  features:
+    - content.action.edit
+    - content.action.view
+    - content.code.copy
+    - content.code.select
+    - content.code.annotate
+    - navigation.footer
+    - navigation.indexes
+    - navigation.instant
+    - navigation.sections
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.top
+    - navigation.tracking
+    - toc.follow
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/toggle-switch-off-outline
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/toggle-switch
+        name: Switch to light mode
+
+extra_css:
+  - stylesheets/extra.css
+
+markdown_extensions:
+  - abbr
+  - admonition
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.emoji:
+      emoji_index: !!python/name:zensical.extensions.emoji.twemoji
+      emoji_generator: !!python/name:zensical.extensions.emoji.to_svg

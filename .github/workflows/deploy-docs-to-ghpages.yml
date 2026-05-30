@@ -1,10 +1,13 @@
-name: Deploy Docusaurus site to GitHub Pages
+name: Deploy Zensical site to GitHub Pages
 
 on:
   push:
     branches: [main]
     paths:
       - 'docs/**'
+      - 'mkdocs.yml'
+      - 'requirements.txt'
+      - '.github/workflows/deploy-docs-to-ghpages.yml'
   workflow_dispatch:
 
 permissions:
@@ -19,31 +22,28 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: docs
     steps:
       - uses: actions/checkout@v6
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-python@v6
         with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: docs/package-lock.json
+          python-version: '3.13'
+          cache: pip
+          cache-dependency-path: requirements.txt
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v6
 
       - name: Install dependencies
-        run: npm ci
+        run: pip install -r requirements.txt
 
-      - name: Build Docusaurus site
-        run: npm run build
+      - name: Build Zensical site
+        run: zensical build --clean
 
       - name: Upload GitHub Pages artifact
         uses: actions/upload-pages-artifact@v5
         with:
-          path: docs/build
+          path: site
 
   deploy:
     environment:
