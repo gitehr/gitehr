@@ -16,7 +16,7 @@ Initializes a GitEHR repository in the current directory.
 
 Behavior:
 - Creates `.gitehr/` and writes `.gitehr/GITEHR_VERSION`.
-- Copies the repository template from `gitehr-folder-structure/`.
+- Copies the repository template from `folder-structure/`.
 - Bundles the CLI binary at `.gitehr/gitehr`.
 - Creates a genesis journal entry seeded with a random hash.
 

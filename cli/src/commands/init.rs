@@ -37,7 +37,7 @@ pub fn initialise() -> Result<()> {
     let template_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .parent()
         .unwrap()
-        .join("gitehr-folder-structure");
+        .join("folder-structure");
 
     if !template_path.exists() {
         anyhow::bail!("Could not find template directory");

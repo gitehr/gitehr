@@ -42,7 +42,7 @@ This roadmap tracks implementation status against the current `spec/` documents.
 
 ## Repository Template and Data Layout
 
-- [x] Ensure init copies template directories from `gitehr-folder-structure/`.
+- [x] Ensure init copies template directories from `folder-structure/`.
 - [x] Persist `.gitehr/GITEHR_VERSION` and bundled binary during init/upgrade paths.
 - [ ] Add `/fhir/` layout (`definitions`, `resources`, `indexes`) to template and lifecycle docs.
 - [ ] Add `/openehr/` layout and storage conventions from spec.
@@ -75,7 +75,7 @@ This roadmap tracks implementation status against the current `spec/` documents.
 
 ## Clinical Calculators Workstream
 
-- [ ] Convert to Cargo workspace structure (root, gitehr-cli, gitehr-calculators, gitehr-mcp).
+- [ ] Convert to Cargo workspace structure (root, cli, gitehr-calculators, mcp).
 - [ ] Create `gitehr-calculators` crate with modular calculator library.
 - [ ] Implement RCPCH digital growth charts (UK-WHO 0-4y, UK90 4-20y).
 - [ ] Implement core cardiology calculators (CHADS2, CHA2DS2-VASc, Wells, GRACE, TIMI).

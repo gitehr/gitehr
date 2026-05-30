@@ -2,5 +2,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-    guigitehr_gui_lib::run()
+    gitehr_gui_lib::run()
 }

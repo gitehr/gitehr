@@ -2,6 +2,6 @@
 
 This folder contains the Tauri-based GUI application.
 
-- `gitehr-gui/` is the scaffolded Tauri project.
-  - `src-tauri/` is the Rust backend.
-  - `src/` is the web frontend (React + TypeScript).
+- `src-tauri/` — Rust backend (Tauri commands, IPC handlers).
+- `src/` — Web frontend (React + Mantine + TypeScript).
+- `e2e/` — End-to-end tests.

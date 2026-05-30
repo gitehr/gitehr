@@ -9,16 +9,16 @@
 
 ### Workspace Configuration
 
-✅ **Fixed**: Added `gui/gitehr-gui/src-tauri` to workspace exclusions in root `Cargo.toml`
+✅ **Fixed**: Added `gui/src-tauri` to workspace exclusions in root `Cargo.toml`
 ```toml
 exclude = [
-    "gui/gitehr-gui/src-tauri",
+    "gui/src-tauri",
 ]
 ```
 
-✅ **Fixed**: Corrected gitehr dependency path in `gui/gitehr-gui/src-tauri/Cargo.toml`
+✅ **Fixed**: Corrected gitehr dependency path in `gui/src-tauri/Cargo.toml`
 ```toml
-gitehr = { path = "../../../gitehr-cli" }
+gitehr = { path = "../../cli" }
 ```
 
 ✅ **Fixed**: Updated Tauri version to match npm package (2.10)
@@ -101,7 +101,7 @@ The Tauri app exposes these commands to the frontend:
 #### 1. Launch Dev Server
 
 ```bash
-cd /home/marcus/code/gitehr/gitehr/gui/gitehr-gui
+cd /home/marcus/code/gitehr/gitehr/gui
 npm run tauri dev
 ```
 
@@ -214,7 +214,7 @@ export PATH="$PATH:/home/marcus/code/gitehr/gitehr/target/release"
 **Solution**: Check Vite dev server is running:
 ```bash
 # In separate terminal
-cd gui/gitehr-gui
+cd gui
 npm run dev
 ```
 

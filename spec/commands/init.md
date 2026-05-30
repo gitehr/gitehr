@@ -16,7 +16,7 @@ Initialises a new GitEHR repository **from the store root** (the directory that 
 6. Runs `git init` to initialize a git repository.
 7. Records the version of GitEHR used for initialization in `.gitehr/GITEHR_VERSION`.
 8. Copies the current `gitehr` binary to `.gitehr/gitehr` for portability (the repository is self-contained).
-9. Copies the template structure (including journal, state, imaging, and README files) from `gitehr-folder-structure` into the new repo directory.
+9. Copies the template structure (including journal, state, imaging, and README files) from `folder-structure/` into the new repo directory.
 10. Generates a 32-byte random seed, hashes it with SHA-256, and writes a genesis journal entry whose `parent_hash` references that seed to anchor the chain.
 11. Prints confirmation: "Initialized empty GitEHR repository"
 

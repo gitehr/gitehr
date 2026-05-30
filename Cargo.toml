@@ -1,10 +1,10 @@
 [workspace]
 members = [
-    "gitehr-cli",
-    "gitehr-mcp",
+    "cli",
+    "mcp",
 ]
 exclude = [
-    "gui/gitehr-gui/src-tauri",
+    "gui/src-tauri",
 ]
 resolver = "2"
 

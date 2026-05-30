@@ -12,7 +12,7 @@
 
 1. **Build System** - All components compile successfully
 2. **Vite Dev Server** - Running on http://localhost:5173
-3. **Tauri Backend** - Process running (`target/debug/guigitehr-gui`)
+3. **Tauri Backend** - Process running (`target/debug/gitehr-gui`)
 4. **WebKit Integration** - WebKit connecting to Vite server
 5. **Network Stack** - All connections established correctly
 
@@ -39,7 +39,7 @@
 ✅ npm (PID 2268915) - Tauri dev command runner
 ✅ tauri (PID 2268928) - Tauri CLI process  
 ✅ vite (PID 2269048) - Frontend dev server
-✅ guigitehr-gui (PID 2269113) - Tauri app binary
+✅ gitehr-gui (PID 2269113) - Tauri app binary
 ✅ WebKitNetworkProcess - Browser engine
 ```
 
@@ -116,7 +116,7 @@
 
 ### 1. Server Startup
 ```bash
-cd /home/marcus/code/gitehr/gitehr/gui/gitehr-gui
+cd /home/marcus/code/gitehr/gitehr/gui
 npm run tauri dev
 ```
 **Result**: ✅ Success - Window opened, frontend loaded

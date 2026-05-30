@@ -71,9 +71,9 @@ Add new MCP server crate to workspace:
 ```
 gitehr/
 ├── Cargo.toml                    # Workspace root
-├── gitehr-cli/                   # Main CLI binary
+├── cli/                          # Main CLI binary
 ├── gitehr-calculators/           # Clinical calculators
-├── gitehr-mcp/                   # MCP server crate (new)
+├── mcp/                          # MCP server crate
 │   ├── Cargo.toml
 │   ├── src/
 │   │   ├── main.rs               # MCP server binary entrypoint
@@ -86,13 +86,13 @@ gitehr/
 │   │   └── audit.rs              # MCP audit logging
 │   └── tests/
 │       └── integration.rs
-└── gui/gitehr-gui/
+└── gui/
 ```
 
 ### MCP Protocol Implementation
 
 ```rust
-// gitehr-mcp/src/server.rs
+// mcp/src/server.rs
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -570,11 +570,11 @@ gitehr mcp token revoke mcp_abc123xyz
 
 ## Dependencies
 
-Add to `gitehr-mcp/Cargo.toml`:
+Add to `mcp/Cargo.toml`:
 
 ```toml
 [dependencies]
-gitehr-cli = { path = "../gitehr-cli" }
+gitehr = { path = "../cli" }
 gitehr-calculators = { path = "../gitehr-calculators" }
 
 # MCP protocol

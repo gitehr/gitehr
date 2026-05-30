@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "guigitehr-gui",
+  "productName": "gitehr-gui",
   "version": "0.1.0",
   "identifier": "org.gitehr.gui",
   "build": {
@@ -13,7 +13,7 @@
     "withGlobalTauri": true,
     "windows": [
       {
-        "title": "guigitehr-gui",
+        "title": "gitehr-gui",
         "width": 800,
         "height": 600
       }

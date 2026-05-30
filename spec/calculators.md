@@ -27,7 +27,7 @@ GitEHR will adopt a **Cargo workspace** structure to support the calculators as 
 ```
 gitehr/
 ├── Cargo.toml                    # Workspace root
-├── gitehr-cli/                   # Renamed from src/
+├── cli/                          # Renamed from src/
 │   ├── Cargo.toml
 │   └── src/
 ├── gitehr-calculators/           # New crate
@@ -52,8 +52,8 @@ gitehr/
 │   │   └── validation.rs         # Input validation
 │   └── tests/
 │       └── integration.rs
-├── gitehr-mcp/                   # Future MCP server crate
-└── gui/gitehr-gui/
+├── mcp/                          # MCP server crate
+└── gui/
 ```
 
 ### Calculator Crate Design
@@ -149,7 +149,7 @@ gitehr calc growth --age-months 24 --weight-kg 12.5 --height-cm 85 --sex male
 
 ### Implementation Path
 
-1. **New command module**: `gitehr-cli/src/commands/calculator.rs`
+1. **New command module**: `cli/src/commands/calculator.rs`
 2. **Command enum addition** in `main.rs`:
 ```rust
 enum Commands {
@@ -168,7 +168,7 @@ enum CalcCommands {
 }
 ```
 
-3. **Dependency** in `gitehr-cli/Cargo.toml`:
+3. **Dependency** in `cli/Cargo.toml`:
 ```toml
 [dependencies]
 gitehr-calculators = { path = "../gitehr-calculators" }
@@ -261,7 +261,7 @@ Example `state/calculations/chads2-latest.json`:
 Add a dedicated calculator section in the Mantine UI:
 
 ```typescript
-// gui/gitehr-gui/src/api/gitehr.ts
+// gui/src/api/gitehr.ts
 export async function calculateClinical(
   repoPath: string,
   calculator: string,
@@ -278,7 +278,7 @@ export async function calculateClinical(
 ### Tauri Command
 
 ```rust
-// gui/gitehr-gui/src-tauri/src/lib.rs
+// gui/src-tauri/src/lib.rs
 #[tauri::command]
 fn calculate_clinical(
     repo_path: String,

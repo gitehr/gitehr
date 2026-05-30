@@ -87,7 +87,7 @@ Restart your shell after installation.
 Relevant paths inside the CLI repo:
 
 - `gitehr/` – Rust CLI project root
-- `gitehr/gitehr-folder-structure/` – template copied by `gitehr init`
+- `gitehr/folder-structure/` – template copied by `gitehr init`
   - `README.md` – root repository README template
   - `journal/` – journal directory template
   - `state/` – clinical state directory template

@@ -28,7 +28,7 @@ cargo install tauri-driver --locked
 
 ### Node Dependencies
 ```bash
-cd gui/gitehr-gui/e2e
+cd gui/e2e
 npm install
 ```
 
@@ -89,5 +89,5 @@ Example workflow snippet:
 
 - name: Run E2E tests
   run: xvfb-run npm test
-  working-directory: gui/gitehr-gui/e2e
+  working-directory: gui/e2e
 ```

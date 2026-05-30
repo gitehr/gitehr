@@ -6,5 +6,5 @@ set -e  # Exit on error
 # scripts may need to be made executable on some platforms before they can be run
 # chmod +x s/<filename> is the command to do this on unixy systems
 
-# installs the CLI binary from the repo root
-cargo install --path .
+# installs the CLI binary from the workspace's cli/ crate
+cargo install --path cli

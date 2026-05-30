@@ -31,7 +31,7 @@ tar = "0.4"
 flate2 = "1.0"
 
 # MCP integration
-gitehr-mcp = { path = "../gitehr-mcp" }
+gitehr-mcp = { path = "../mcp" }
 tokio.workspace = true
 tracing = "0.1"
 

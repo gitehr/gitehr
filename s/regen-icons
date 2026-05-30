@@ -15,5 +15,5 @@ if [[ ! -f "$icon_source" ]]; then
   exit 1
 fi
 
-cd "$repo_root/gui/gitehr-gui"
+cd "$repo_root/gui"
 ./node_modules/.bin/tauri icon "$icon_source"

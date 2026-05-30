@@ -43,7 +43,7 @@ pub fn launch_gui() -> Result<()> {
         .arg("tauri")
         .arg("dev")
         .env("WEBKIT_DISABLE_DMABUF_RENDERER", "1")
-        .current_dir("gui/gitehr-gui")
+        .current_dir("gui")
         .status()?;
     if !status.success() {
         anyhow::bail!("Failed to launch GUI in dev mode.");

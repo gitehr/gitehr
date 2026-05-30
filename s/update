@@ -8,9 +8,9 @@ echo "Updating Rust (cargo) dependencies..."
 cargo update
 
 # Update Node dependencies
-if [ -f "gui/gitehr-gui/package.json" ]; then
-  echo "Updating Node (npm) dependencies in gui/gitehr-gui..."
-  cd gui/gitehr-gui
+if [ -f "gui/package.json" ]; then
+  echo "Updating Node (npm) dependencies in gui..."
+  cd gui
   npm update
   cd - > /dev/null
 fi

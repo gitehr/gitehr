@@ -17,6 +17,6 @@ updates:
 
     # Check for updates to Tauri/npm dependencies every day
   - package-ecosystem: "npm"
-    directory: "/gui/gitehr-gui"
+    directory: "/gui"
     schedule: 
       interval: "daily"

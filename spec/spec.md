@@ -12,7 +12,7 @@ This specification summarises the behaviour described in the codebase and docume
 
 - **Immutable journal chain:** Clinical entries are chronological files that link to their parent via a cryptographic hash, forming a tamper-evident chain seeded with random data on repository creation (see [src/commands/init.rs](../../src/commands/init.rs)).
 
-- **Clear separation of concerns:** Standard folders divide immutable journal entries, mutable clinical state, imaging assets, and internal configuration data (see [README.md](../../README.md) and [gitehr-folder-structure/README.md](../../gitehr-folder-structure/README.md)).
+- **Clear separation of concerns:** Standard folders divide immutable journal entries, mutable clinical state, imaging assets, and internal configuration data (see [README.md](../../README.md) and [folder-structure/README.md](../../folder-structure/README.md)).
 
 - **Security and portability:** Entries are designed to be cryptographically verifiable with future support for encryption and signatures, enabling secure transport and redundancy across sites (see [README.md](../../README.md)).
 
@@ -20,15 +20,15 @@ This specification summarises the behaviour described in the codebase and docume
 
 ## Layout of a GitEHR Repository
 
-When `gitehr init` runs, it copies the template from `gitehr-folder-structure` into the current (or otherwise specified)directory and creates a `.gitehr` marker directory used to detect a valid repository (see [src/commands/init.rs](../../src/commands/init.rs)). Key directories:
+When `gitehr init` runs, it copies the template from `folder-structure` into the current (or otherwise specified)directory and creates a `.gitehr` marker directory used to detect a valid repository (see [src/commands/init.rs](../../src/commands/init.rs)). Key directories:
 
-- `/journal` – Chronological Markdown entries named with timestamp and GUID; each represents a single clinical event and is immutable after creation (see [gitehr-folder-structure/journal/README.md](../../gitehr-folder-structure/journal/README.md)).
+- `/journal` – Chronological Markdown entries named with timestamp and GUID; each represents a single clinical event and is immutable after creation (see [folder-structure/journal/README.md](../../folder-structure/journal/README.md)).
 
-- `/state` – Mutable current clinical state (allergies, medications, problems, vitals, etc.), with all updates version-controlled and paired with journal explanations (see [gitehr-folder-structure/state/README.md](../../gitehr-folder-structure/state/README.md)).
+- `/state` – Mutable current clinical state (allergies, medications, problems, vitals, etc.), with all updates version-controlled and paired with journal explanations (see [folder-structure/state/README.md](../../folder-structure/state/README.md)).
 
-- `/imaging` – Imaging files and metadata such as DICOM, reports, scan metadata, and analyses (see [gitehr-folder-structure/imaging/README.md](../../gitehr-folder-structure/imaging/README.md)).
+- `/imaging` – Imaging files and metadata such as DICOM, reports, scan metadata, and analyses (see [folder-structure/imaging/README.md](../../folder-structure/imaging/README.md)).
 
-- `/documents` – Non-imaging clinical documents such as reports, correspondence, and lab results (see [gitehr-folder-structure/documents/README.md](../../gitehr-folder-structure/documents/README.md)).
+- `/documents` – Non-imaging clinical documents such as reports, correspondence, and lab results (see [folder-structure/documents/README.md](../../folder-structure/documents/README.md)).
 
 - `/.gitehr` – Internal configuration directory created at init time (template currently empty; see [src/commands/init.rs](../../src/commands/init.rs)).
 

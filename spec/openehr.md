@@ -131,7 +131,7 @@ Based on comprehensive research, a **hybrid architecture** is recommended for Gi
 Implement core openEHR RM structures in Rust:
 
 ```rust
-// gitehr-cli/src/openehr/rm/composition.rs
+// cli/src/openehr/rm/composition.rs
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -222,7 +222,7 @@ services:
 
 **GitEHR Integration:**
 ```rust
-// gitehr-cli/src/openehr/archie_client.rs
+// cli/src/openehr/archie_client.rs
 pub struct ArchieClient {
     client: reqwest::Client,
     base_url: String,
@@ -249,7 +249,7 @@ impl ArchieClient {
 Implement mandatory openEHR REST endpoints:
 
 ```rust
-// gitehr-cli/src/openehr/api.rs
+// cli/src/openehr/api.rs
 pub async fn post_composition(
     ehr_id: &str,
     composition: &Composition,

@@ -220,7 +220,7 @@ Id: gitehr-journal-entry
 
 3. **Implement CLI integration**:
    ```rust
-   // gitehr-cli/src/commands/fhir.rs
+   // cli/src/commands/fhir.rs
    pub fn compile_fsh(fsh_dir: &Path, output_dir: &Path) -> Result<()> {
        let status = Command::new("sushi")
            .args(["build", fsh_dir.to_str().unwrap()])
