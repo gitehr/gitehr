@@ -16,6 +16,16 @@ This roadmap tracks implementation status against the current `spec/` documents.
 - [ ] Update `gitehr init` to follow store-root flow from spec: create/use `gitehr-mpi.json`, create UUIDv7+Crockford repo directory, then initialize inside that repo.
 - [ ] Add robust `gitehr journal verify --verbose` (or equivalent) failure diagnostics per spec TODO.
 
+## Plugin System
+
+- [ ] Implement plugin discovery mechanism: scan `$PATH` for `gitehr-[command]` executables.
+- [ ] Implement command resolution order: built-in commands first, then plugins.
+- [ ] Implement argument pass-through: `gitehr plugin arg1 arg2` executes `gitehr-plugin arg1 arg2`.
+- [ ] Add `gitehr plugins` command to list available plugins.
+- [ ] Update `gitehr --help` to show available plugins alongside built-in commands.
+- [ ] Document plugin authoring guidelines (exit codes, help text, argument handling).
+- [ ] Add plugin examples to documentation (sample `gitehr-backup`, `gitehr-export`).
+
 ## Command Coverage vs Spec
 
 - [x] Implement `gitehr state` (`list`, `get`, `set`).

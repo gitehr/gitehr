@@ -2,7 +2,7 @@
 
 ## Purpose and Scope
 
-GitEHR is a decentralised, Git-backed, 'batteries-included' electronic health record designed to let multiple contributors maintain a single patient's record losslessly over a patient's lifetime. It is designed for portability, simplicity, and interoperable standards.
+GitEHR is a decentralised, Git-backed, 'batteries-included' electronic health record designed to let a patient and multiple clinical contributors maintain a lossless, comprehensive record over a patient's lifetime. It is designed for portability, simplicity, and interoperable standards.
 
 This specification summarises the behaviour described in the codebase and documentation for the current CLI implementation and repository structure.
 
@@ -42,6 +42,32 @@ CLI naming and flags:
 - Prefer clear, dashless commands and subcommands (e.g., `gitehr remote add`) to reduce confusion.
 - Use word-form aliases for discoverable shortcuts (e.g., `gitehr v`, `gitehr st`); avoid short-flag aliases except for global modifiers.
 - Reserve flags for condition modifiers and global behavior (e.g., verbosity levels `-v/-vv/-vvv`, or an alternative config path like `-f dsc.toml`), not as substitutes for primary verbs.
+
+### Plugin System
+
+GitEHR supports extensibility through a plugin system. Any executable named `gitehr-[command]` found in the user's `$PATH` becomes accessible as `gitehr [command]`.
+
+**Command resolution order:**
+1. Built-in commands are checked first (journal, state, remote, etc.)
+2. If no built-in command matches, scan `$PATH` for `gitehr-[command]` executable
+3. If found, execute the plugin with remaining arguments passed through
+4. If not found, display error message
+
+**Example:**
+- Executable `gitehr-backup` in `$PATH` → accessible as `gitehr backup [args]`
+- Executable `gitehr-export` in `$PATH` → accessible as `gitehr export [args]`
+- Executable `gitehr-fhir` in `$PATH` → accessible as `gitehr fhir [args]`
+
+**Plugin discovery:**
+- `gitehr plugins` lists all available plugins by scanning `$PATH` for `gitehr-*` executables
+- `gitehr --help` displays both built-in commands and available plugins
+
+**Plugin authoring guidelines:**
+- Plugins should implement `--help` flag for usage information
+- Exit codes: 0 for success, non-zero for errors
+- Plugins can be written in any language (Rust, Python, Bash, etc.)
+- Plugins have full access to the repository structure and can use git commands
+- Plugins should respect `.gitehr/ENCRYPTED` marker if encryption-aware
 
 The CLI currently provides the following commands.
 
