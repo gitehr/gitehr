@@ -450,7 +450,7 @@ dependencies = [
 
 [[package]]
 name = "gitehr"
-version = "0.1.7"
+version = "0.1.8"
 dependencies = [
  "anyhow",
  "chrono",
@@ -477,7 +477,7 @@ dependencies = [
 
 [[package]]
 name = "gitehr-mcp"
-version = "0.1.7"
+version = "0.1.8"
 dependencies = [
  "anyhow",
  "async-trait",
