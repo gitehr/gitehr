@@ -110,9 +110,33 @@ This roadmap tracks implementation status against the current `spec/` documents.
 ## Documentation and Operations
 
 - [x] Maintain Zensical site scaffolding (`docs/`, `mkdocs.yml`, `requirements.txt`).
+- [ ] Restructure top-level nav to seven tabs: Home, Design, Install, CLI, GUI, TUI, Safety. Move existing content into the new sections; create stubs for sections that do not yet have content (TUI, Safety).
 - [ ] Keep command docs consistently aligned with runtime behavior.
-- [ ] Expand user-facing docs (getting started, CLI reference, GUI walkthroughs, troubleshooting).
+- [ ] Expand user-facing docs (Install, CLI reference, GUI walkthroughs, TUI overview once it exists, Safety / Turva, troubleshooting).
 - [ ] Document packaging strategy for CLI+GUI distribution and upgrade/migration compatibility.
 - [ ] Add calculator usage guide with clinical examples and validation references.
 - [ ] Add MCP integration guide for LLM application developers.
 - [ ] Document long-term strategic considerations (EHDS, EHRxF, quantum crypto, federated learning).
+
+## Site Content (gitehr.org)
+
+Source: `gitehr-site-improvement-handoff.md` at the repo root. Goal is to strengthen the "files on disk vs databases" argument that underpins GitEHR's design, by framing it as the consensus the rest of software has already reached rather than as a healthcare-specific opinion. Style: ASCII hyphen-minus only (no emdash), MkDocs-compatible admonitions (work in Zensical's classic variant), relative internal links.
+
+### High priority
+
+- [x] Replace the blockchain reference in `docs/design/design.md` ("Using the same consensus principle from blockchain technology...") with a content-addressed-hashing / Merkle DAG framing. Git is not a Nakamoto-consensus system. *(Done in `redundancy.md` and the duplicated content in `design.md`.)*
+- [x] Add a new "Files, not databases" section to `docs/design/design.md` (or a new page under `docs/design/`) covering: the one-sentence pitch, why this is not radical (Git, lakehouse/Iceberg, file-over-app, DICOM, email), and why database-to-database interoperability does not work. *(New page `docs/design/files-not-databases.md` added to nav.)*
+- [x] Promote the CVS/DVCS analogy from `docs/about/the-gitehr-story.md` to the homepage (`docs/index.md`) as a one-line elevator pitch. *(Now the lead of the hero subtitle.)*
+- [x] Replace the Mars colony ship example with grounded real-world cases. *(Updated in `portability.md` and the duplicated content in `design.md`.)*
+
+### Medium priority
+
+- [ ] Add a "Common objections" or FAQ page covering: cross-patient queries for research and population health (org-level derived databases built from canonical files, mirroring Iceberg-over-Parquet); concurrent edits (Git branch-and-merge with clinical conflict resolution); ACID and consistency (per-file atomicity plus cryptographic chain-of-custody); GDPR right to erasure (the hardest one - needs careful framing given Git's immutable history).
+- [ ] Cross-reference the wider movement with explicit links: Ink and Switch local-first paper (Kleppmann et al. 2019), Steph Ango's "File over app" essay, Pat Helland's "Immutability Changes Everything" (2015), Apache Iceberg, SQLite-as-archival-format. Add to a references section or inline citations.
+- [ ] Expand the N-squared integration problem into its own paragraph plus a diagram: N organisations with their own databases produces N(N-1)/2 integration pairs; N organisations agreeing on a file format produces N implementations and zero pairs.
+
+### Lower priority / diagrams
+
+- [ ] Commission or generate three diagrams: (a) N(N-1)/2 integration pairs vs N implementations of a shared format, (b) "patient as folder, organisations as clones" distributed clone topology, (c) optional lakehouse-style stack diagram with canonical files at the bottom, derived org-level databases in the middle, applications at the top.
+- [x] Style sweep across all `docs/*.md`: remove emdash characters in favour of ASCII hyphen-minus, audit for blockchain references, audit for the Mars colony example. *(Initial pass: en-dashes converted in `glossary.md` and `developers.md`; one U+2011 fixed; no em-dashes found. Re-run after major content additions.)*
+- [ ] Verify Zensical strict build (or enable equivalent) and ensure no broken internal links after content reshuffles.

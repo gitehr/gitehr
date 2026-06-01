@@ -9,9 +9,9 @@ Portability is a natural emergent property of complete [Patient-Centricity](pati
 
 When the files of a record are represented in a single directory on a disk, they can be shared easily with other caregiving organisations.
 
-They can even be downloaded onto a portable storage medium, like a USB stick. The GitEHR record can still be readfrom ans written to in this state. For example, if the patient goes 'off-grid' because they are on an expedition - or for that matter a colony ship to Mars - they can take their entire medical record with them in a fully interactive way. 
+They can even be downloaded onto a portable storage medium, like a USB stick, and remain fully readable and writable in that state. The everyday cases are mundane and important: a patient travelling to a region with intermittent connectivity, an expedition or ship's medic operating without a network, a humanitarian clinic in a conflict zone, a GP locum arriving at a care home with no shared system access. In each case the entire medical record can travel with the patient or the clinician, with no degraded "read-only" mode.
 
-Later, any changes made can be synchronised with their GitEHR records back home.
+Later, any changes made can be synchronised back into the patient's GitEHR record when connectivity is restored.
 
 ## Natural disasters and major incidents
 

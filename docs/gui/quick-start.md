@@ -1,8 +1,8 @@
-# Getting Started
+# GUI Quick Start
 
-Welcome to GitEHR. This guide will help you open and interact with a health record using the GitEHR interface.
+This guide walks you through opening and interacting with a health record in the GitEHR GUI.
 
-GitEHR is designed to give you ownership and a clear history of your health information. In this early preview, we focus on how you can view and add to an existing record.
+GitEHR is designed to give you ownership and a clear history of your health information. In this early preview, we focus on how to view and add to an existing record. See [Install the GUI](../install/gui.md) if you have not built the GUI yet.
 
 ## Before You Begin
 
@@ -52,5 +52,5 @@ In this preview version, the summary panel is **read-only**. Updates to these sp
 
 ## Next steps
 
-- [GUI Walkthrough](guides/gui-walkthrough.md): Learn more about the different parts of the interface.
-- [Repository Structure](guides/repository-structure.md): See how the data is actually organized in your folder.
+- [GUI overview](gui.md) - the rest of the interface (search, status, activity feed).
+- [Repository Structure](../design/repository-structure.md) - how the data is actually organised on disk.

@@ -59,7 +59,7 @@ An organisation-level database is useful as a healthcare organisation may care f
 
 Portability is a natural emergent property of complete [Patient-Centricity](patient-centricity.md). It is therefore baked into GitEHR.
 When the files of a record are represented in a single directory on a disk, they can be shared easily with other caregiving organisations.
-They can even be downloaded onto a portable storage medium, like a USB stick. This can be read, updated and used comprehensively in this state. A prime example includes if the patient goes off-grid because they are on an expedition or a colony ship to Mars. Later, changes made can be merged back into the record.
+They can even be downloaded onto a portable storage medium, like a USB stick, and remain fully readable and writable in that state. The everyday cases are mundane and important: a patient travelling to a region with intermittent connectivity, an expedition or ship's medic operating without a network, a humanitarian clinic in a conflict zone, a GP locum arriving at a care home with no shared system access. Later, changes made can be merged back into the record when connectivity is restored.
 
 ## Provenance
 
@@ -96,7 +96,10 @@ Every organisation providing care to a patient keeps a complete copy of their en
 All organisations to which a patient is granted access keep an up-to-date record copy.
 Distributing the storage of medical records makes them extremely resilient to loss, deletion or corruption.
 ## Tamper resistance
-Using the same consensus principle from blockchain technology to ensure there is only one version of the truth, GitEHR records which have been altered in any way are instantly identified.
+
+Each GitEHR journal entry stores the cryptographic hash of its parent entry, and is itself identified by the hash of its own content. This builds a [Merkle DAG](https://en.wikipedia.org/wiki/Merkle_tree): altering any past entry changes its hash, which breaks the chain in every descendant.
+
+Detection is mechanical. A `gitehr journal verify` walk recomputes hashes from genesis to the latest entry and reports any link that no longer matches. There is no central server, no consensus protocol, and no trusted administrator. This is the same content-addressed-hashing property that makes Git trustworthy as the substrate of essentially all modern software development.
 
 ## Security
 

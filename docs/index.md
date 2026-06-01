@@ -8,10 +8,10 @@
           <div class="gitehr-kicker">Open Source Standard</div>
           <h1 class="gitehr-hero__title">Decentralised, lossless <span>health records</span></h1>
           <p class="gitehr-hero__subtitle">
-            GitEHR is an open source platform powered by Git, cryptography, and open standards. It keeps every clinical change auditable, portable, and owned by the patient.
+            <strong>GitEHR is to current EHRs what Git was to CVS.</strong> A patient's record is a folder of plain-text files; every organisation caring for them holds a clone that syncs the way Git repositories sync. Auditable, portable, patient-owned by design.
           </p>
           <div class="gitehr-hero__actions">
-            <a href="getting-started.md" class="gitehr-button gitehr-button--primary">Get Started</a>
+            <a href="install/install.md" class="gitehr-button gitehr-button--primary">Install</a>
             <a href="https://github.com/gitehr/gitehr" class="gitehr-button gitehr-button--secondary">View on GitHub</a>
           </div>
         </div>
@@ -32,8 +32,8 @@
           <p>Use the Getting Started guide to run the GUI, open a repository, and learn the on-disk layout.</p>
         </div>
         <div class="gitehr-cta__actions">
-          <a href="getting-started.md" class="gitehr-button gitehr-button--primary">Read the guide</a>
-          <a href="guides/gui-walkthrough.md" class="gitehr-button gitehr-button--secondary">GUI walkthrough</a>
+          <a href="gui/quick-start.md" class="gitehr-button gitehr-button--primary">GUI Quick Start</a>
+          <a href="gui/gui.md" class="gitehr-button gitehr-button--secondary">GUI overview</a>
         </div>
       </div>
     </div>
