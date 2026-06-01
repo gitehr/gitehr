@@ -104,6 +104,47 @@ gitehr journal show -n 5 -r
 - Truncates content preview at 80 characters to keep output readable.
 - Prints a summary line showing "Showing X of Y entries" at the end.
 
+### `gitehr journal cat [OPTIONS]`
+
+Prints the full body of every journal entry in chronological order. This is the "play back the record" view, intended for reading the journal end to end.
+
+**Options:**
+
+| Option | Short | Description |
+|--------|-------|-------------|
+| `--reverse` | `-r` | Show newest entries first |
+
+**Output format:**
+
+Each entry is rendered as:
+
+```
+--- Entry N | <ISO 8601 timestamp> | author: <author or (unknown)> ---
+<filename>
+
+<full body of the entry>
+
+```
+
+The final line shows the total entry count: `(<N> entries)`.
+
+**Examples:**
+
+```bash
+# Read the whole record, oldest first
+gitehr journal cat
+
+# Read the whole record, newest first
+gitehr journal cat --reverse
+```
+
+**Behavior:**
+
+- Requires the current directory to be a GitEHR repository.
+- Reads every file in `journal/` whose name matches the timestamp-uuid pattern.
+- Sorts by filename (chronological by virtue of the timestamp prefix).
+- Skips entries with invalid front matter, printing a one-line error on stderr but continuing.
+
 ### `gitehr journal verify`
 
 Validates the integrity of the journal chain (see [src/commands/verify.rs](../../src/commands/verify.rs) and [src/main.rs](../../src/main.rs)).

@@ -117,6 +117,15 @@ enum JournalCommands {
         #[arg(short, long, help = "Show all entries (ignores --limit)")]
         all: bool,
     },
+    #[command(
+        about = "Play back the full journal, oldest first",
+        long_about = "Print the full body of every journal entry in chronological order. \
+                      Use this to read the patient's record end to end."
+    )]
+    Cat {
+        #[arg(short, long, help = "Show newest entries first")]
+        reverse: bool,
+    },
     Verify,
 }
 
@@ -325,6 +334,9 @@ fn main() -> Result<()> {
                     all,
                 } => {
                     commands::journal::show_journal_entries(limit, offset, reverse, all)?;
+                }
+                JournalCommands::Cat { reverse } => {
+                    commands::journal::cat_journal_entries(reverse)?;
                 }
                 JournalCommands::Verify => {
                     commands::verify::verify_journal()?;

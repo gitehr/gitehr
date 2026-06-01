@@ -48,6 +48,16 @@ Options:
 - `-r, --reverse`: newest first
 - `-a, --all`: show all (ignores limit)
 
+### `gitehr journal cat [-r|--reverse]`
+
+Prints the full body of every journal entry in chronological order. Use this to read the record end to end.
+
+Options:
+
+- `-r, --reverse`: newest first
+
+Each entry is prefixed by a header line of the form `--- Entry N | <timestamp> | author: <author> ---` followed by the entry's filename and body.
+
 ### `gitehr journal verify`
 
 Verifies the journal hash chain using YAML front matter and SHA-256.

@@ -7,7 +7,7 @@ use std::fs;
 use std::path::Path;
 use tempfile::tempdir;
 
-use gitehr::commands::journal::{create_journal_entry, get_latest_journal_entry};
+use gitehr::commands::journal::{cat_journal_entries, create_journal_entry, get_latest_journal_entry};
 
 fn setup() -> tempfile::TempDir {
     tempdir().unwrap()
@@ -166,6 +166,34 @@ fn test_timestamp_ordering() -> Result<()> {
         unique_timestamps.len(),
         "All timestamps should be unique"
     );
+
+    Ok(())
+}
+
+#[test]
+#[serial]
+fn test_cat_journal_entries_no_entries() -> Result<()> {
+    let _temp_dir = setup_with_git()?;
+    // Journal dir exists but is empty; cat should still succeed with the no-entries message.
+    cat_journal_entries(false)?;
+    Ok(())
+}
+
+#[test]
+#[serial]
+fn test_cat_journal_entries_returns_ok_with_entries() -> Result<()> {
+    let _temp_dir = setup_with_git()?;
+
+    create_journal_entry("First entry", None)?;
+    let (_, hash1) = get_latest_journal_entry()?.expect("should have first entry");
+    create_journal_entry("Second entry", Some(hash1))?;
+    let (_, hash2) = get_latest_journal_entry()?.expect("should have second entry");
+    create_journal_entry("Third entry", Some(hash2))?;
+
+    // Forward order
+    cat_journal_entries(false)?;
+    // Reverse order
+    cat_journal_entries(true)?;
 
     Ok(())
 }
