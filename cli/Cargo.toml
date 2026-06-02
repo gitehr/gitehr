@@ -22,7 +22,7 @@ sha2.workspace = true
 clap.workspace = true
 
 # CLI-specific dependencies
-clap_complete = "4.5"
+clap_complete = "4.6"
 fs_extra = "1"
 rand = "0.10"
 which = "8.0"
