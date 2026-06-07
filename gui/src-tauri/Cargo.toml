@@ -24,6 +24,6 @@ tauri-plugin-dialog = "2"
 tauri-plugin-mcp-bridge = "0.11"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-serde_yml = "0.0.12"
+serde_yaml_ng = "0.10"
 gitehr = { path = "../../cli" }
 chrono = "0.4"

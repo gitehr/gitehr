@@ -580,7 +580,7 @@ gitehr-calculators = { path = "../gitehr-calculators" }
 # MCP protocol
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-serde_yml = "0.0.12"
+serde_yaml_ng = "0.10"
 
 # Server runtime
 tokio = { version = "1", features = ["full"] }

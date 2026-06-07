@@ -41,7 +41,7 @@ fn parse_journal_file(path: &PathBuf) -> Result<ParsedEntry> {
     let yaml_content = parts[1].trim();
     let body_content = parts[2].trim().to_string();
 
-    let metadata: JournalEntry = serde_yml::from_str(yaml_content)?;
+    let metadata: JournalEntry = serde_yaml_ng::from_str(yaml_content)?;
 
     Ok(ParsedEntry {
         filename,
@@ -92,7 +92,7 @@ pub fn create_journal_entry(content: &str, parent_hash: Option<String>) -> Resul
         Uuid::new_v4()
     );
 
-    let yaml = serde_yml::to_string(&entry)?;
+    let yaml = serde_yaml_ng::to_string(&entry)?;
     let file_content = format!("---\n{}---\n\n{}", yaml, content);
 
     fs::write(&filename, file_content)?;

@@ -170,7 +170,7 @@ fn get_journal_entries(
                     let body_content = parts[2].trim();
 
                     if let Ok(metadata) =
-                        serde_yml::from_str::<gitehr::commands::journal::JournalEntry>(yaml_content)
+                        serde_yaml_ng::from_str::<gitehr::commands::journal::JournalEntry>(yaml_content)
                     {
                         let preview: String = body_content
                             .chars()

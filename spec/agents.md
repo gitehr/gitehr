@@ -12,7 +12,7 @@
 - CLI entrypoint: `src/main.rs` (clap subcommands). No-args prints version and help.
 - Init flow: `src/commands/init.rs` copies template + creates genesis entry with random seed hash.
 - Journal format: `journal/<YYYYMMDDTHHMMSS.mmmZ>-<UUID>.md` and YAML front matter delimited by `---`.
-- YAML serialization: uses `serde_yml` (not `serde_yaml`). Keep this consistent.
+- YAML serialization: uses `serde_yaml_ng` (a maintained fork of the now-deprecated `serde_yaml`; we previously used `serde_yml`, which was withdrawn under RUSTSEC-2025-0068). Keep this consistent.
 - GUI layout: Mantine `AppShell` in `gui/src/App.tsx` with styling in `App.css`.
 
 ## Dev workflows (project-specific)
