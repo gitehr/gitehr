@@ -55,9 +55,10 @@ enum Commands {
         #[command(subcommand)]
         command: StoreCommands,
     },
-    Attach {
+    #[command(alias = "attach")]
+    Document {
         #[command(subcommand)]
-        command: AttachCommands,
+        command: DocumentCommands,
     },
     Mcp {
         #[command(subcommand)]
@@ -229,34 +230,33 @@ enum UserCommands {
 }
 
 #[derive(Subcommand)]
-enum AttachCommands {
-    #[command(about = "Add a file to the attachment store")]
+enum DocumentCommands {
+    #[command(about = "Add a Document to the record and link it from a new journal entry")]
     Add {
-        #[arg(help = "Path to file to attach")]
-        file: PathBuf,
-        #[arg(short, long, help = "Optional description")]
-        description: Option<String>,
-        #[arg(short, long, help = "Tags (comma-separated)")]
-        tags: Option<String>,
+        #[arg(help = "Path to the file (or directory, e.g. a DICOM study) to add")]
+        path: PathBuf,
+        #[arg(long, help = "Store under imaging/ instead of documents/")]
+        imaging: bool,
+        #[arg(
+            short,
+            long,
+            help = "Title used to build the stored filename slug (defaults to the original filename)"
+        )]
+        title: Option<String>,
+        #[arg(short, long, help = "Journal entry text describing the Document")]
+        message: Option<String>,
     },
-    #[command(about = "Get an attachment by hash")]
-    Get {
-        #[arg(help = "SHA-256 hash of the attachment")]
-        hash: String,
-        #[arg(help = "Destination path")]
-        output: PathBuf,
-    },
-    #[command(about = "Show metadata for an attachment")]
-    Info {
-        #[arg(help = "SHA-256 hash of the attachment")]
-        hash: String,
-    },
-    #[command(about = "List all attachments")]
+    #[command(about = "List Documents referenced by journal entries")]
     List,
-    #[command(about = "Verify attachment integrity")]
+    #[command(about = "Show which journal entries reference a Document")]
+    Info {
+        #[arg(help = "Path of the Document within the record (e.g. documents/2026-06-12-...pdf)")]
+        path: String,
+    },
+    #[command(about = "Verify Document integrity against the hashes recorded in journal entries")]
     Verify {
-        #[arg(help = "SHA-256 hash of the attachment")]
-        hash: String,
+        #[arg(help = "Verify a single Document path (default: all)")]
+        path: Option<String>,
     },
 }
 
@@ -455,62 +455,29 @@ fn main() -> Result<()> {
                 commands::store::remove_patient(patient_id.clone())?;
             }
         },
-        Commands::Attach { command } => match command {
-            AttachCommands::Add { file, description, tags } => {
-                let tag_vec = tags
-                    .as_ref()
-                    .map(|t| t.split(',').map(|s| s.trim().to_string()).collect())
-                    .unwrap_or_default();
-                let hash = commands::attach::add_attachment(file.as_path(), description.clone(), tag_vec)?;
-                println!("Attachment added successfully");
-                println!("Hash: {}", hash);
+        Commands::Document { command } => match command {
+            DocumentCommands::Add {
+                path,
+                imaging,
+                title,
+                message,
+            } => {
+                commands::document::add_document(
+                    path.as_path(),
+                    title.as_deref(),
+                    imaging,
+                    message.as_deref(),
+                )?;
             }
-            AttachCommands::Get { hash, output } => {
-                commands::attach::get_attachment(hash.as_str(), output.as_path())?;
-                println!("Attachment retrieved successfully");
+            DocumentCommands::List => {
+                commands::document::list_documents()?;
             }
-            AttachCommands::Info { hash } => {
-                let metadata = commands::attach::get_metadata(hash.as_str())?;
-                println!("Hash: {}", metadata.hash);
-                println!("Original filename: {}", metadata.original_filename);
-                if let Some(mime) = &metadata.mime_type {
-                    println!("MIME type: {}", mime);
-                }
-                println!("Size: {} bytes", metadata.size);
-                println!("Attached at: {}", metadata.attached_at);
-                if let Some(desc) = &metadata.description {
-                    println!("Description: {}", desc);
-                }
-                if !metadata.tags.is_empty() {
-                    println!("Tags: {}", metadata.tags.join(", "));
-                }
+            DocumentCommands::Info { path } => {
+                commands::document::document_info(&path)?;
             }
-            AttachCommands::List => {
-                let attachments = commands::attach::list_attachments()?;
-                if attachments.is_empty() {
-                    println!("No attachments found");
-                } else {
-                    println!("Attachments ({} total):", attachments.len());
-                    for attachment in attachments {
-                        println!("\n  Hash: {}", &attachment.hash[..16]);
-                        println!("  File: {}", attachment.original_filename);
-                        if let Some(mime) = &attachment.mime_type {
-                            println!("  Type: {}", mime);
-                        }
-                        println!("  Size: {} bytes", attachment.size);
-                        println!("  Date: {}", attachment.attached_at);
-                        if !attachment.tags.is_empty() {
-                            println!("  Tags: {}", attachment.tags.join(", "));
-                        }
-                    }
-                }
-            }
-            AttachCommands::Verify { hash } => {
-                let is_valid = commands::attach::verify_attachment(hash.as_str())?;
-                if is_valid {
-                    println!("Attachment integrity verified: OK");
-                } else {
-                    println!("Attachment integrity verification FAILED");
+            DocumentCommands::Verify { path } => {
+                let ok = commands::document::verify_documents(path.as_deref())?;
+                if !ok {
                     std::process::exit(1);
                 }
             }

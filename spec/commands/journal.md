@@ -161,7 +161,7 @@ TODO: gitehr journal verify needs an option for increased verbosity to show deta
 
 ## Journal Data Model
 
-- Each entry file starts with YAML front matter representing `JournalEntry` with fields `parent_hash` (optional), `parent_entry` (optional for genesis), `timestamp` (UTC), and `author` (optional, automatically set to the currently active user ID via `gitehr user activate <id>`) (see [src/commands/journal.rs](../../src/commands/journal.rs)).
+- Each entry file starts with YAML front matter representing `JournalEntry` with fields `parent_hash` (optional), `parent_entry` (optional for genesis), `timestamp` (UTC), `author` (optional, automatically set to the currently active user ID via `gitehr user activate <id>`), and `documents` (optional, a list of references to [Documents](document.md) this entry relates to, each with `path`, `sha256`, and optional `original_filename`) (see [src/commands/journal.rs](../../src/commands/journal.rs)).
 
 - The file content after the front matter holds the clinical narrative or data supplied to `gitehr add` or the genesis message (see [src/commands/journal.rs](../../src/commands/journal.rs) and [src/commands/init.rs](../../src/commands/init.rs)).
 

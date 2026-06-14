@@ -14,6 +14,19 @@ pub struct JournalEntry {
     pub timestamp: DateTime<Utc>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub author: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub documents: Option<Vec<DocumentRef>>,
+}
+
+/// A reference from a journal entry to a Document in the record.
+/// The sha256 is a verifiability proof: for a file Document it hashes the
+/// file itself, for a directory Document it hashes the manifest (ADR-0003).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DocumentRef {
+    pub path: String,
+    pub sha256: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub original_filename: Option<String>,
 }
 
 /// Parsed journal entry with metadata and content
@@ -54,7 +67,46 @@ fn is_journal_entry_file(filename: &str) -> bool {
     filename.contains('T') && filename.contains('-') && filename.ends_with(".md")
 }
 
+/// Parse every journal entry, oldest first. Entries that fail to parse are
+/// skipped with a warning on stderr; callers needing strict validation should
+/// use `gitehr journal verify` instead.
+pub fn parsed_entries() -> Result<Vec<ParsedEntry>> {
+    let journal_dir = PathBuf::from("journal");
+    if !journal_dir.exists() {
+        return Ok(Vec::new());
+    }
+
+    let mut paths: Vec<_> = fs::read_dir(&journal_dir)?
+        .filter_map(|e| e.ok())
+        .map(|e| e.path())
+        .filter(|path| {
+            path.file_name()
+                .and_then(|n| n.to_str())
+                .map(is_journal_entry_file)
+                .unwrap_or(false)
+        })
+        .collect();
+    paths.sort();
+
+    let mut entries = Vec::new();
+    for path in &paths {
+        match parse_journal_file(path) {
+            Ok(parsed) => entries.push(parsed),
+            Err(e) => eprintln!("Warning: skipping {}: {}", path.display(), e),
+        }
+    }
+    Ok(entries)
+}
+
 pub fn create_journal_entry(content: &str, parent_hash: Option<String>) -> Result<()> {
+    create_journal_entry_with_documents(content, parent_hash, Vec::new())
+}
+
+pub fn create_journal_entry_with_documents(
+    content: &str,
+    parent_hash: Option<String>,
+    documents: Vec<DocumentRef>,
+) -> Result<()> {
     let parent_entry = {
         let entries: Vec<_> = fs::read_dir("journal")?
             .filter_map(|e| e.ok())
@@ -84,6 +136,11 @@ pub fn create_journal_entry(content: &str, parent_hash: Option<String>) -> Resul
         parent_entry,
         timestamp: Utc::now(),
         author: contributor::get_current_contributor(),
+        documents: if documents.is_empty() {
+            None
+        } else {
+            Some(documents)
+        },
     };
 
     let filename = format!(

@@ -1,6 +1,6 @@
-pub mod attach;
 pub mod contributor;
 pub mod decrypt;
+pub mod document;
 pub mod encrypt;
 mod git;
 pub mod gui;

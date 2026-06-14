@@ -1,4 +1,5 @@
 pub mod contributor;
+pub mod document;
 pub mod encrypt;
 pub mod init;
 pub mod journal;

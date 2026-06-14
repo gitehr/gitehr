@@ -32,6 +32,10 @@ nav:
       - No Lock-in: design/no-lock-in.md
       - Longevity: design/longevity.md
       - Simplicity: design/simplicity.md
+      - Decisions (ADRs):
+          - Documents as plain files: adr/0001-documents-as-plain-files.md
+          - The record only grows: adr/0002-record-only-grows.md
+          - Directory Documents with manifest: adr/0003-directory-documents-with-manifest.md
   - Install:
       - Overview: install/install.md
       - CLI: install/cli.md
@@ -40,6 +44,7 @@ nav:
       - Overview: cli/cli.md
       - init: cli/init.md
       - journal: cli/journal.md
+      - document: cli/document.md
       - state: cli/state.md
       - user: cli/user.md
       - remote: cli/remote.md

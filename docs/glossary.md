@@ -4,6 +4,7 @@
 
 ## GitEHR-specific concepts
 
+- **Document** - A clinical source artifact stored as a file in the patient record: a PDF, scanned letter, photograph, Word document, or imaging study. Documents are immutable and write-once, and are referenced by one or more journal entries.
 - **Organisation-centric** - Records structured around the healthcare organisation rather than the patient.
 - **Patient-centric** - Records structured around one patient, independent of any single organisation.
 - **Hacktitioner** - A light-hearted term combining “hacker” and “general practitioner”.
