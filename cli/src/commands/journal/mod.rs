@@ -1,11 +1,79 @@
 use anyhow::Result;
 use chrono::{DateTime, Utc};
+use clap::Subcommand;
 use serde::{Deserialize, Serialize};
 use std::{fs, path::PathBuf};
 use uuid::Uuid;
 
 use super::{contributor, git};
 use crate::utils::sha256_hex;
+
+pub mod add;
+pub mod cat;
+pub mod show;
+pub mod verify;
+
+#[derive(Subcommand)]
+pub enum JournalCommands {
+    Add {
+        #[arg(help = "The content to add to the journal (use --file for file input)")]
+        content: Option<String>,
+        #[arg(short, long, help = "Read content from a file (use - for stdin)")]
+        file: Option<String>,
+    },
+    Show {
+        #[arg(
+            short = 'n',
+            long,
+            default_value = "10",
+            help = "Maximum number of entries to display"
+        )]
+        limit: usize,
+        #[arg(
+            short,
+            long,
+            default_value = "0",
+            help = "Number of entries to skip from the start"
+        )]
+        offset: usize,
+        #[arg(short, long, help = "Show newest entries first")]
+        reverse: bool,
+        #[arg(short, long, help = "Show all entries (ignores --limit)")]
+        all: bool,
+    },
+    #[command(
+        about = "Play back the full journal, oldest first",
+        long_about = "Print the full body of every journal entry in chronological order. \
+                      Use this to read the patient's record end to end."
+    )]
+    Cat {
+        #[arg(short, long, help = "Show newest entries first")]
+        reverse: bool,
+    },
+    Verify,
+}
+
+pub fn run(command: JournalCommands) -> Result<()> {
+    if !PathBuf::from(".gitehr").exists() {
+        anyhow::bail!(
+            "Not a GitEHR repository (or not in the repository root). Run 'gitehr init' to create a new repository."
+        );
+    }
+
+    match command {
+        JournalCommands::Add { content, file } => add::run(content, file),
+        JournalCommands::Show {
+            limit,
+            offset,
+            reverse,
+            all,
+        } => show::run(limit, offset, reverse, all),
+        JournalCommands::Cat { reverse } => cat::run(reverse),
+        JournalCommands::Verify => verify::run(),
+    }
+}
+
+// ── Core data structures ──────────────────────────────────────────────────────
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct JournalEntry {
@@ -36,8 +104,10 @@ pub struct ParsedEntry {
     pub content: String,
 }
 
+// ── Core helper functions (used by children and siblings) ────────────────────
+
 /// Parse a journal file into metadata and content
-fn parse_journal_file(path: &PathBuf) -> Result<ParsedEntry> {
+pub fn parse_journal_file(path: &PathBuf) -> Result<ParsedEntry> {
     let filename = path
         .file_name()
         .map(|s| s.to_string_lossy().to_string())
@@ -63,7 +133,7 @@ fn parse_journal_file(path: &PathBuf) -> Result<ParsedEntry> {
     })
 }
 
-fn is_journal_entry_file(filename: &str) -> bool {
+pub fn is_journal_entry_file(filename: &str) -> bool {
     filename.contains('T') && filename.contains('-') && filename.ends_with(".md")
 }
 
@@ -190,157 +260,4 @@ pub fn get_latest_journal_entry() -> Result<Option<(String, String)>> {
     } else {
         Ok(None)
     }
-}
-
-pub fn show_journal_entries(limit: usize, offset: usize, reverse: bool, all: bool) -> Result<()> {
-    let journal_dir = PathBuf::from("journal");
-    if !journal_dir.exists() {
-        println!("No journal entries found.");
-        return Ok(());
-    }
-
-    let mut entries: Vec<_> = fs::read_dir(&journal_dir)?
-        .filter_map(|e| e.ok())
-        .map(|e| e.path())
-        .filter(|path| {
-            path.file_name()
-                .and_then(|n| n.to_str())
-                .map(|name| name.contains('T') && name.contains('-') && name.ends_with(".md"))
-                .unwrap_or(false)
-        })
-        .collect();
-
-    if entries.is_empty() {
-        println!("No journal entries found.");
-        return Ok(());
-    }
-
-    entries.sort();
-
-    if reverse {
-        entries.reverse();
-    }
-
-    let total_count = entries.len();
-
-    let entries_to_show: Vec<_> = if all {
-        entries.into_iter().skip(offset).collect()
-    } else {
-        entries.into_iter().skip(offset).take(limit).collect()
-    };
-
-    if entries_to_show.is_empty() {
-        println!(
-            "No entries to display (offset {} exceeds total {}).",
-            offset, total_count
-        );
-        return Ok(());
-    }
-
-    for (idx, path) in entries_to_show.iter().enumerate() {
-        let entry_num = offset + idx + 1;
-
-        match parse_journal_file(path) {
-            Ok(parsed) => {
-                let parent_display = parsed
-                    .metadata
-                    .parent_entry
-                    .as_deref()
-                    .unwrap_or("(genesis)");
-
-                let preview: String = parsed
-                    .content
-                    .chars()
-                    .take(80)
-                    .collect::<String>()
-                    .replace('\n', " ");
-                let preview_suffix = if parsed.content.len() > 80 { "..." } else { "" };
-
-                println!("[{}] {}", entry_num, parsed.filename);
-                println!(
-                    "    Timestamp: {}",
-                    parsed.metadata.timestamp.format("%Y-%m-%d %H:%M:%S UTC")
-                );
-                println!("    Parent: {}", parent_display);
-                println!("    Preview: {}{}", preview, preview_suffix);
-                println!();
-            }
-            Err(e) => {
-                let filename = path
-                    .file_name()
-                    .map(|s| s.to_string_lossy().to_string())
-                    .unwrap_or_default();
-                println!("[{}] {} (error: {})", entry_num, filename, e);
-                println!();
-            }
-        }
-    }
-
-    let shown = entries_to_show.len();
-    println!("Showing {} of {} entries.", shown, total_count);
-
-    Ok(())
-}
-
-/// Print the full body of every journal entry, in chronological order by default.
-///
-/// This is the "play back the record" view: one entry after another with a
-/// clear header line for each, intended for reading the journal end to end.
-pub fn cat_journal_entries(reverse: bool) -> Result<()> {
-    let journal_dir = PathBuf::from("journal");
-    if !journal_dir.exists() {
-        println!("No journal entries found.");
-        return Ok(());
-    }
-
-    let mut entries: Vec<_> = fs::read_dir(&journal_dir)?
-        .filter_map(|e| e.ok())
-        .map(|e| e.path())
-        .filter(|path| {
-            path.file_name()
-                .and_then(|n| n.to_str())
-                .map(is_journal_entry_file)
-                .unwrap_or(false)
-        })
-        .collect();
-
-    if entries.is_empty() {
-        println!("No journal entries found.");
-        return Ok(());
-    }
-
-    entries.sort();
-    if reverse {
-        entries.reverse();
-    }
-
-    let total = entries.len();
-
-    for (idx, path) in entries.iter().enumerate() {
-        let entry_num = idx + 1;
-
-        match parse_journal_file(path) {
-            Ok(parsed) => {
-                let author = parsed.metadata.author.as_deref().unwrap_or("(unknown)");
-                let ts = parsed.metadata.timestamp.format("%Y-%m-%d %H:%M:%S UTC");
-                println!("--- Entry {} | {} | author: {} ---", entry_num, ts, author);
-                println!("{}", parsed.filename);
-                println!();
-                println!("{}", parsed.content);
-                println!();
-            }
-            Err(e) => {
-                let filename = path
-                    .file_name()
-                    .map(|s| s.to_string_lossy().to_string())
-                    .unwrap_or_default();
-                eprintln!("--- Entry {} | {} (error: {}) ---", entry_num, filename, e);
-                eprintln!();
-            }
-        }
-    }
-
-    println!("({} entries)", total);
-
-    Ok(())
 }

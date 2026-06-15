@@ -88,3 +88,4 @@ ipython_config.py
 
 # Personal notes and session summaries
 .marcus/
+.claude/

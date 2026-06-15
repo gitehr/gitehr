@@ -3,11 +3,7 @@
 use anyhow::Result;
 use std::path::PathBuf;
 
-pub fn serve_mcp_stdio(repo_path: Option<PathBuf>) -> Result<()> {
-    serve_mcp(true, repo_path)
-}
-
-fn serve_mcp(_stdio: bool, repo_path: Option<PathBuf>) -> Result<()> {
+pub fn run(repo_path: Option<PathBuf>) -> Result<()> {
     // Initialize tracing
     gitehr_mcp::init_tracing();
 

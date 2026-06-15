@@ -106,7 +106,7 @@ fn check_git_status() -> Result<(bool, Vec<String>)> {
     }
 }
 
-pub fn run_status() -> Result<()> {
+pub fn run() -> Result<()> {
     let status = RepoStatus::gather()?;
 
     if !status.is_gitehr_repo {

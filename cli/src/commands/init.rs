@@ -29,7 +29,7 @@ fn copy_binary_to_repo() -> Result<()> {
     Ok(())
 }
 
-pub fn initialise() -> Result<()> {
+pub fn run() -> Result<()> {
     let gitehr_dir = PathBuf::from(".gitehr");
     if gitehr_dir.exists() {
         anyhow::bail!("GitEHR repository already exists in this directory");
