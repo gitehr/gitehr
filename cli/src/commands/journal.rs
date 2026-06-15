@@ -1,11 +1,11 @@
 use anyhow::Result;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256};
 use std::{fs, path::PathBuf};
 use uuid::Uuid;
 
 use super::{contributor, git};
+use crate::utils::sha256_hex;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct JournalEntry {
@@ -121,7 +121,7 @@ pub fn create_journal_entry_with_documents(
             .iter()
             .filter_map(|entry| {
                 let content = fs::read_to_string(entry.path()).ok()?;
-                let hash = format!("{:x}", Sha256::digest(content.as_bytes()));
+                let hash = sha256_hex(content.as_bytes());
                 if Some(hash) == parent_hash {
                     Some(entry.file_name().to_string_lossy().to_string())
                 } else {
@@ -182,7 +182,7 @@ pub fn get_latest_journal_entry() -> Result<Option<(String, String)>> {
 
     if let Some(latest) = entries.last() {
         let content = fs::read_to_string(latest.path())?;
-        let hash = format!("{:x}", Sha256::digest(content.as_bytes()));
+        let hash = sha256_hex(content.as_bytes());
         Ok(Some((
             latest.file_name().to_string_lossy().to_string(),
             hash,

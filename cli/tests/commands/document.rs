@@ -97,7 +97,7 @@ fn test_add_directory_document_builds_manifest() -> Result<()> {
     let entries = parsed_entries()?;
     let docs = entries[0].metadata.documents.as_ref().unwrap();
     let manifest_bytes = fs::read(&manifest_path)?;
-    let manifest_hash = format!("{:x}", <sha2::Sha256 as sha2::Digest>::digest(&manifest_bytes));
+    let manifest_hash = gitehr::utils::sha256_hex(&manifest_bytes);
     assert_eq!(docs[0].sha256, manifest_hash);
 
     assert!(verify_documents(None)?);

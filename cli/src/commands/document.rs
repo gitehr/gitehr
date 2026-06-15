@@ -1,7 +1,6 @@
 use anyhow::{bail, Context, Result};
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -32,7 +31,7 @@ fn ensure_gitehr_repository() -> Result<()> {
 }
 
 fn sha256_hex(bytes: &[u8]) -> String {
-    format!("{:x}", Sha256::digest(bytes))
+    crate::utils::sha256_hex(bytes)
 }
 
 fn hash_file(path: &Path) -> Result<String> {

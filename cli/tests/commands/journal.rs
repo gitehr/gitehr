@@ -2,7 +2,6 @@ use anyhow::Result;
 use chrono::Utc;
 use regex::Regex;
 use serial_test::serial;
-use sha2::Digest;
 use std::fs;
 use std::path::Path;
 use tempfile::tempdir;
@@ -97,7 +96,7 @@ fn test_get_latest_journal_entry() -> Result<()> {
     let content = fs::read_to_string(Path::new("journal").join(&filename))?;
     assert!(content.contains("Second entry"));
 
-    let calculated_hash = format!("{:x}", sha2::Sha256::digest(content.as_bytes()));
+    let calculated_hash = gitehr::utils::sha256_hex(content.as_bytes());
     assert_eq!(
         hash, calculated_hash,
         "File hash does not match expected hash"

@@ -1,6 +1,6 @@
 use crate::commands::journal::JournalEntry;
+use crate::utils::sha256_hex;
 use anyhow::{anyhow, Result};
-use sha2::{Digest, Sha256};
 use std::fs;
 use std::path::PathBuf;
 
@@ -66,7 +66,7 @@ pub fn verify_journal() -> Result<()> {
     let mut hash_map = std::collections::HashMap::new();
     for entry in &entries {
         let content = fs::read_to_string(entry.path())?;
-        let hash = format!("{:x}", Sha256::digest(content.as_bytes()));
+        let hash = sha256_hex(content.as_bytes());
         hash_map.insert(hash, entry.file_name().to_string_lossy().to_string());
     }
 

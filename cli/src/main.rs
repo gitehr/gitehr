@@ -7,6 +7,7 @@ use std::io;
 use std::path::PathBuf;
 
 mod commands;
+mod utils;
 
 #[derive(Parser)]
 #[command(name = "gitehr")]
