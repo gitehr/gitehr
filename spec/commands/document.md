@@ -2,7 +2,7 @@
 
 # `gitehr document`
 
-Manage clinical source [Documents](../../CONTEXT.md) - PDFs, scanned letters, photographs, Word documents, and imaging studies (e.g. DICOM). A Document is stored as an ordinary file under `documents/` (or `imaging/`), or as a directory anchored by a hash manifest for multi-file studies. Documents are immutable and write-once, and are linked from journal entries via the `documents:` front-matter field. The design rationale is recorded in [ADR-0001](../../docs/adr/0001-documents-as-plain-files.md), [ADR-0002](../../docs/adr/0002-record-only-grows.md), and [ADR-0003](../../docs/adr/0003-directory-documents-with-manifest.md).
+Manage clinical source [Documents](../../CONTEXT.md) - PDFs, scanned letters, photographs, Word documents, and imaging studies (e.g. DICOM). A Document is stored as an ordinary file under `documents/` (or `imaging/`), or as a directory anchored by a hash manifest for multi-file studies. Documents are immutable and write-once, and are linked from journal entries via the `documents:` front-matter field. The design rationale is recorded in [ADR-0001](../adr/0001-documents-as-plain-files.md), [ADR-0002](../adr/0002-record-only-grows.md), and [ADR-0003](../adr/0003-directory-documents-with-manifest.md).
 
 Alias: `gitehr attach` is a hidden alias for `gitehr document` retained during transition.
 
@@ -68,7 +68,7 @@ Verifies Document integrity against the hashes recorded in journal entries. With
 
 - For a file Document, recomputes the SHA-256 and compares it to the recorded hash.
 - For a directory Document, checks that the `manifest.json` hashes to the recorded value, that every manifest entry matches its file, and that no unlisted files have been added (write-once).
-- A Document that has been removed from the working tree is reported as `MISSING` but is **not** a failure - deletion only ever touches the working tree, and Git history retains every Document (see [ADR-0002](../../docs/adr/0002-record-only-grows.md)).
+- A Document that has been removed from the working tree is reported as `MISSING` but is **not** a failure - deletion only ever touches the working tree, and Git history retains every Document (see [ADR-0002](../adr/0002-record-only-grows.md)).
 - Exits non-zero if any integrity failure (hash mismatch, manifest tampering, or an unlisted file in a directory Document) is found.
 
 ## Document Data Model
