@@ -6,12 +6,10 @@ use std::{fs, path::PathBuf};
 use uuid::Uuid;
 
 use super::{contributor, git};
-use crate::utils::sha256_hex;
 
 pub mod add;
 pub mod cat;
 pub mod show;
-pub mod verify;
 
 #[derive(Subcommand)]
 pub enum JournalCommands {
@@ -50,7 +48,6 @@ pub enum JournalCommands {
         #[arg(short, long, help = "Show newest entries first")]
         reverse: bool,
     },
-    Verify,
 }
 
 pub fn run(command: JournalCommands) -> Result<()> {
@@ -69,7 +66,6 @@ pub fn run(command: JournalCommands) -> Result<()> {
             all,
         } => show::run(limit, offset, reverse, all),
         JournalCommands::Cat { reverse } => cat::run(reverse),
-        JournalCommands::Verify => verify::run(),
     }
 }
 
@@ -77,8 +73,6 @@ pub fn run(command: JournalCommands) -> Result<()> {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct JournalEntry {
-    pub parent_hash: Option<String>,
-    pub parent_entry: Option<String>,
     pub timestamp: DateTime<Utc>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub author: Option<String>,
@@ -138,8 +132,7 @@ pub fn is_journal_entry_file(filename: &str) -> bool {
 }
 
 /// Parse every journal entry, oldest first. Entries that fail to parse are
-/// skipped with a warning on stderr; callers needing strict validation should
-/// use `gitehr journal verify` instead.
+/// skipped with a warning on stderr.
 pub fn parsed_entries() -> Result<Vec<ParsedEntry>> {
     let journal_dir = PathBuf::from("journal");
     if !journal_dir.exists() {
@@ -168,42 +161,15 @@ pub fn parsed_entries() -> Result<Vec<ParsedEntry>> {
     Ok(entries)
 }
 
-pub fn create_journal_entry(content: &str, parent_hash: Option<String>) -> Result<()> {
-    create_journal_entry_with_documents(content, parent_hash, Vec::new())
+pub fn create_journal_entry(content: &str) -> Result<()> {
+    create_journal_entry_with_documents(content, Vec::new())
 }
 
 pub fn create_journal_entry_with_documents(
     content: &str,
-    parent_hash: Option<String>,
     documents: Vec<DocumentRef>,
 ) -> Result<()> {
-    let parent_entry = {
-        let entries: Vec<_> = fs::read_dir("journal")?
-            .filter_map(|e| e.ok())
-            .filter(|e| {
-                e.file_name()
-                    .to_str()
-                    .map(is_journal_entry_file)
-                    .unwrap_or(false)
-            })
-            .collect();
-        entries
-            .iter()
-            .filter_map(|entry| {
-                let content = fs::read_to_string(entry.path()).ok()?;
-                let hash = sha256_hex(content.as_bytes());
-                if Some(hash) == parent_hash {
-                    Some(entry.file_name().to_string_lossy().to_string())
-                } else {
-                    None
-                }
-            })
-            .next()
-    };
-
     let entry = JournalEntry {
-        parent_hash,
-        parent_entry,
         timestamp: Utc::now(),
         author: contributor::get_current_contributor(),
         documents: if documents.is_empty() {
@@ -232,32 +198,3 @@ pub fn create_journal_entry_with_documents(
     Ok(())
 }
 
-pub fn get_latest_journal_entry() -> Result<Option<(String, String)>> {
-    let journal_dir = PathBuf::from("journal");
-    if !journal_dir.exists() {
-        return Ok(None);
-    }
-
-    let mut entries: Vec<_> = fs::read_dir(&journal_dir)?
-        .filter_map(|e| e.ok())
-        .filter(|e| {
-            e.file_name()
-                .to_str()
-                .map(is_journal_entry_file)
-                .unwrap_or(false)
-        })
-        .collect();
-
-    entries.sort_by_key(|e| e.file_name());
-
-    if let Some(latest) = entries.last() {
-        let content = fs::read_to_string(latest.path())?;
-        let hash = sha256_hex(content.as_bytes());
-        Ok(Some((
-            latest.file_name().to_string_lossy().to_string(),
-            hash,
-        )))
-    } else {
-        Ok(None)
-    }
-}

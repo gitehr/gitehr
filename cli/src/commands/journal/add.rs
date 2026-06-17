@@ -1,6 +1,6 @@
 use anyhow::Result;
 
-use super::{create_journal_entry, get_latest_journal_entry};
+use super::create_journal_entry;
 
 pub fn run(content: Option<String>, file: Option<String>) -> Result<()> {
     let entry_content = match (content, file) {
@@ -24,8 +24,6 @@ pub fn run(content: Option<String>, file: Option<String>) -> Result<()> {
         }
     };
 
-    let latest = get_latest_journal_entry()?;
-    let parent_hash = latest.map(|(_, hash)| hash);
-    create_journal_entry(&entry_content, parent_hash)?;
+    create_journal_entry(&entry_content)?;
     Ok(())
 }

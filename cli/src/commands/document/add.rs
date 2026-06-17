@@ -73,11 +73,8 @@ pub fn run(
     let body = message
         .map(|m| m.to_string())
         .unwrap_or_else(|| format!("Added Document: {}", original_filename));
-    let latest = journal::get_latest_journal_entry()?;
-    let parent_hash = latest.map(|(_, hash)| hash);
     journal::create_journal_entry_with_documents(
         &body,
-        parent_hash,
         vec![DocumentRef {
             path: dest_str.clone(),
             sha256: sha256.clone(),

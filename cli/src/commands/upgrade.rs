@@ -77,9 +77,7 @@ pub fn run() -> Result<()> {
         new_version
     );
 
-    let latest = journal::get_latest_journal_entry()?;
-    let parent_hash = latest.map(|(_, hash)| hash);
-    journal::create_journal_entry(&upgrade_message, parent_hash)?;
+    journal::create_journal_entry(&upgrade_message)?;
     println!("  Recorded upgrade in journal.");
 
     println!();

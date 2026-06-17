@@ -1,9 +1,6 @@
 use anyhow::Result;
 use fs_extra::dir::{self, CopyOptions};
-use rand::RngExt;
 use std::path::PathBuf;
-
-use crate::utils::sha256_hex;
 
 use super::{git, journal};
 
@@ -65,12 +62,7 @@ pub fn run() -> Result<()> {
         }
     }
 
-    let mut rng = rand::rng();
-    let mut seed = [0u8; 32];
-    rng.fill(&mut seed);
-    let seed_hash = sha256_hex(&seed);
-
-    journal::create_journal_entry("Genesis entry for GitEHR repository", Some(seed_hash))?;
+    journal::create_journal_entry("Genesis entry for GitEHR repository")?;
 
     println!("Initialized empty GitEHR repository");
     Ok(())

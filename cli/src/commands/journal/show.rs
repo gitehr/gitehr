@@ -53,12 +53,6 @@ pub fn run(limit: usize, offset: usize, reverse: bool, all: bool) -> Result<()> 
 
         match parse_journal_file(path) {
             Ok(parsed) => {
-                let parent_display = parsed
-                    .metadata
-                    .parent_entry
-                    .as_deref()
-                    .unwrap_or("(genesis)");
-
                 let preview: String = parsed
                     .content
                     .chars()
@@ -72,7 +66,6 @@ pub fn run(limit: usize, offset: usize, reverse: bool, all: bool) -> Result<()> 
                     "    Timestamp: {}",
                     parsed.metadata.timestamp.format("%Y-%m-%d %H:%M:%S UTC")
                 );
-                println!("    Parent: {}", parent_display);
                 println!("    Preview: {}{}", preview, preview_suffix);
                 println!();
             }
