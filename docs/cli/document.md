@@ -2,8 +2,6 @@
 
 Manage clinical source **Documents**: PDFs, scanned letters, photographs, Word documents, and imaging studies such as DICOM. A Document is stored as an ordinary file under `documents/` (or `imaging/`), or as a directory anchored by a hash manifest for multi-file studies. Documents are immutable and write-once, and are linked from journal entries.
 
-The design decisions behind this model are recorded in the [architecture decision records](../adr/0001-documents-as-plain-files.md).
-
 `gitehr attach` is a hidden alias for `gitehr document`.
 
 All subcommands require the current directory to be a GitEHR repository.
