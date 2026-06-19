@@ -77,7 +77,10 @@ impl McpServer {
         }
     }
 
-    async fn handle_initialize(&mut self, _request: &McpRequest) -> Result<serde_json::Value, McpError> {
+    async fn handle_initialize(
+        &mut self,
+        _request: &McpRequest,
+    ) -> Result<serde_json::Value, McpError> {
         info!("Initializing MCP server");
 
         self.initialized = true;
@@ -96,7 +99,10 @@ impl McpServer {
         }))
     }
 
-    async fn handle_resources_list(&self, _request: &McpRequest) -> Result<serde_json::Value, McpError> {
+    async fn handle_resources_list(
+        &self,
+        _request: &McpRequest,
+    ) -> Result<serde_json::Value, McpError> {
         if !self.initialized {
             return Err(McpError::invalid_request("Server not initialized"));
         }
@@ -109,7 +115,10 @@ impl McpServer {
         serde_json::to_value(resources).map_err(|e| McpError::internal_error(e.to_string()))
     }
 
-    async fn handle_resources_read(&self, request: &McpRequest) -> Result<serde_json::Value, McpError> {
+    async fn handle_resources_read(
+        &self,
+        request: &McpRequest,
+    ) -> Result<serde_json::Value, McpError> {
         if !self.initialized {
             return Err(McpError::invalid_request("Server not initialized"));
         }
@@ -132,7 +141,10 @@ impl McpServer {
         serde_json::to_value(content).map_err(|e| McpError::internal_error(e.to_string()))
     }
 
-    async fn handle_tools_list(&self, _request: &McpRequest) -> Result<serde_json::Value, McpError> {
+    async fn handle_tools_list(
+        &self,
+        _request: &McpRequest,
+    ) -> Result<serde_json::Value, McpError> {
         if !self.initialized {
             return Err(McpError::invalid_request("Server not initialized"));
         }
@@ -173,7 +185,10 @@ impl McpServer {
         serde_json::to_value(result).map_err(|e| McpError::internal_error(e.to_string()))
     }
 
-    async fn handle_prompts_list(&self, _request: &McpRequest) -> Result<serde_json::Value, McpError> {
+    async fn handle_prompts_list(
+        &self,
+        _request: &McpRequest,
+    ) -> Result<serde_json::Value, McpError> {
         if !self.initialized {
             return Err(McpError::invalid_request("Server not initialized"));
         }
@@ -184,13 +199,18 @@ impl McpServer {
         }))
     }
 
-    async fn handle_prompts_get(&self, _request: &McpRequest) -> Result<serde_json::Value, McpError> {
+    async fn handle_prompts_get(
+        &self,
+        _request: &McpRequest,
+    ) -> Result<serde_json::Value, McpError> {
         if !self.initialized {
             return Err(McpError::invalid_request("Server not initialized"));
         }
 
         // Placeholder for prompts - will implement later
-        Err(McpError::method_not_found("prompts/get not yet implemented"))
+        Err(McpError::method_not_found(
+            "prompts/get not yet implemented",
+        ))
     }
 
     /// Run the server on stdio (for local MCP clients)

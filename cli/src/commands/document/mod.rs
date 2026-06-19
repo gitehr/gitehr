@@ -1,9 +1,7 @@
-use anyhow::{bail, Context, Result};
-use chrono::Utc;
+use crate::utils::sha256_hex;
+use anyhow::{Context, Result, bail};
 use clap::Subcommand;
 use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256};
-use crate::utils::sha256_hex;
 use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -55,7 +53,12 @@ pub fn run(command: DocumentCommands) -> Result<()> {
             title,
             message,
         } => {
-            add::run(path.as_path(), title.as_deref(), imaging, message.as_deref())?;
+            add::run(
+                path.as_path(),
+                title.as_deref(),
+                imaging,
+                message.as_deref(),
+            )?;
             Ok(())
         }
         DocumentCommands::List => list::run(),
@@ -276,7 +279,10 @@ mod tests {
     fn test_slugify_basic() {
         assert_eq!(slugify("CT Head Report"), "ct-head-report");
         assert_eq!(slugify("Scan0001.PDF"), "scan0001-pdf");
-        assert_eq!(slugify("discharge_summary (final)"), "discharge-summary-final");
+        assert_eq!(
+            slugify("discharge_summary (final)"),
+            "discharge-summary-final"
+        );
     }
 
     #[test]

@@ -17,5 +17,3 @@ pub mod transport;
 pub mod upgrade;
 pub mod upgrade_binary;
 pub mod version;
-
-pub use git::get_git_version;

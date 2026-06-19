@@ -18,7 +18,7 @@ pub const MCP_VERSION: &str = "2024-11-05";
 
 /// Initialize tracing for MCP server
 pub fn init_tracing() {
-    use tracing_subscriber::{fmt, EnvFilter};
+    use tracing_subscriber::{EnvFilter, fmt};
 
     fmt()
         .with_env_filter(

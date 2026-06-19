@@ -1,3 +1,7 @@
+// Reserved infrastructure for sortable identifiers: exercised by this module's
+// tests and pending wiring into repo/entry IDs (see queries.md Q2).
+#![allow(dead_code)]
+
 /// Timestamp-prefixed UUID (TSID) utilities
 ///
 /// Implements VPR's approach to sortable identifiers.
@@ -8,7 +12,7 @@
 /// - UUID provides global uniqueness
 /// - Human-readable timestamp component
 /// - Compatible with existing UUID-based systems
-use chrono::{DateTime, Datelike, Timelike, Utc};
+use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
 /// Generate a timestamp-prefixed UUID
@@ -72,7 +76,7 @@ pub fn is_valid(tsid: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use chrono::TimeZone;
+    use chrono::{Datelike, TimeZone, Timelike};
 
     #[test]
     fn test_generate() {

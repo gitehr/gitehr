@@ -15,7 +15,11 @@ pub fn run(file: String) -> Result<()> {
 
     let draft_path = {
         let p = PathBuf::from(&file);
-        if p.is_absolute() { p } else { PathBuf::from("tmp/journal").join(&file) }
+        if p.is_absolute() {
+            p
+        } else {
+            PathBuf::from("tmp/journal").join(&file)
+        }
     };
 
     if !draft_path.exists() {

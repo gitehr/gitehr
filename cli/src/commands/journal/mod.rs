@@ -50,7 +50,12 @@ pub fn run(command: JournalCommands) -> Result<()> {
         JournalCommands::NewEntry => new_entry::run(),
         JournalCommands::Commit { file } => commit::run(file),
         JournalCommands::List { drafts } => list::run(drafts),
-        JournalCommands::Show { filename, drafts, raw, metadata } => show::run(filename, drafts, raw, metadata),
+        JournalCommands::Show {
+            filename,
+            drafts,
+            raw,
+            metadata,
+        } => show::run(filename, drafts, raw, metadata),
     }
 }
 
@@ -103,9 +108,17 @@ pub fn sorted_entries(drafts: bool) -> Result<Vec<String>> {
         .filter_map(|e| {
             let name = e.file_name().to_string_lossy().to_string();
             if drafts {
-                if name.ends_with(".md") { Some(name) } else { None }
+                if name.ends_with(".md") {
+                    Some(name)
+                } else {
+                    None
+                }
             } else {
-                if is_journal_entry_file(&name) { Some(name) } else { None }
+                if is_journal_entry_file(&name) {
+                    Some(name)
+                } else {
+                    None
+                }
             }
         })
         .collect();

@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use anyhow::Result;
-use std::env;
 use std::path::PathBuf;
 use std::process::Command;
 
@@ -9,6 +8,9 @@ fn is_gitehr_repo() -> bool {
     PathBuf::from(".gitehr").exists()
 }
 
+// Locates a bundled or installed GUI binary for the release launch path
+// described in `run()`. Not yet wired up (dev mode runs `npm run tauri dev`).
+#[allow(dead_code)]
 fn find_gui_binary() -> Option<PathBuf> {
     let bundled_path = PathBuf::from(".gitehr/gitehr-gui");
     if bundled_path.exists() {
@@ -33,7 +35,6 @@ fn find_gui_binary() -> Option<PathBuf> {
 /// For development, launches with: WEBKIT_DISABLE_DMABUF_RENDERER=1 npm run tauri dev
 /// For release, should launch the compiled, OS-appropriate GUI binary
 pub fn run() -> Result<()> {
-    let current_dir = std::env::current_dir()?;
     if !is_gitehr_repo() {
         println!("Warning: Not in a GitEHR repository. Opening GUI without repository context.");
     }

@@ -10,10 +10,10 @@ use commands::document::DocumentCommands;
 use commands::journal::JournalCommands;
 use commands::mcp::McpCommands;
 use commands::remote::RemoteCommands;
-use commands::state::StateCommands;
-use commands::transport::TransportCommands;
 #[cfg(feature = "server")]
 use commands::server::ServerCommands;
+use commands::state::StateCommands;
+use commands::transport::TransportCommands;
 
 #[derive(Parser)]
 #[command(name = "gitehr")]

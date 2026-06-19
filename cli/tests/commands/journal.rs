@@ -6,7 +6,9 @@ use std::fs;
 use std::path::Path;
 use tempfile::tempdir;
 
-use gitehr::commands::journal::{cat_journal_entries, create_journal_entry, get_latest_journal_entry};
+use gitehr::commands::journal::{
+    cat_journal_entries, create_journal_entry, get_latest_journal_entry,
+};
 
 fn setup() -> tempfile::TempDir {
     tempdir().unwrap()

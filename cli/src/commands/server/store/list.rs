@@ -15,7 +15,9 @@ pub fn run() -> Result<()> {
 
     if mpi.patients.is_empty() {
         println!("No patients registered in this store root.");
-        println!("Add patient repositories in the patients/ directory and register them in gitehr-mpi.json");
+        println!(
+            "Add patient repositories in the patients/ directory and register them in gitehr-mpi.json"
+        );
         return Ok(());
     }
 

@@ -261,7 +261,6 @@ impl ResourceHandler {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::path::PathBuf;
 
     #[test]
     fn test_resource_serialization() {

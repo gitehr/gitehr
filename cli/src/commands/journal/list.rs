@@ -15,7 +15,11 @@ pub fn run(drafts: bool) -> Result<()> {
             .filter_map(|e| e.ok())
             .filter_map(|e| {
                 let name = e.file_name().to_string_lossy().to_string();
-                if name.ends_with(".md") { Some(name) } else { None }
+                if name.ends_with(".md") {
+                    Some(name)
+                } else {
+                    None
+                }
             })
             .collect();
 
@@ -40,7 +44,11 @@ pub fn run(drafts: bool) -> Result<()> {
             .filter_map(|e| e.ok())
             .filter_map(|e| {
                 let name = e.file_name().to_string_lossy().to_string();
-                if is_journal_entry_file(&name) { Some(name) } else { None }
+                if is_journal_entry_file(&name) {
+                    Some(name)
+                } else {
+                    None
+                }
             })
             .collect();
 

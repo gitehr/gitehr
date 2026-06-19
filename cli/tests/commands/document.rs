@@ -3,7 +3,7 @@ use serial_test::serial;
 use std::fs;
 use std::path::Path;
 
-use gitehr::commands::document::{add_document, verify_documents, MANIFEST_FILENAME};
+use gitehr::commands::document::{MANIFEST_FILENAME, add_document, verify_documents};
 use gitehr::commands::journal::parsed_entries;
 
 fn setup_with_git() -> Result<tempfile::TempDir> {
@@ -39,7 +39,11 @@ fn test_add_file_document() -> Result<()> {
     // The journal entry created alongside must reference the Document.
     let entries = parsed_entries()?;
     assert_eq!(entries.len(), 1);
-    let docs = entries[0].metadata.documents.as_ref().expect("documents front matter");
+    let docs = entries[0]
+        .metadata
+        .documents
+        .as_ref()
+        .expect("documents front matter");
     assert_eq!(docs.len(), 1);
     assert_eq!(docs[0].path, stored);
     assert_eq!(docs[0].sha256.len(), 64);
@@ -178,10 +182,12 @@ fn test_add_fails_outside_repository() -> Result<()> {
 
     let result = add_document(Path::new("orphan.txt"), None, false, None);
     assert!(result.is_err());
-    assert!(result
-        .unwrap_err()
-        .to_string()
-        .contains("Not in a gitehr repository"));
+    assert!(
+        result
+            .unwrap_err()
+            .to_string()
+            .contains("Not in a gitehr repository")
+    );
 
     Ok(())
 }

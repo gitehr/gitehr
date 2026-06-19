@@ -1,4 +1,4 @@
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 use std::path::Path;
 
 use super::{collect_refs, ensure_gitehr_repository, hash_file, verify_directory_document};

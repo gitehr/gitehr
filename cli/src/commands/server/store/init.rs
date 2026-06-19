@@ -13,7 +13,9 @@ pub fn run() -> Result<()> {
 
     // Check if we're in a patient repository
     if Path::new(".gitehr").exists() {
-        anyhow::bail!("This directory is already a GitEHR patient repository. Store roots should be created in a separate location.");
+        anyhow::bail!(
+            "This directory is already a GitEHR patient repository. Store roots should be created in a separate location."
+        );
     }
 
     // Create empty MPI
