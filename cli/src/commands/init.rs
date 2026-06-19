@@ -2,7 +2,7 @@ use anyhow::Result;
 use fs_extra::dir::{self, CopyOptions};
 use std::path::PathBuf;
 
-use super::{git, journal};
+use super::git;
 
 fn get_current_exe_path() -> Result<PathBuf> {
     std::env::current_exe()
@@ -61,8 +61,6 @@ pub fn run() -> Result<()> {
             fs_extra::file::copy(entry.path(), target_name, &file_options)?;
         }
     }
-
-    journal::create_journal_entry("Genesis entry for GitEHR repository")?;
 
     println!("Initialized empty GitEHR repository");
     Ok(())
