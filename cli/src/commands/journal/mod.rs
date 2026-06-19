@@ -7,46 +7,37 @@ use uuid::Uuid;
 
 use super::{contributor, git};
 
-pub mod add;
-pub mod cat;
+pub mod commit;
+pub mod list;
+pub mod new_entry;
 pub mod show;
 
 #[derive(Subcommand)]
 pub enum JournalCommands {
-    Add {
-        #[arg(help = "The content to add to the journal (use --file for file input)")]
-        content: Option<String>,
-        #[arg(short, long, help = "Read content from a file (use - for stdin)")]
-        file: Option<String>,
+    #[command(name = "new-entry", aliases = ["new", "touch"], about = "Create a draft journal entry and open it in your editor")]
+    NewEntry,
+    #[command(about = "Commit a draft: prepend frontmatter, move to journal/, and git-commit")]
+    Commit {
+        #[arg(help = "Draft filename (relative to tmp/journal/) or absolute path")]
+        file: String,
     },
+    #[command(aliases = ["ls", "cat"], about = "List journal entries, or read one with --raw / --metadata")]
+    List {
+        #[arg(help = "Journal entry filename (required with --raw or --metadata)")]
+        filename: Option<String>,
+        #[arg(long, help = "Operate on drafts in tmp/journal/ instead")]
+        drafts: bool,
+        #[arg(long, help = "Print raw file content including frontmatter")]
+        raw: bool,
+        #[arg(long, help = "Print only the frontmatter")]
+        metadata: bool,
+    },
+    #[command(about = "Show the body of a journal entry")]
     Show {
-        #[arg(
-            short = 'n',
-            long,
-            default_value = "10",
-            help = "Maximum number of entries to display"
-        )]
-        limit: usize,
-        #[arg(
-            short,
-            long,
-            default_value = "0",
-            help = "Number of entries to skip from the start"
-        )]
-        offset: usize,
-        #[arg(short, long, help = "Show newest entries first")]
-        reverse: bool,
-        #[arg(short, long, help = "Show all entries (ignores --limit)")]
-        all: bool,
-    },
-    #[command(
-        about = "Play back the full journal, oldest first",
-        long_about = "Print the full body of every journal entry in chronological order. \
-                      Use this to read the patient's record end to end."
-    )]
-    Cat {
-        #[arg(short, long, help = "Show newest entries first")]
-        reverse: bool,
+        #[arg(help = "Journal entry filename")]
+        filename: String,
+        #[arg(long, help = "Show a draft from tmp/journal/ instead")]
+        drafts: bool,
     },
 }
 
@@ -58,14 +49,10 @@ pub fn run(command: JournalCommands) -> Result<()> {
     }
 
     match command {
-        JournalCommands::Add { content, file } => add::run(content, file),
-        JournalCommands::Show {
-            limit,
-            offset,
-            reverse,
-            all,
-        } => show::run(limit, offset, reverse, all),
-        JournalCommands::Cat { reverse } => cat::run(reverse),
+        JournalCommands::NewEntry => new_entry::run(),
+        JournalCommands::Commit { file } => commit::run(file),
+        JournalCommands::List { filename, drafts, raw, metadata } => list::run(filename, drafts, raw, metadata),
+        JournalCommands::Show { filename, drafts } => show::run(filename, drafts),
     }
 }
 
@@ -109,7 +96,6 @@ pub fn parse_journal_file(path: &PathBuf) -> Result<ParsedEntry> {
 
     let file_content = fs::read_to_string(path)?;
 
-    // Split on YAML front matter delimiters
     let parts: Vec<&str> = file_content.splitn(3, "---").collect();
     if parts.len() < 3 {
         anyhow::bail!("Invalid journal entry format: missing YAML front matter");
@@ -197,4 +183,3 @@ pub fn create_journal_entry_with_documents(
 
     Ok(())
 }
-

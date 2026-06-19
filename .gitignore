@@ -82,6 +82,8 @@ ipython_config.py
 # GitEHR specific files
 .gitehr
 
+# Journal drafts (tmp/journal/ lives next to journal/ in each repo instance)
+tmp/
 
 # Other generated files
 .sisyphus/
