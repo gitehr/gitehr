@@ -32,7 +32,7 @@ fn find_gui_binary() -> Option<PathBuf> {
 /// Launch the GitEHR GUI application
 /// For development, launches with: WEBKIT_DISABLE_DMABUF_RENDERER=1 npm run tauri dev
 /// For release, should launch the compiled, OS-appropriate GUI binary
-pub fn launch_gui() -> Result<()> {
+pub fn run() -> Result<()> {
     let current_dir = std::env::current_dir()?;
     if !is_gitehr_repo() {
         println!("Warning: Not in a GitEHR repository. Opening GUI without repository context.");

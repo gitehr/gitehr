@@ -12,7 +12,7 @@ fn is_encrypted() -> bool {
     PathBuf::from(".gitehr/ENCRYPTED").exists()
 }
 
-pub fn decrypt_repository(key_source: Option<&str>) -> Result<()> {
+pub fn run(key_source: Option<&str>) -> Result<()> {
     if !is_gitehr_repo() {
         anyhow::bail!("Not a GitEHR repository (or not in the repository root).");
     }

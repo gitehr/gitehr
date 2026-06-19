@@ -1,3 +1,4 @@
+pub mod completions;
 pub mod contributor;
 pub mod decrypt;
 pub mod document;
@@ -8,13 +9,13 @@ pub mod init;
 pub mod journal;
 pub mod mcp;
 pub mod remote;
+#[cfg(feature = "server")]
+pub mod server;
 pub mod state;
 pub mod status;
-pub mod store;
 pub mod transport;
 pub mod upgrade;
-pub mod verify;
+pub mod upgrade_binary;
+pub mod version;
 
 pub use git::get_git_version;
-pub use init::initialise;
-pub use journal::{create_journal_entry, get_latest_journal_entry};

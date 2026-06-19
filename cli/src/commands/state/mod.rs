@@ -1,9 +1,39 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use anyhow::Result;
+use clap::Subcommand;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
+
+pub mod get;
+pub mod list;
+pub mod set;
+
+#[derive(Subcommand)]
+pub enum StateCommands {
+    List,
+    Get {
+        #[arg(help = "Name of the state file")]
+        filename: String,
+    },
+    Set {
+        #[arg(help = "Name of the state file")]
+        filename: String,
+        #[arg(help = "Content to write")]
+        content: String,
+    },
+}
+
+pub fn run(command: Option<StateCommands>) -> Result<()> {
+    match command {
+        Some(StateCommands::List) | None => list::run(),
+        Some(StateCommands::Get { filename }) => get::run(&filename),
+        Some(StateCommands::Set { filename, content }) => set::run(&filename, &content),
+    }
+}
+
+// ── Shared data structures ────────────────────────────────────────────────────
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StateFile {
@@ -12,11 +42,13 @@ pub struct StateFile {
     pub last_modified: Option<String>,
 }
 
-fn get_state_dir() -> PathBuf {
+// ── Shared helper functions ───────────────────────────────────────────────────
+
+pub(super) fn get_state_dir() -> PathBuf {
     PathBuf::from("state")
 }
 
-fn is_gitehr_repo() -> bool {
+pub(super) fn is_gitehr_repo() -> bool {
     PathBuf::from(".gitehr").exists()
 }
 
@@ -86,49 +118,5 @@ pub fn update_state_file(filename: &str, content: &str) -> Result<()> {
     fs::write(&file_path, content)?;
 
     println!("Updated state file: {}", filename);
-    Ok(())
-}
-
-pub fn run_state_list() -> Result<()> {
-    if !is_gitehr_repo() {
-        anyhow::bail!("Not a GitEHR repository (or not in the repository root).");
-    }
-
-    let files = list_state_files()?;
-
-    if files.is_empty() {
-        println!("No state files found.");
-        println!("Use 'gitehr state set <filename> <content>' to create one.");
-        return Ok(());
-    }
-
-    println!("State files:");
-    for file in &files {
-        println!("  - {}", file.name);
-        if let Some(modified) = &file.last_modified {
-            println!("    Last modified: {}", modified);
-        }
-    }
-
-    Ok(())
-}
-
-pub fn run_state_get(filename: &str) -> Result<()> {
-    if !is_gitehr_repo() {
-        anyhow::bail!("Not a GitEHR repository (or not in the repository root).");
-    }
-
-    let file = view_state_file(filename)?;
-    println!("{}", file.content);
-
-    Ok(())
-}
-
-pub fn run_state_set(filename: &str, content: &str) -> Result<()> {
-    if !is_gitehr_repo() {
-        anyhow::bail!("Not a GitEHR repository (or not in the repository root).");
-    }
-
-    update_state_file(filename, content)?;
     Ok(())
 }

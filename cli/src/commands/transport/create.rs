@@ -1,17 +1,11 @@
-// SPDX-License-Identifier: AGPL-3.0-or-later
-
 use anyhow::Result;
 use std::fs::File;
 use std::io::Read;
 use std::path::PathBuf;
 use walkdir::WalkDir;
 
-fn is_gitehr_repo() -> bool {
-    PathBuf::from(".gitehr").exists()
-}
-
-pub fn create_transport_archive(output_path: Option<&str>, encrypt: bool) -> Result<()> {
-    if !is_gitehr_repo() {
+pub fn run(output_path: Option<&str>, encrypt: bool) -> Result<()> {
+    if !PathBuf::from(".gitehr").exists() {
         anyhow::bail!("Not a GitEHR repository (or not in the repository root).");
     }
 
@@ -65,27 +59,6 @@ pub fn create_transport_archive(output_path: Option<&str>, encrypt: bool) -> Res
     println!();
     println!("This archive contains the complete GitEHR repository data.");
     println!("It can be extracted with: tar -xzf {}", output);
-
-    Ok(())
-}
-
-pub fn extract_transport_archive(archive_path: &str, output_dir: Option<&str>) -> Result<()> {
-    let archive_file = File::open(archive_path)?;
-    let decoder = flate2::read::GzDecoder::new(archive_file);
-    let mut archive = tar::Archive::new(decoder);
-
-    let output = output_dir.unwrap_or(".");
-
-    println!("Extracting transport archive to: {}", output);
-
-    archive.unpack(output)?;
-
-    println!("Archive extracted successfully.");
-
-    let gitehr_dir = PathBuf::from(output).join(".gitehr");
-    if gitehr_dir.exists() {
-        println!("GitEHR repository detected in extracted files.");
-    }
 
     Ok(())
 }

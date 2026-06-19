@@ -21,7 +21,7 @@ fn get_current_exe_path() -> Result<PathBuf> {
         .map_err(|e| anyhow::anyhow!("Failed to get current executable path: {}", e))
 }
 
-fn update_bundled_binary() -> Result<()> {
+pub(super) fn update_bundled_binary() -> Result<()> {
     let source = get_current_exe_path()?;
     let dest = PathBuf::from(".gitehr/gitehr");
 
@@ -38,7 +38,7 @@ fn update_bundled_binary() -> Result<()> {
     Ok(())
 }
 
-pub fn upgrade_repository() -> Result<()> {
+pub fn run() -> Result<()> {
     if !is_gitehr_repo() {
         anyhow::bail!("Not a GitEHR repository (or not in the repository root).");
     }
@@ -88,35 +88,4 @@ pub fn upgrade_repository() -> Result<()> {
     Ok(())
 }
 
-pub fn upgrade_binary() -> Result<()> {
-    if !is_gitehr_repo() {
-        anyhow::bail!("Not a GitEHR repository (or not in the repository root).");
-    }
 
-    let cli_version = env!("CARGO_PKG_VERSION");
-    let bundled_path = PathBuf::from(".gitehr/gitehr");
-
-    println!("GitEHR Binary Upgrade");
-    println!("=====================");
-    println!();
-    println!("CLI version: {}", cli_version);
-
-    if bundled_path.exists() {
-        println!("Bundled binary: exists");
-    } else {
-        println!("Bundled binary: not found");
-    }
-    println!();
-
-    println!("Updating bundled binary...");
-    update_bundled_binary()?;
-    println!("  Copied current executable to .gitehr/gitehr");
-
-    fs::write(".gitehr/GITEHR_VERSION", cli_version)?;
-    println!("  Updated version file to {}", cli_version);
-
-    println!();
-    println!("Binary upgrade complete!");
-
-    Ok(())
-}

@@ -1,5 +1,5 @@
-use crate::commands::journal::JournalEntry;
 use crate::utils::sha256_hex;
+use super::JournalEntry;
 use anyhow::{anyhow, Result};
 use std::fs;
 use std::path::PathBuf;
@@ -43,7 +43,7 @@ fn is_journal_entry_file(filename: &str) -> bool {
     filename.contains('T') && filename.contains('-') && filename.ends_with(".md")
 }
 
-pub fn verify_journal() -> Result<()> {
+pub fn run() -> Result<()> {
     let journal_dir = PathBuf::from("journal");
     if !journal_dir.exists() {
         return Err(anyhow!("Journal directory not found"));
