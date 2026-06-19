@@ -21,23 +21,21 @@ pub enum JournalCommands {
         #[arg(help = "Draft filename (relative to tmp/journal/) or absolute path")]
         file: String,
     },
-    #[command(aliases = ["ls", "cat"], about = "List journal entries, or read one with --raw / --metadata")]
+    #[command(name = "list-entry", aliases = ["list", "ls"], about = "List journal entries")]
     List {
-        #[arg(help = "Journal entry filename (required with --raw or --metadata)")]
-        filename: Option<String>,
+        #[arg(long, help = "List drafts in tmp/journal/ instead")]
+        drafts: bool,
+    },
+    #[command(aliases = ["cat"], about = "Show a journal entry (body by default; --raw or --metadata for more)")]
+    Show {
+        #[arg(help = "Journal entry filename")]
+        filename: String,
         #[arg(long, help = "Operate on drafts in tmp/journal/ instead")]
         drafts: bool,
         #[arg(long, help = "Print raw file content including frontmatter")]
         raw: bool,
         #[arg(long, help = "Print only the frontmatter")]
         metadata: bool,
-    },
-    #[command(about = "Show the body of a journal entry")]
-    Show {
-        #[arg(help = "Journal entry filename")]
-        filename: String,
-        #[arg(long, help = "Show a draft from tmp/journal/ instead")]
-        drafts: bool,
     },
 }
 
@@ -51,8 +49,8 @@ pub fn run(command: JournalCommands) -> Result<()> {
     match command {
         JournalCommands::NewEntry => new_entry::run(),
         JournalCommands::Commit { file } => commit::run(file),
-        JournalCommands::List { filename, drafts, raw, metadata } => list::run(filename, drafts, raw, metadata),
-        JournalCommands::Show { filename, drafts } => show::run(filename, drafts),
+        JournalCommands::List { drafts } => list::run(drafts),
+        JournalCommands::Show { filename, drafts, raw, metadata } => show::run(filename, drafts, raw, metadata),
     }
 }
 
@@ -83,6 +81,104 @@ pub struct ParsedEntry {
     pub filename: String,
     pub metadata: JournalEntry,
     pub content: String,
+}
+
+// ── Entry resolution (LATEST syntax) ─────────────────────────────────────────
+
+/// Returns filenames sorted newest-first.
+/// For committed entries, reads `journal/`; for drafts, `tmp/journal/`.
+pub fn sorted_entries(drafts: bool) -> Result<Vec<String>> {
+    let dir = if drafts {
+        PathBuf::from("tmp/journal")
+    } else {
+        PathBuf::from("journal")
+    };
+
+    if !dir.exists() {
+        return Ok(Vec::new());
+    }
+
+    let mut entries: Vec<String> = fs::read_dir(&dir)?
+        .filter_map(|e| e.ok())
+        .filter_map(|e| {
+            let name = e.file_name().to_string_lossy().to_string();
+            if drafts {
+                if name.ends_with(".md") { Some(name) } else { None }
+            } else {
+                if is_journal_entry_file(&name) { Some(name) } else { None }
+            }
+        })
+        .collect();
+
+    entries.sort();
+    entries.reverse();
+    Ok(entries)
+}
+
+/// Splits an entry reference into `(anchor, offset)`.
+///
+/// Recognised suffixes (applied after stripping the anchor):
+///   `^`, `^^`, `^^^^` … → offset = number of carets
+///   `~N`                → offset = N
+///
+/// Examples: `"LATEST"` → `("LATEST", 0)`, `"foo.md^^^"` → `("foo.md", 3)`,
+/// `"foo.md~5"` → `("foo.md", 5)`.
+fn parse_entry_ref(input: &str) -> Result<(&str, usize)> {
+    // ~N suffix takes priority
+    if let Some(tilde) = input.rfind('~') {
+        let after = &input[tilde + 1..];
+        if !after.is_empty() && after.chars().all(|c| c.is_ascii_digit()) {
+            let n: usize = after.parse()?;
+            return Ok((&input[..tilde], n));
+        }
+    }
+
+    // trailing ^ characters
+    let carets = input.chars().rev().take_while(|&c| c == '^').count();
+    if carets > 0 {
+        return Ok((&input[..input.len() - carets], carets));
+    }
+
+    Ok((input, 0))
+}
+
+/// Resolve a filename or LATEST expression to a concrete filename.
+///
+/// Anchor may be `LATEST` (most recent) or any literal filename.
+/// Offset moves toward older entries: `LATEST^` = one before most recent,
+/// `some-file.md~3` = three entries older than `some-file.md`.
+pub fn resolve_entry(input: &str, drafts: bool) -> Result<String> {
+    let (anchor, offset) = parse_entry_ref(input)?;
+
+    // No LATEST and no offset — plain filename, return as-is.
+    if anchor != "LATEST" && offset == 0 {
+        return Ok(input.to_string());
+    }
+
+    let entries = sorted_entries(drafts)?;
+
+    if entries.is_empty() {
+        anyhow::bail!("no entries found");
+    }
+
+    let base_idx = if anchor == "LATEST" {
+        0
+    } else {
+        entries
+            .iter()
+            .position(|e| e == anchor)
+            .ok_or_else(|| anyhow::anyhow!("entry not found: {}", anchor))?
+    };
+
+    let target = base_idx + offset;
+    entries.get(target).cloned().ok_or_else(|| {
+        anyhow::anyhow!(
+            "'{}' is out of range: only {} entr{}",
+            input,
+            entries.len(),
+            if entries.len() == 1 { "y" } else { "ies" }
+        )
+    })
 }
 
 // ── Core helper functions (used by children and siblings) ────────────────────

@@ -1,4 +1,5 @@
 use anyhow::Result;
+use chrono::Utc;
 use std::{fs, path::PathBuf};
 use uuid::Uuid;
 
@@ -6,7 +7,11 @@ pub fn run() -> Result<()> {
     let draft_dir = PathBuf::from("tmp/journal");
     fs::create_dir_all(&draft_dir)?;
 
-    let filename = format!("draft-{}.md", Uuid::new_v4());
+    let filename = format!(
+        "draft-{}-{}.md",
+        Utc::now().format("%Y%m%dT%H%M%S%.3fZ"),
+        Uuid::new_v4()
+    );
     let path = draft_dir.join(&filename);
     fs::write(&path, "")?;
 

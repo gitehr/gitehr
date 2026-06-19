@@ -3,17 +3,7 @@ use std::{fs, path::PathBuf};
 
 use super::is_journal_entry_file;
 
-pub fn run(filename: Option<String>, drafts: bool, raw: bool, metadata: bool) -> Result<()> {
-    if raw || metadata {
-        let filename = filename
-            .ok_or_else(|| anyhow::anyhow!("a filename is required with --raw or --metadata"))?;
-        show_file(filename, drafts, raw)
-    } else {
-        list_all(drafts)
-    }
-}
-
-fn list_all(drafts: bool) -> Result<()> {
+pub fn run(drafts: bool) -> Result<()> {
     if drafts {
         let draft_dir = PathBuf::from("tmp/journal");
         if !draft_dir.exists() {
@@ -65,36 +55,5 @@ fn list_all(drafts: bool) -> Result<()> {
         }
         println!("\n({} entries)", entries.len());
     }
-    Ok(())
-}
-
-fn show_file(filename: String, drafts: bool, raw: bool) -> Result<()> {
-    let path = if drafts {
-        PathBuf::from("tmp/journal").join(&filename)
-    } else {
-        PathBuf::from("journal").join(&filename)
-    };
-
-    if !path.exists() {
-        if drafts {
-            anyhow::bail!("Draft not found: {}", filename);
-        } else {
-            anyhow::bail!("Journal entry not found: {}", filename);
-        }
-    }
-
-    let content = fs::read_to_string(&path)?;
-
-    if raw {
-        print!("{}", content);
-        return Ok(());
-    }
-
-    // --metadata: extract and print only the frontmatter block
-    let parts: Vec<&str> = content.splitn(3, "---").collect();
-    if parts.len() < 3 {
-        anyhow::bail!("No frontmatter found in: {}", filename);
-    }
-    println!("---{}---", parts[1]);
     Ok(())
 }

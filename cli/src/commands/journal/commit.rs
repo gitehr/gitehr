@@ -7,13 +7,15 @@ use super::JournalEntry;
 use crate::commands::{contributor, git};
 
 pub fn run(file: String) -> Result<()> {
+    let file = if PathBuf::from(&file).is_absolute() {
+        file
+    } else {
+        super::resolve_entry(&file, true)?
+    };
+
     let draft_path = {
         let p = PathBuf::from(&file);
-        if p.is_absolute() {
-            p
-        } else {
-            PathBuf::from("tmp/journal").join(&file)
-        }
+        if p.is_absolute() { p } else { PathBuf::from("tmp/journal").join(&file) }
     };
 
     if !draft_path.exists() {
