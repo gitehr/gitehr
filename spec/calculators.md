@@ -4,466 +4,336 @@
 
 ## Goal
 
-Provide a comprehensive library of open-source clinical calculators integrated with GitEHR's journal and state management, enabling clinicians to perform evidence-based calculations directly within the EHR and automatically record both inputs and results.
+Provide a comprehensive, open-source library of clinical calculators with one canonical scoring engine driving every surface: the command line, an MCP server, the GitEHR desktop GUI, standalone single-file web tools, and a separately-distributable desktop/mobile app. Calculations are evidence-based, auditable, and - when run inside GitEHR - recorded automatically into the patient's version-controlled record with both inputs and results.
 
-## Scope
+An EHR that ships a native, offline, auditable calculator suite driven by a single engine is something the "Big EHR" platforms structurally cannot produce, because it depends on a small-sharp-core architecture rather than a monolith. That is the advantage this spec is built to capture.
 
-- **RCPCH Digital Growth Charts**: UK-specific paediatric growth assessment tools (centiles, z-scores, SDS)
-- **MDCalc-style calculators**: Wide range of clinical decision support tools covering:
-  - Cardiology (CHADS2, CHA2DS2-VASc, Wells, GRACE, TIMI)
-  - Renal (eGFR, CrCl, FENa)
-  - Respiratory (CURB-65, PSI/PORT, PFT interpretation)
-  - Neurology (NIH Stroke Scale, ABCD2, ICH Score)
-  - Emergency (GCS, Trauma scores, Sepsis)
-  - Oncology (TNM staging, prognostic scores)
-  - And many others from established clinical practice
+## Philosophy
 
-## Architecture
+### Open and free
 
-### Workspace Structure
+- **Open source** - anyone can view, use, modify, and share the code (AGPL-3.0-or-later, matching GitEHR; clinical content under CC-BY-SA-4.0).
+- **Free to use** - no paywalls, no licences, no restrictions.
+- **Auditable** - scoring logic is pure and trivially readable; every calculator cites primary literature and is tested against known vectors.
 
-GitEHR will adopt a **Cargo workspace** structure to support the calculators as an independent crate:
+### Soft interoperability
+
+'Soft' interoperability is copy-and-paste interop. It empowers clinicians to use the tools they want without being constrained by their EHR, and lets them exercise their own judgement about whether to reach for a given calculator. Copy-and-paste is a common clinician workaround for the deficiencies of EHRs and is often derided as a kludge, but until real interoperability arrives we should embrace and optimise for the tools clinicians actually use. Every calculator therefore produces a clean, editable text summary for the clipboard as a first-class output, in addition to structured dispatch when embedded.
+
+---
+
+## Architecture: one core, many surfaces
+
+The defining decision is a single scoring engine reused everywhere, so a result produced at the command line, in the browser, in the GUI, or via MCP is identical by construction. The dependency arrows all point **into** the core; the core never depends on anything above it.
 
 ```
-gitehr/
-├── Cargo.toml                    # Workspace root
-├── cli/                          # Renamed from src/
-│   ├── Cargo.toml
+                         ┌───────────────────────────┐
+                         │   calc-core (leaf crate)   │
+                         │  scoring logic + schema    │
+                         │  deps: serde, serde_json   │
+                         │  NO gitehr, NO async        │
+                         └─────────────┬──────────────┘
+                                       │ (every arrow points in)
+        ┌───────────────┬─────────────┼──────────────┬──────────────────┐
+        │               │             │              │                  │
+   ┌─────────┐   ┌────────────┐  ┌──────────┐  ┌────────────┐   ┌───────────────┐
+   │ calc-cli│   │ gitehr-mcp │  │ gitehr   │  │ standalone │   │  calc-web      │
+   │ (lib+bin)│  │ (MCP tools)│  │ gui      │  │ calc app   │   │  single-file   │
+   │  `calc`  │  │            │  │ (Tauri)  │  │ (Tauri 2,  │   │  HTML + bridge │
+   │          │  │            │  │          │  │  desktop/  │   │  (GitHub Pages)│
+   │          │  │            │  │          │  │  mobile)   │   │                │
+   └────┬─────┘  └────────────┘  └──────────┘  └────────────┘   └───────────────┘
+        │ reused verbatim
+   ┌────┴───────────┐
+   │ gitehr calc    │
+   │ (subcommand)   │
+   └────────────────┘
+```
+
+### Workspace layout (as built)
+
+```
+gitehr/                              # repo root = Cargo workspace root
+├── Cargo.toml                       # members: cli, mcp, calc-core, calc-cli
+├── cli/                             # the `gitehr` binary (will gain `gitehr calc`)
+├── mcp/                             # gitehr-mcp server
+├── calc-core/                       # the engine — leaf crate
+│   ├── Cargo.toml                   #   deps: serde, serde_json only
 │   └── src/
-├── gitehr-calculators/           # New crate
-│   ├── Cargo.toml
-│   ├── src/
-│   │   ├── lib.rs                # Public calculator API
-│   │   ├── growth/               # RCPCH growth charts
-│   │   │   ├── mod.rs
-│   │   │   ├── centiles.rs
-│   │   │   └── lms.rs
-│   │   ├── cardiology/
-│   │   │   ├── mod.rs
-│   │   │   ├── chads2.rs
-│   │   │   └── wells.rs
-│   │   ├── renal/
-│   │   │   ├── mod.rs
-│   │   │   └── egfr.rs
-│   │   ├── respiratory/
-│   │   ├── neurology/
-│   │   ├── emergency/
-│   │   ├── models.rs             # Common data types
-│   │   └── validation.rs         # Input validation
-│   └── tests/
-│       └── integration.rs
-├── mcp/                          # MCP server crate
-└── gui/
+│       ├── lib.rs                   #   registry: all() / get(name)
+│       ├── response.rs              #   CalculationResponse schema
+│       ├── calculator.rs            #   Calculator trait + CalcError
+│       └── calculators/
+│           ├── mod.rs
+│           ├── feverpain.rs
+│           └── asrs.rs
+├── calc-cli/                        # CLI surface — lib + bin
+│   ├── Cargo.toml                   #   [[bin]] name = "calc"; [lib] name = "calc_cli"
+│   └── src/
+│       ├── lib.rs                   #   CalcCommand + run() reused by `gitehr calc`
+│       └── main.rs                  #   thin standalone wrapper
+├── calc-web/                        # single-file HTML calculators (frontend)
+│   ├── index.html                   #   gallery / landing page
+│   ├── calculators/<name>.html      #   one self-contained file per calculator
+│   ├── shared/
+│   │   ├── gitehr-bridge.js         #   context detection + result dispatch
+│   │   └── styles.css               #   shared brand styles
+│   └── clinical-source-references/  #   authoritative source material per calculator
+├── gui/                             # Tauri desktop app (excluded from lib workspace)
+└── skills/build-calculator/         # authoring skill for new calculators
 ```
 
-### Calculator Crate Design
+### `calc-core` - the leaf engine
 
-The `gitehr-calculators` crate will be:
-- **Open source** (AGPL-3.0-or-later to match GitEHR)
-- **Independently versioned** (semantic versioning)
-- **Well-tested** (unit tests for all calculators with clinical validation)
-- **Documented** (clinical references, citations, validation studies)
-- **Type-safe** (strong typing for inputs/outputs, compile-time safety)
+The single source of truth. Pure, deterministic scoring with no clock, no I/O, and no global state; a host that needs a timestamp stamps it when recording. It depends only on `serde` and `serde_json` - never on the rest of GitEHR and never on an async runtime. That leaf discipline is what makes the calculators detachable (see Distribution below).
 
-### Public API Design
+Every calculator implements the `Calculator` trait and also exposes a strongly-typed `Input`/`compute` pair plus a `build_response` adapter. The crate-level registry (`all()` / `get(name)`) is the one list the CLI, MCP server, and GUI all enumerate, so adding a calculator surfaces it everywhere.
+
+### `calc-cli` - the CLI surface (lib + bin)
+
+All CLI behaviour lives in the library (`CalcCommand` + `run()`), so there is nothing to re-implement when embedding it. It ships two ways:
+
+1. The standalone `calc` binary - `cargo install --git <repo> -p calc-cli` installs a small, dependency-light tool (tree: `anyhow`, `serde`/`serde_json`, `clap` - no tokio, no EHR).
+2. The `gitehr calc` subcommand - the gitehr CLI depends on `calc-cli` and forwards to `calc_cli::run`, repeating nothing:
 
 ```rust
-// gitehr-calculators/src/lib.rs
-pub mod growth;
-pub mod cardiology;
-pub mod renal;
-pub mod respiratory;
-pub mod neurology;
-pub mod emergency;
-
-pub use models::{CalculatorInput, CalculatorResult, CalculatorError};
-
-// Example usage
-pub fn calculate(
-    calculator_name: &str,
-    inputs: serde_json::Value,
-) -> Result<CalculatorResult, CalculatorError>;
-```
-
-### Example Calculator Implementation
-
-```rust
-// gitehr-calculators/src/cardiology/chads2.rs
-use serde::{Deserialize, Serialize};
-
-#[derive(Debug, Deserialize)]
-pub struct Chads2Input {
-    pub age_over_75: bool,
-    pub congestive_heart_failure: bool,
-    pub hypertension: bool,
-    pub diabetes: bool,
-    pub prior_stroke_tia: bool,  // Worth 2 points
-}
-
-#[derive(Debug, Serialize)]
-pub struct Chads2Result {
-    pub score: u8,
-    pub risk_category: String,
-    pub annual_stroke_risk_percent: f64,
-    pub recommendation: String,
-    pub citation: String,
-}
-
-pub fn calculate_chads2(input: Chads2Input) -> Chads2Result {
-    let mut score = 0;
-    if input.age_over_75 { score += 1; }
-    if input.congestive_heart_failure { score += 1; }
-    if input.hypertension { score += 1; }
-    if input.diabetes { score += 1; }
-    if input.prior_stroke_tia { score += 2; }
-    
-    let (risk_category, annual_risk, recommendation) = match score {
-        0 => ("Low", 1.9, "Aspirin or no therapy"),
-        1 => ("Moderate", 2.8, "Aspirin or anticoagulation"),
-        2..=6 => ("Moderate-High", 4.0 + (score - 2) as f64 * 2.0, "Anticoagulation recommended"),
-        _ => ("High", 18.2, "Anticoagulation strongly recommended"),
-    };
-    
-    Chads2Result {
-        score,
-        risk_category: risk_category.to_string(),
-        annual_stroke_risk_percent: annual_risk,
-        recommendation: recommendation.to_string(),
-        citation: "Gage BF, et al. JAMA. 2001;285(22):2864-2870.".to_string(),
-    }
-}
-```
-
-## CLI Integration
-
-### New Command: `gitehr calc`
-
-```bash
-gitehr calc <calculator> [OPTIONS]
-
-# Examples:
-gitehr calc chads2 --age-over-75 --hypertension --diabetes
-gitehr calc egfr --creatinine 1.2 --age 65 --sex female --race white
-gitehr calc growth --age-months 24 --weight-kg 12.5 --height-cm 85 --sex male
-```
-
-### Implementation Path
-
-1. **New command module**: `cli/src/commands/calculator.rs`
-2. **Command enum addition** in `main.rs`:
-```rust
+// cli/src/main.rs (planned)
+#[derive(clap::Subcommand)]
 enum Commands {
-    // ... existing commands
-    #[command(subcommand)]
+    // ...existing commands
+    /// Clinical calculators
     Calc {
-        command: CalcCommands,
+        #[command(subcommand)]
+        command: calc_cli::CalcCommand,
+        #[arg(long, value_enum, default_value_t = calc_cli::OutputFormat::Text)]
+        format: calc_cli::OutputFormat,
     },
 }
+// ...
+Commands::Calc { command, format } => calc_cli::run(command, format)?,
+```
 
-enum CalcCommands {
-    Chads2 { /* fields */ },
-    Egfr { /* fields */ },
-    Growth { /* fields */ },
-    List,  // List all available calculators
+### MCP, GUI, and the standalone app
+
+- **MCP** - `gitehr-mcp` exposes each calculator as a tool. The tool's input schema is `Calculator::input_schema()` and the tool body calls `Calculator::calculate(value)`. This is the most LLM-native surface: typed schemas handed directly to the model rather than scraped from help text.
+- **GUI** - the Tauri app calls `calc_core` natively over a Tauri command (`calculate_clinical`) and writes the result to the journal, rather than reimplementing logic in the webview.
+- **Standalone calc app** - a separate Tauri 2 app (own `productName`, bundle identifier, and icons; no gitehr branding required) for desktop and mobile. Because `calc-core` is pure Rust it cross-compiles to iOS/Android. The app's frontend is the `calc-web` HTML, backed by the Rust core over `invoke`, so standalone and embedded calculators give byte-identical results.
+
+### Distribution and decoupling
+
+The leaf discipline (nothing in `calc-core` depends on gitehr or tokio) is what enables both of these without trade-off:
+
+- **Install just the calculators**: `cargo install --git <repo> -p calc-cli` (or publish `calc-core` + `calc-cli` to crates.io for `cargo install calc-cli`). Cargo builds only `calc-core` + `clap` + `serde`, never the EHR. The installed binary name is `calc` (set by `[[bin]] name`), independent of the package name.
+- **Ship a non-gitehr app**: the standalone Tauri app path-depends on `calc-core` and is branded independently. It can live in this workspace (excluded, like `gui/src-tauri`) or its own repo depending on `calc-core` via git/crates.io.
+
+The one rule that keeps this true: `calc-core` must stay a leaf. `gitehr -> calc-core`, never the reverse.
+
+### Binary-size note
+
+Adding the calculators to the `gitehr` binary costs almost nothing, because `gitehr` already links `clap`, `serde`, and `serde_json` - so the simple score-based calculators add no new dependencies, only a few KB of code and string data each. The only thing that moves the needle is calculators embedding large reference datasets (growth charts, risk-equation coefficient tables); for those, prefer loading tables from an embedded asset rather than baking everything into the binary's read-only data.
+
+---
+
+## Result schema: `CalculationResponse`
+
+The Rust struct and the JSON object dispatched by the web bridge are the same shape, so results cross surfaces unchanged.
+
+```rust
+pub struct CalculationResponse {
+    pub calculator: String,         // machine name, e.g. "feverpain"
+    pub result: serde_json::Value,  // primary computed value (number or short string)
+    pub interpretation: String,     // human-readable clinical interpretation
+    pub working: serde_json::Map<String, serde_json::Value>, // step-by-step breakdown
+    pub reference: String,          // primary citation / guideline
 }
 ```
 
-3. **Dependency** in `cli/Cargo.toml`:
-```toml
-[dependencies]
-gitehr-calculators = { path = "../gitehr-calculators" }
-```
-
-### Journal Integration
-
-Calculator results are automatically recorded as journal entries with structured metadata:
-
-```yaml
----
-parent_hash: "abc123..."
-parent_entry: "20260306T120000.000Z-previous.md"
-timestamp: "2026-03-06T12:30:00Z"
-author: "dr-jones"
-calculator:
-  type: "CHADS2"
-  version: "1.0.0"
-  inputs:
-    age_over_75: true
-    congestive_heart_failure: false
-    hypertension: true
-    diabetes: true
-    prior_stroke_tia: false
-  result:
-    score: 3
-    risk_category: "Moderate-High"
-    annual_stroke_risk_percent: 8.5
-    recommendation: "Anticoagulation recommended"
-  citation: "Gage BF, et al. JAMA. 2001;285(22):2864-2870."
----
-
-# Clinical Calculation: CHADS2 Score
-
-**Score**: 3 (Moderate-High risk)
-
-**Annual stroke risk**: 8.5%
-
-**Recommendation**: Anticoagulation recommended
-
-**Criteria met**:
-- Age > 75 years
-- Hypertension
-- Diabetes mellitus
-
-**Reference**: Gage BF, et al. JAMA. 2001;285(22):2864-2870.
-```
-
-### State File Storage
-
-Latest calculator results can be stored in `state/calculations/` for quick reference:
-
-```
-state/
-└── calculations/
-    ├── chads2-latest.json
-    ├── egfr-latest.json
-    └── growth-latest.json
-```
-
-Example `state/calculations/chads2-latest.json`:
 ```json
 {
-  "calculator": "CHADS2",
-  "version": "1.0.0",
-  "calculated_at": "2026-03-06T12:30:00Z",
-  "calculated_by": "dr-jones",
-  "inputs": {
-    "age_over_75": true,
-    "congestive_heart_failure": false,
-    "hypertension": true,
-    "diabetes": true,
-    "prior_stroke_tia": false
+  "calculator": "asrs",
+  "result": 4,
+  "interpretation": "Positive screen: 4/6 Part A items meet the frequency threshold...",
+  "working": {
+    "part_a_screen_result": "POSITIVE",
+    "part_a_positive_item_count": 4,
+    "part_a_total_score": 9,
+    "part_b_total_score": 12,
+    "total_score": 21
   },
-  "result": {
-    "score": 3,
-    "risk_category": "Moderate-High",
-    "annual_stroke_risk_percent": 8.5,
-    "recommendation": "Anticoagulation recommended"
-  },
-  "citation": "Gage BF, et al. JAMA. 2001;285(22):2864-2870.",
-  "journal_entry": "journal/20260306T123000.000Z-uuid.md"
+  "reference": "Kessler RC et al. (2005). Psychol Med. 35(2):245-56."
 }
 ```
 
-## GUI Integration
-
-### Calculator Panel
-
-Add a dedicated calculator section in the Mantine UI:
-
-```typescript
-// gui/src/api/gitehr.ts
-export async function calculateClinical(
-  repoPath: string,
-  calculator: string,
-  inputs: Record<string, any>
-): Promise<CalculatorResult> {
-  return await invoke("calculate_clinical", {
-    repoPath,
-    calculator,
-    inputs,
-  });
-}
-```
-
-### Tauri Command
-
-```rust
-// gui/src-tauri/src/lib.rs
-#[tauri::command]
-fn calculate_clinical(
-    repo_path: String,
-    calculator: String,
-    inputs: serde_json::Value,
-) -> Result<serde_json::Value, String> {
-    use gitehr_calculators::calculate;
-    
-    // Run calculation
-    let result = calculate(&calculator, inputs)
-        .map_err(|e| e.to_string())?;
-    
-    // Create journal entry
-    // ... (similar to add_journal_entry)
-    
-    Ok(serde_json::to_value(result).unwrap())
-}
-```
-
-### UI Components
-
-- **Calculator Selector**: Dropdown or searchable list of available calculators
-- **Input Form**: Dynamic form based on calculator requirements
-- **Result Display**: Card showing score, interpretation, recommendation, citation
-- **History**: List of recent calculations from `state/calculations/`
-- **Chart Integration**: For growth charts, display centile curves with plotted data points
-
-## RCPCH Digital Growth Charts
-
-### Special Requirements
-
-The RCPCH digital growth charts require:
-
-1. **Reference data**: LMS parameters for UK90 reference population
-2. **Age calculation**: Precise gestational-age correction for premature infants
-3. **Centile calculation**: Z-score to centile conversion
-4. **Chart rendering**: Visual display of growth curves (GUI feature)
-
-### Data Sources
-
-- **UK-WHO growth charts** (0-4 years): WHO 2006 standard
-- **UK90 growth charts** (4-20 years): British 1990 reference data
-- **Licensed from RCPCH**: Verify licensing terms for commercial use
-
-### Implementation Notes
-
-```rust
-// gitehr-calculators/src/growth/mod.rs
-pub struct GrowthInput {
-    pub age_months: f64,
-    pub measurement_type: MeasurementType,  // Weight, Height, BMI, Head Circumference
-    pub value: f64,
-    pub sex: Sex,
-    pub gestational_age_weeks: Option<f64>,  // For prematurity correction
-}
-
-pub enum MeasurementType {
-    Weight,
-    Height,
-    BMI,
-    HeadCircumference,
-    MidUpperArmCircumference,
-}
-
-pub struct GrowthResult {
-    pub centile: f64,
-    pub z_score: f64,
-    pub sds: f64,  // Standard deviation score
-    pub interpretation: String,
-    pub corrected_age_months: Option<f64>,  // If gestational correction applied
-}
-```
-
-## Calculator Library
-
-### Proposed Initial Set
-
-**Cardiology** (10 calculators):
-- CHADS2 / CHA2DS2-VASc
-- Wells Score (DVT/PE)
-- GRACE Score
-- TIMI Risk Score
-- Framingham Risk Score
-- ASCVD Risk Calculator
-- HAS-BLED
-- HEART Score
-- Revised Cardiac Risk Index
-- PERC Rule
-
-**Renal** (5 calculators):
-- eGFR (CKD-EPI, MDRD)
-- Creatinine Clearance (Cockcroft-Gault)
-- Fractional Excretion of Sodium (FENa)
-- Fractional Excretion of Urea (FEUrea)
-- Kidney Failure Risk Equation
-
-**Respiratory** (5 calculators):
-- CURB-65
-- PSI/PORT Score
-- PFT Interpretation
-- BODE Index
-- A-a Gradient
-
-**Neurology** (5 calculators):
-- NIH Stroke Scale (NIHSS)
-- ABCD2 Score
-- ICH Score
-- Hunt and Hess Scale
-- Fisher Scale
-
-**Emergency** (8 calculators):
-- Glasgow Coma Scale (GCS)
-- Revised Trauma Score
-- ISS (Injury Severity Score)
-- qSOFA
-- SOFA Score
-- SIRS Criteria
-- Modified Early Warning Score (MEWS)
-- Pediatric Trauma Score
-
-**Obstetrics** (3 calculators):
-- Bishop Score
-- Edinburgh Postnatal Depression Scale
-- WHO Partograph
-
-**Paediatrics** (5 calculators):
-- RCPCH Growth Charts (weight, height, BMI, head circumference)
-- Pediatric Early Warning Score (PEWS)
-- Apgar Score
-- Pediatric GCS
-- Centor Score (Paediatric modification)
-
-**Total**: ~40 calculators in initial release
-
-## Clinical Validation
-
-Each calculator must include:
-
-1. **Primary citation**: Peer-reviewed publication
-2. **Validation studies**: Evidence of clinical utility
-3. **Test cases**: Known inputs/outputs from literature
-4. **Limitations**: Known edge cases and contraindications
-5. **Updates**: Process for incorporating guideline changes
-
-## Implementation Steps
-
-1. **Create workspace structure** - Convert to Cargo workspace
-2. **Create `gitehr-calculators` crate** - Initial scaffolding
-3. **Implement core calculators** - Start with CHADS2, eGFR, CURB-65 (high-utility, well-validated)
-4. **Add CLI command** - `gitehr calc` with subcommands
-5. **Integrate with journal** - Automatic recording of calculations
-6. **Add state storage** - Latest results in `state/calculations/`
-7. **GUI integration** - Tauri command + React components
-8. **RCPCH growth charts** - Special implementation with reference data
-9. **Expand calculator library** - Add remaining calculators incrementally
-10. **Documentation** - Clinical usage guide, API reference, validation evidence
-11. **Testing** - Comprehensive test suite with clinical validation cases
-12. **Versioning** - Establish update process for guideline changes
-
-## Licensing Considerations
-
-- **GitEHR calculators crate**: AGPL-3.0-or-later (consistent with main project)
-- **Clinical algorithms**: Most are in public domain or published with permissive use
-- **RCPCH growth charts**: Verify licensing terms with RCPCH for commercial distribution
-- **MDCalc**: Ensure no IP violations; implement from primary literature sources
-- **Citations**: All calculators must cite original publications and validation studies
-
-## Open Questions
-
-- Should calculators support units conversion (metric/imperial)?
-- Should historical calculation results be queryable via `gitehr calc history`?
-- Should GUI include printable reports for calculator results?
-- Should calculators integrate with FHIR Observations for standardized data exchange?
-- Should we support custom/user-defined calculators via plugin system?
-
-## Future Enhancements
-
-- **Calculator plugins**: Allow third-party calculator contributions
-- **Real-time updates**: Fetch latest guideline changes from registry
-- **Decision trees**: Multi-step clinical algorithms beyond simple scores
-- **Risk prediction models**: More complex ML-based prognostic calculators
-- **Integration with state**: Auto-populate calculator inputs from current patient state
-- **Trending**: Show calculation results over time with charts
-- **Alerts**: Trigger warnings for high-risk scores
+When dispatched from the browser, an optional `patient_context` object is appended (echoed from the host's URL parameters). `CalculationResponse::to_summary_text()` produces a deterministic, timestamp-free clipboard summary; the recording host adds the timestamp.
 
 ---
 
-This specification establishes GitEHR as a comprehensive clinical decision support tool with auditable, version-controlled calculation results integrated into the patient's permanent medical record.
+## The `Calculator` trait
+
+```rust
+pub trait Calculator {
+    fn name(&self) -> &'static str;          // stable machine name / subcommand / MCP tool name
+    fn title(&self) -> &'static str;         // human title
+    fn description(&self) -> &'static str;   // one-line description
+    fn reference(&self) -> &'static str;     // primary citation
+    fn input_schema(&self) -> serde_json::Value;  // JSON Schema for inputs
+    fn calculate(&self, input: &serde_json::Value) -> Result<CalculationResponse, CalcError>;
+}
+```
+
+`input_schema()` is the key LLM affordance: it powers `--print-schema`, MCP tool definitions, and any agent that wants to discover the required inputs without parsing prose. Each calculator additionally exposes a typed `compute()` for ergonomic, compile-time-checked use from Rust.
+
+---
+
+## CLI design (LLM-friendly)
+
+The CLI is built to be discoverable by an LLM agent from `--help` and machine-readable schemas:
+
+```bash
+calc --help                     # top-level help; --format text|json is global
+calc list                       # list calculators (text or JSON)
+calc list --format json         # [{name,title,description}, ...]
+calc <name> --print-schema      # JSON Schema for that calculator's inputs
+calc <name> [flags]             # compute; text by default
+calc <name> [flags] --format json   # CalculationResponse as JSON on stdout
+
+# Examples
+calc feverpain --fever --purulence --attend-rapidly
+calc feverpain --fever --purulence --attend-rapidly --inflamed-tonsils --absence-of-cough --format json
+calc asrs --responses 2,2,2,3,0,0,1,1,1,1,1,1,1,1,1,1,1,1 --format json
+```
+
+Conventions: predictable exit codes, JSON on stdout under `--format json`, every input documented in `--help`, and `--print-schema` as the authoritative input contract. Man pages and shell completions are generated from the clap definitions (clap_mangen / clap_complete; the gitehr CLI already uses clap_complete) - this is the immediate next step after the core CLI lands.
+
+---
+
+## Web frontend (`calc-web`)
+
+The browser tools are single, self-contained HTML files: no build step, no framework, openable as a static file, embeddable, or hosted on GitHub Pages. The only permitted dependencies are the shared bridge module, the shared stylesheet, and optionally CDN-hosted CSS (which must degrade gracefully offline).
+
+### Design principles
+
+1. **Single file, no build step** - all markup, CSS, and JS inline or via CDN. (ES module imports of the shared bridge require serving over HTTP, which any static server satisfies.)
+2. **Bespoke UI per calculator** - the layout suits the clinical purpose. A questionnaire looks like a questionnaire; a converter looks like a converter. Guided by clinical context, patient-facing vs clinician-facing use, cognitive load, and accessibility (keyboard navigable, screen-reader compatible, sufficient contrast).
+3. **Logic** - today the web logic is plain inline JavaScript. The canonical logic now lives in `calc-core`; the web layer obtains it one of two ways: by calling the Rust core (in the Tauri app via `invoke`, or by loading `calc-core` compiled to WASM), or, for the pure no-build single-file case, by a JavaScript mirror that is validated against the shared `calc-core` test vectors. New calculators should treat `calc-core` as the source of truth and keep any JS mirror provably equivalent. For heavyweight statistical logic, Pyodide may run authoritative Python in the browser.
+
+### The bridge (`shared/gitehr-bridge.js`)
+
+A small ES module that makes each calculator context-aware without the author knowing the host environment.
+
+| Context | Detection |
+|---|---|
+| Tauri (GitEHR desktop / standalone app) | `window.__TAURI__` present |
+| iframe embed | `window.parent !== window` |
+| Standalone | neither of the above |
+
+Exported API: `sendResult(data)` (Tauri event `calculator-complete`; iframe `postMessage`; standalone no-op), `getPatientContext()` (reads URL query params injected by the host), `getContext()`, `saveButtonLabel()`, `formatClipboardText(data)`, `copyToClipboard(data)`.
+
+### Result Card UI conventions (mandatory)
+
+Every calculator renders a result card, in this order:
+
+1. **Score summary and interpretation** - score tiles, a result badge (positive/negative/severity), and the interpretation string.
+2. **Breakdown** (recommended) - a collapsible `<details>` block with per-item or per-criterion scores.
+3. **Clipboard preview textarea** - an editable `<textarea>` pre-filled with the plain-text summary, shown before the action buttons. The copy button reads `previewTA.value` directly so clinician edits are preserved. Use `formatClipboardText()` for simple results or a bespoke `buildSummaryText()` for richer narratives (e.g. FeverPAIN).
+4. **Action buttons** - rendered by JS after `getContext()`:
+
+| Context | Primary | Always present |
+|---|---|---|
+| `tauri` | "Save to patient record" (`sendResult`) | "Copy result", "Start over" |
+| `iframe` | "Send result" (`sendResult`) | "Copy result", "Start over" |
+| `standalone` | - | "Copy result", "Start over" |
+
+**Dynamic refresh**: any post-result selection that changes the clinical recommendation (prescribing strategy, dosing, follow-up) must update the textarea in real time. Store the last score/interpretation at module level and call `refreshPreview()` from every relevant change listener; clear them on "Start over".
+
+---
+
+## GitEHR integration
+
+When a calculator runs inside GitEHR, dispatch stops being a bridge round-trip and becomes a direct call into the journal/state code.
+
+### Journal entries
+
+Results are recorded as immutable, timestamped journal entries with structured YAML frontmatter (calculator type, version, inputs, result, citation) followed by a human-readable Markdown body. This makes every calculation a permanent, auditable part of the record.
+
+### State files
+
+Latest results may also be written to `state/calculations/<name>-latest.json` for quick reference, including the inputs, result, who calculated it and when, and a pointer to the journal entry.
+
+### Patient context
+
+The host may append patient identifiers as URL parameters before opening a web calculator (`?patient_id=...&given_name=...`); `getPatientContext()` exposes them for labelling, pre-fill, and inclusion in the dispatched payload. The GUI path passes context directly.
+
+---
+
+## Authoring a new calculator
+
+1. Implement it in `calc-core`: a typed `Input`, a pure `compute()`, a `build_response()` adapter, a `Calculator` impl with `input_schema()`, and unit tests against known vectors. Register it in `all()`.
+2. Add a `calc-cli` subcommand (flags + `--print-schema`) - mechanical, following `feverpain`/`asrs`.
+3. (If a web tool is wanted) create `calc-web/calculators/<name>.html` following the Result Card conventions, with its JS logic validated against the `calc-core` vectors. Add a card to `calc-web/index.html`.
+4. Add authoritative source material to `calc-web/clinical-source-references/`.
+
+See `skills/build-calculator/` for the detailed authoring workflow.
+
+---
+
+## Calculator library roadmap
+
+UK-focused build priority (50 tools), ordered by clinical volume and patient-safety impact. The first two (FeverPAIN, ASRS-v1.1) are implemented in `calc-core` as the reference pattern. The full table with per-tool descriptions lives in `spec/calculator-roadmap.md`.
+
+### Tier 1 - High-volume primary care / NHS-mandated
+
+QRISK3 (NICE NG238), PHQ-9 (NG222), GAD-7 (CG113), AUDIT / AUDIT-C (CG115), eGFR CKD-EPI (NG203), MUST (CG32), FRAX / QFracture (CG146), FIB-4 (NG49).
+
+### Tier 2 - Acute / emergency
+
+NEWS2 (NG51; RCP/NHSE mandated), CURB-65 / CRB-65 (NG250; BTS), Wells DVT / Wells PE (NG158), GRACE (NG185, CG94), CHA2DS2-VASc (NG196), HAS-BLED (NG196, NG158), ABCD2 (NG128), 4AT (CG103), qSOFA (NG51).
+
+### Tier 3 - Common chronic disease management
+
+MRC Dyspnoea (NG115), CAT (NG115), ACQ, IPSS (CG97), DAS28 (NG100), uACR (NG203, NG28), eGFR+uACR heatmap (NG203), EPDS (CG192; SIGN 169), Clinical Frailty Scale (NG56), MMSE (NG97).
+
+### Tier 4 - Secondary care / specialist
+
+SOFA (NG51), EuroSCORE II (TA163, TA245), HEART (NG185), TIMI (CG94), Padua (NG89), ELF (NG49), Child-Pugh / MELD / UKELD (NG50), Nottingham Hip Fracture Score (CG124; NHFD).
+
+### Tier 5 - Functional / PROMs / niche but guideline-endorsed
+
+AMTS (CG124), Waterlow (CG179), Oxford Hip / Knee Score (NHSE PROMs), BODE (NG115), LANSS (CG173), ABPI (NG19, CG168), Gleason Grade Groups (NG131), Nottingham Prognostic Index (NG101), CHALICE (CG176).
+
+### RCPCH Digital Growth Charts (special case)
+
+UK-WHO (0-4y, WHO 2006) and UK90 (4-20y) reference data, gestational-age correction for prematurity, z-score/centile/SDS calculation, and chart rendering in the GUI. Requires LMS reference tables (the binary-size variable noted above) and confirmation of RCPCH licensing terms for distribution.
+
+---
+
+## Clinical validation
+
+Each calculator must include: a primary peer-reviewed citation; evidence of clinical utility; test cases with known inputs/outputs from the literature (encoded as unit tests in `calc-core`); documented limitations and contraindications; and a process for incorporating guideline changes.
+
+---
+
+## Licensing
+
+- `calc-core` / `calc-cli`: AGPL-3.0-or-later (consistent with GitEHR).
+- Clinical algorithms: implement from primary literature; most scores are public-domain methods. Do not copy proprietary implementations (e.g. MDCalc).
+- RCPCH growth charts: confirm licensing terms with RCPCH before distribution.
+- All calculators cite original publications and validation studies.
+
+---
+
+## Open questions
+
+- Unit conversion support (metric/imperial)?
+- Queryable calculation history (`gitehr calc history`)?
+- Printable reports for results in the GUI?
+- FHIR Observation export for standardized exchange?
+- User-defined / third-party calculators via a plugin system?
+
+## Future enhancements
+
+Calculator plugins; fetching guideline updates from a registry; multi-step decision trees beyond simple scores; auto-populating inputs from current patient state; trending results over time; high-risk-score alerts.
+
+---
+
+This specification establishes GitEHR as a comprehensive clinical decision support tool with auditable, version-controlled calculation results, driven by a single engine that is equally at home in the EHR, at the command line, in an LLM's toolset, and as a standalone app.

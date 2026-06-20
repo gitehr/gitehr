@@ -1,0 +1,15 @@
+[package]
+name = "calc-core"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Pure clinical calculator engine — scoring logic and result schema shared by the GitEHR CLI, MCP server, GUI, and standalone apps. Deliberately a dependency-light leaf crate: no gitehr, no async runtime."
+
+[lib]
+name = "calc_core"
+path = "src/lib.rs"
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true

@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FeverPAIN Clinical Score — GitEHR Clinical Calculators</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@5/daisyui.css" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+
+  <link rel="stylesheet" href="../shared/styles.css" />
+  <style type="text/tailwindcss">
+    /* -----------------------------------------------------------------------
+       Section headers
+    ----------------------------------------------------------------------- */
+    .section-header { color: white; }
+    .section-header.history     { background: var(--dark-blue); }
+    .section-header.examination { background: #5a7ca8; }
+
+    /* -----------------------------------------------------------------------
+       Question rows
+    ----------------------------------------------------------------------- */
+    .question-row {
+      background: white;
+      border-left: 4px solid transparent;
+      transition: border-color 0.15s;
+    }
+    .question-row.answered         { border-left-color: var(--light-blue); }
+    .question-row.scoring-positive { border-left-color: var(--mid-blue); }
+
+    /* Scoring indicator pill */
+    .score-pill {
+      font-size: 0.68rem;
+      padding: 0.15rem 0.5rem;
+      border-radius: 9999px;
+      background: #e8f0fb;
+      color: var(--dark-blue);
+      border: 1px solid #b8d0f0;
+      white-space: nowrap;
+    }
+    .question-row.scoring-positive .score-pill {
+      background: var(--mid-blue);
+      color: white;
+      border-color: var(--mid-blue);
+    }
+
+    /* -----------------------------------------------------------------------
+       Result card variants
+    ----------------------------------------------------------------------- */
+    .result-no-rx     { border-top-color: var(--color-green); }
+    .result-delayed   { border-top-color: #d97706; }
+    .result-immediate { border-top-color: #dc2626; }
+
+    .badge-no-rx     { background: var(--color-green); color: white; }
+    .badge-delayed   { background: #d97706; color: white; }
+    .badge-immediate { background: #dc2626; color: white; }
+  </style>
+</head>
+
+<body>
+
+<!-- =========================================================================
+     Header
+========================================================================== -->
+<header class="site-header px-4 py-3">
+  <div class="max-w-3xl mx-auto flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <svg width="32" height="32" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+        <circle cx="20" cy="20" r="20" fill="white" opacity="0.15"/>
+        <path d="M13 20h14M20 13v14" stroke="white" stroke-width="3" stroke-linecap="round"/>
+      </svg>
+      <div>
+        <div class="font-bold text-sm leading-tight">GitEHR Clinical Calculators</div>
+      </div>
+    </div>
+    <a href="../index.html" class="text-xs no-underline flex items-center gap-1">← All calculators</a>
+  </div>
+</header>
+
+<!-- =========================================================================
+     Hero
+========================================================================== -->
+<div style="background: var(--dark-blue); color: white;" class="px-4 py-8">
+  <div class="max-w-3xl mx-auto">
+    <div class="flex items-start gap-4">
+      <div class="flex-1">
+        <p class="text-xs font-semibold uppercase tracking-widest opacity-60 mb-1">Clinical Scoring Tool · Antibiotic Stewardship</p>
+        <h1 class="text-2xl font-bold mb-2 leading-tight">
+          FeverPAIN Clinical Score<br>
+          <span style="color: var(--light-blue);">Acute Sore Throat</span>
+        </h1>
+        <p class="text-sm opacity-80 max-w-xl">
+          Five-item validated score for guiding antibiotic prescribing in acute sore throat.
+          Derived from a cohort of 1,760 adults and children aged 3+.
+        </p>
+      </div>
+      <!-- Live score counter -->
+      <div class="text-center bg-white bg-opacity-10 rounded-xl p-4 min-w-[80px] flex-shrink-0">
+        <div id="counter-display" class="text-3xl font-bold" style="color: var(--light-blue);">–</div>
+        <div class="text-xs opacity-70 mt-0.5">Score<br>(max 5)</div>
+      </div>
+    </div>
+
+    <!-- Progress bar -->
+    <div class="mt-5">
+      <div class="flex justify-between text-xs opacity-60 mb-1">
+        <span>Required fields</span>
+        <span id="progress-label">0 / 5 completed</span>
+      </div>
+      <div class="progress-track">
+        <div id="progress-fill" class="progress-fill" style="width:0%"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- =========================================================================
+     Disclaimer + acronym legend
+========================================================================== -->
+<div class="max-w-3xl mx-auto px-4 pt-5 flex flex-col gap-3">
+  <div class="disclaimer rounded-lg p-4 text-sm">
+    <strong>Important:</strong> This tool supports, but does not replace, clinical judgement.
+    Validated for adults and children aged 3+. A positive score is not a diagnosis —
+    use in conjunction with clinical assessment. Further guidance available from UKHSA.
+  </div>
+
+  <!-- FeverPAIN acronym key -->
+  <div class="bg-white rounded-lg px-5 py-3 text-xs shadow-sm text-gray-600">
+    <span class="font-semibold text-gray-700 mr-3">Scoring criteria (1 point each):</span>
+    <span class="inline-flex flex-wrap gap-x-5 gap-y-1 mt-1">
+      <span><strong style="color:var(--dark-blue)">F</strong>ever in last 24 h</span>
+      <span><strong style="color:var(--dark-blue)">P</strong>urulence (pus on tonsils)</span>
+      <span><strong style="color:var(--dark-blue)">A</strong>ttend rapidly (≤ 3 days)</span>
+      <span><strong style="color:var(--dark-blue)">I</strong>nflamed tonsils (severely)</span>
+      <span><strong style="color:var(--dark-blue)">N</strong>o cough / coryza</span>
+    </span>
+  </div>
+</div>
+
+<!-- =========================================================================
+     Form
+========================================================================== -->
+<main class="max-w-3xl mx-auto px-4 pb-16">
+
+  <!-- History -->
+  <div class="mt-6 mb-2">
+    <div class="section-header history rounded-t-lg px-5 py-3 flex items-center justify-between">
+      <span class="font-bold text-sm">History</span>
+      <span class="text-xs opacity-75">* required for score</span>
+    </div>
+    <div class="bg-white rounded-b-lg shadow-sm overflow-hidden divide-y divide-gray-100" id="history-questions"></div>
+  </div>
+
+  <!-- Examination -->
+  <div class="mt-6 mb-2">
+    <div class="section-header examination rounded-t-lg px-5 py-3">
+      <span class="font-bold text-sm">Examination</span>
+    </div>
+    <div class="bg-white rounded-b-lg shadow-sm overflow-hidden divide-y divide-gray-100" id="examination-questions"></div>
+  </div>
+
+  <!-- =========================================================================
+       Result card
+  ========================================================================== -->
+  <div id="result-card" class="result-card bg-white rounded-xl shadow-md mt-8 p-6 hidden">
+
+    <div class="flex items-center gap-3 mb-4">
+      <span id="result-badge" class="text-sm font-bold px-3 py-1 rounded-full">—</span>
+      <h2 class="text-lg font-bold" style="color: var(--dark-blue);">FeverPAIN Score Result</h2>
+    </div>
+
+    <!-- Score tiles -->
+    <div class="grid grid-cols-3 gap-3 mb-5">
+      <div class="rounded-lg p-4 text-center" style="background: var(--warm-grey);">
+        <div id="res-score" class="text-3xl font-bold" style="color: var(--dark-blue);">–</div>
+        <div class="text-xs text-gray-500 mt-0.5">Score<br><span class="opacity-60">(max 5)</span></div>
+      </div>
+      <div class="rounded-lg p-4 col-span-2 flex flex-col justify-center" style="background: var(--warm-grey);">
+        <div id="res-strep-rate" class="text-lg font-bold" style="color: var(--dark-blue);"></div>
+        <div class="text-xs text-gray-500 mt-0.5">estimated streptococcus isolation rate</div>
+      </div>
+    </div>
+
+    <!-- FeverPAIN criteria breakdown -->
+    <div class="mb-5">
+      <div class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Scoring criteria</div>
+      <div id="res-criteria" class="grid grid-cols-5 gap-2"></div>
+    </div>
+
+    <!-- Interpretation -->
+    <p id="res-interpretation" class="text-sm leading-relaxed text-gray-700 mb-5 p-3 rounded-lg"
+       style="background: var(--warm-grey);"></p>
+
+    <!-- Prescribing strategy -->
+    <div class="mb-5">
+      <div class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+        Prescribing strategy — optional, recorded in copy/paste summary
+      </div>
+      <div id="strategy-options" class="flex flex-col gap-1"></div>
+    </div>
+
+    <!-- Reference -->
+    <div class="text-xs text-gray-400 border-t pt-3 mb-4">
+      <strong>References:</strong>
+      Little P, Stuart B, Hobbs FDR, et al. Antibiotic prescription strategies for acute sore throat:
+      a prospective observational cohort study. <em>Lancet Infect Dis.</em> 2014.
+      Little P, Hobbs FR, Moore M, et al. PRImary care Streptococcal Management (PRISM) study.
+      <em>Health Technol Assess.</em> 2014;18(6):1–102.
+    </div>
+
+    <!-- Clipboard preview -->
+    <div id="clipboard-preview-wrap" class="hidden mb-4">
+      <label for="clipboard-preview" class="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">
+        Text to copy — edit if needed
+      </label>
+      <textarea
+        id="clipboard-preview"
+        rows="10"
+        class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono resize-y"
+        style="outline-color: var(--mid-blue);"
+      ></textarea>
+    </div>
+
+    <!-- Action buttons -->
+    <div class="flex flex-wrap gap-2" id="result-actions"></div>
+  </div>
+
+  <div id="result-anchor"></div>
+
+</main>
+
+<!-- =========================================================================
+     Footer
+========================================================================== -->
+<footer class="text-center text-xs text-gray-400 pb-8">
+  GitEHR Clinical Calculators · Not a substitute for clinical judgement
+</footer>
+
+<!-- =========================================================================
+     JavaScript
+========================================================================== -->
+<script type="module">
+import { sendResult, getPatientContext, getContext, saveButtonLabel }
+  from '../shared/gitehr-bridge.js';
+
+// ---------------------------------------------------------------------------
+// Field definitions
+// ---------------------------------------------------------------------------
+
+const HISTORY_FIELDS = [
+  {
+    id: 'sorethroat',
+    label: 'Sore throat',
+    required: false,
+    options: [
+      { value: 'None',     label: 'None'     },
+      { value: 'Mild',     label: 'Mild'     },
+      { value: 'Moderate', label: 'Moderate' },
+      { value: 'Severe',   label: 'Severe'   },
+    ],
+  },
+  {
+    id: 'cough',
+    label: 'Cough or cold symptoms',
+    required: true,
+    criterion: 'N',
+    criterionDesc: 'None = +1 (No cough/coryza)',
+    options: [
+      { value: 'None',     label: 'None'     },
+      { value: 'Mild',     label: 'Mild'     },
+      { value: 'Moderate', label: 'Moderate' },
+      { value: 'Severe',   label: 'Severe'   },
+    ],
+  },
+  {
+    id: 'aches',
+    label: 'Muscle aches',
+    required: false,
+    options: [
+      { value: 'None',     label: 'None'     },
+      { value: 'Mild',     label: 'Mild'     },
+      { value: 'Moderate', label: 'Moderate' },
+      { value: 'Severe',   label: 'Severe'   },
+    ],
+  },
+  {
+    id: 'history',
+    label: 'History of fever in last 24 hours',
+    required: true,
+    criterion: 'F',
+    criterionDesc: 'Yes = +1 (Fever)',
+    options: [
+      { value: 'Yes', label: 'Yes' },
+      { value: 'No',  label: 'No'  },
+    ],
+  },
+  {
+    id: 'onset',
+    label: 'Onset of illness',
+    required: true,
+    criterion: 'A',
+    criterionDesc: '0–3 days = +1 (Attend rapidly)',
+    options: [
+      { value: '0-3 days', label: '0–3 days' },
+      { value: '4-7 days', label: '4–7 days' },
+      { value: '7+ days',  label: '7+ days'  },
+    ],
+  },
+];
+
+const EXAMINATION_FIELDS = [
+  {
+    id: 'cervical',
+    label: 'Cervical glands',
+    required: false,
+    options: [
+      { value: 'Normal', label: 'Normal'  },
+      { value: '1-2cm',  label: '1–2 cm' },
+      { value: '> 2cm',  label: '> 2 cm' },
+    ],
+  },
+  {
+    id: 'inflamed',
+    label: 'Inflamed tonsils',
+    required: true,
+    criterion: 'I',
+    criterionDesc: 'Severe = +1 (Inflamed)',
+    options: [
+      { value: 'None',     label: 'None'     },
+      { value: 'Mild',     label: 'Mild'     },
+      { value: 'Moderate', label: 'Moderate' },
+      { value: 'Severe',   label: 'Severe'   },
+    ],
+  },
+  {
+    id: 'pus',
+    label: 'Pus on tonsils',
+    required: true,
+    criterion: 'P',
+    criterionDesc: 'Yes = +1 (Purulence)',
+    options: [
+      { value: 'Yes', label: 'Yes' },
+      { value: 'No',  label: 'No'  },
+    ],
+  },
+  {
+    id: 'fever',
+    label: 'Fever — temperature / notes',
+    type: 'textarea',
+    required: false,
+    placeholder: 'e.g. 38.2 °C',
+  },
+];
+
+const ALL_FIELDS = [...HISTORY_FIELDS, ...EXAMINATION_FIELDS];
+const REQUIRED_IDS = ALL_FIELDS.filter(f => f.required).map(f => f.id);
+
+// ---------------------------------------------------------------------------
+// State
+// ---------------------------------------------------------------------------
+const answers = {};
+let selectedStrategy = null;
+let delayDays = null;
+let currentScore = null;
+let currentInterp = null;
+
+// ---------------------------------------------------------------------------
+// Scoring (mirrors original main.js exactly)
+// ---------------------------------------------------------------------------
+function computeScore() {
+  const criteria = {
+    N: answers.cough   === 'None',
+    F: answers.history === 'Yes',
+    A: answers.onset   === '0-3 days',
+    I: answers.inflamed === 'Severe',
+    P: answers.pus     === 'Yes',
+  };
+  const score = Object.values(criteria).filter(Boolean).length;
+  return { score, criteria };
+}
+
+function getInterpretation(score) {
+  if (score <= 1) return {
+    level:    'no-rx',
+    label:    'No prescribing',
+    stepRate: '13–18%',
+    text: `A score of ${score} is associated with 13–18% isolation of streptococcus — ` +
+          `close to background carriage rates. A no-prescribing strategy is appropriate ` +
+          `after discussion with the patient.`,
+  };
+  if (score <= 3) return {
+    level:    'delayed',
+    label:    'Delayed prescribing',
+    stepRate: '34–40%',
+    text: `A score of ${score} is associated with 34–40% isolation of streptococcus. ` +
+          `A delayed prescribing strategy is appropriate after discussion with the patient.`,
+  };
+  return {
+    level:    'immediate',
+    label:    'Consider immediate prescription',
+    stepRate: '62–65%',
+    text: `A score of ${score} is associated with 62–65% isolation of streptococcus. ` +
+          `Consider an immediate prescribing strategy if symptoms are severe, ` +
+          `or a short delayed prescribing strategy (48 hours) may be appropriate.`,
+  };
+}
+
+function requiredAnsweredCount() {
+  return REQUIRED_IDS.filter(id => answers[id] !== undefined).length;
+}
+
+function allRequiredAnswered() {
+  return requiredAnsweredCount() === REQUIRED_IDS.length;
+}
+
+// ---------------------------------------------------------------------------
+// Render
+// ---------------------------------------------------------------------------
+function renderFields() {
+  renderSection(HISTORY_FIELDS, 'history-questions');
+  renderSection(EXAMINATION_FIELDS, 'examination-questions');
+}
+
+function renderSection(fields, containerId) {
+  const container = document.getElementById(containerId);
+
+  fields.forEach(field => {
+    const row = document.createElement('div');
+    row.className = 'question-row px-5 py-4';
+    row.id = `row-${field.id}`;
+
+    if (field.type === 'textarea') {
+      row.innerHTML = `
+        <div class="mb-2">
+          <p class="text-sm font-medium text-gray-700">${field.label}</p>
+          <p class="text-xs text-gray-400 mt-0.5">Optional — included in copy/paste summary only</p>
+        </div>
+        <textarea
+          id="input-${field.id}"
+          class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm resize-none"
+          style="outline: none;"
+          rows="2"
+          placeholder="${field.placeholder || ''}"
+        ></textarea>
+      `;
+      row.classList.add('answered');
+      container.appendChild(row);
+      document.getElementById(`input-${field.id}`)
+        .addEventListener('input', e => { answers[field.id] = e.target.value; });
+      return;
+    }
+
+    const pillHtml = field.criterion
+      ? `<span class="score-pill" id="pill-${field.id}">${field.criterionDesc}</span>`
+      : `<span class="text-xs text-gray-400 flex-shrink-0">summary only</span>`;
+
+    const requiredMark = field.required
+      ? ` <span style="color: var(--mid-blue); font-weight: bold;">*</span>`
+      : '';
+
+    row.innerHTML = `
+      <div class="flex items-start gap-3 mb-3">
+        <p class="text-sm font-medium text-gray-700 flex-1">${field.label}${requiredMark}</p>
+        ${pillHtml}
+      </div>
+      <div class="freq-group" role="group" aria-label="${field.label}">
+        ${field.options.map(opt => `
+          <button
+            type="button"
+            class="freq-btn"
+            data-field="${field.id}"
+            data-value="${opt.value}"
+            aria-pressed="false"
+          >${opt.label}</button>
+        `).join('')}
+      </div>
+    `;
+
+    container.appendChild(row);
+  });
+
+  container.querySelectorAll('.freq-btn').forEach(btn => {
+    btn.addEventListener('click', () => selectAnswer(btn.dataset.field, btn.dataset.value));
+    btn.addEventListener('keydown', e => {
+      if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); btn.click(); }
+    });
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Answer selection
+// ---------------------------------------------------------------------------
+function selectAnswer(fieldId, value) {
+  answers[fieldId] = value;
+
+  document.querySelectorAll(`[data-field="${fieldId}"]`).forEach(btn => {
+    const sel = btn.dataset.value === value;
+    btn.classList.toggle('selected', sel);
+    btn.setAttribute('aria-pressed', sel ? 'true' : 'false');
+  });
+
+  updateRowState(fieldId, value);
+  updateProgress();
+  updateLiveCounter();
+
+  if (allRequiredAnswered()) {
+    showResult();
+  } else {
+    document.getElementById('result-card').classList.add('hidden');
+  }
+}
+
+function updateRowState(fieldId, value) {
+  const row = document.getElementById(`row-${fieldId}`);
+  const field = ALL_FIELDS.find(f => f.id === fieldId);
+  if (!row || !field || field.type === 'textarea') return;
+
+  row.classList.remove('answered', 'scoring-positive');
+  if (field.criterion) {
+    row.classList.add(isCriterionMet(fieldId, value) ? 'scoring-positive' : 'answered');
+  } else {
+    row.classList.add('answered');
+  }
+}
+
+function isCriterionMet(fieldId, value) {
+  if (fieldId === 'cough')    return value === 'None';
+  if (fieldId === 'history')  return value === 'Yes';
+  if (fieldId === 'onset')    return value === '0-3 days';
+  if (fieldId === 'inflamed') return value === 'Severe';
+  if (fieldId === 'pus')      return value === 'Yes';
+  return false;
+}
+
+// ---------------------------------------------------------------------------
+// Progress
+// ---------------------------------------------------------------------------
+function updateProgress() {
+  const n = requiredAnsweredCount();
+  document.getElementById('progress-fill').style.width = `${(n / 5) * 100}%`;
+  document.getElementById('progress-label').textContent = `${n} / 5 completed`;
+}
+
+// ---------------------------------------------------------------------------
+// Live counter
+// ---------------------------------------------------------------------------
+function updateLiveCounter() {
+  const display = document.getElementById('counter-display');
+  if (requiredAnsweredCount() === 0) {
+    display.textContent = '–';
+    display.style.color = 'rgba(255,255,255,0.5)';
+    return;
+  }
+  const { score } = computeScore();
+  const interp = getInterpretation(score);
+  display.textContent = score;
+  display.style.color = interp.level === 'no-rx'     ? '#41B6E6'
+                       : interp.level === 'delayed'   ? '#fbbf24'
+                       :                                '#f87171';
+}
+
+// ---------------------------------------------------------------------------
+// Show result
+// ---------------------------------------------------------------------------
+function showResult() {
+  const { score, criteria } = computeScore();
+  const interp = getInterpretation(score);
+
+  const card = document.getElementById('result-card');
+  const wasHidden = card.classList.contains('hidden');
+
+  // Update score tiles
+  document.getElementById('res-score').textContent = score;
+  document.getElementById('res-strep-rate').textContent = interp.stepRate;
+  document.getElementById('res-interpretation').textContent = interp.text;
+
+  // Badge
+  const badge = document.getElementById('result-badge');
+  badge.textContent = interp.label;
+  badge.className = `text-sm font-bold px-3 py-1 rounded-full badge-${interp.level}`;
+
+  // Card border
+  card.classList.remove('hidden', 'result-no-rx', 'result-delayed', 'result-immediate');
+  card.classList.add(`result-${interp.level}`);
+
+  renderCriteriaBreakdown(criteria);
+  renderStrategyOptions();
+  renderActionButtons(score, interp, criteria);
+
+  if (wasHidden) {
+    document.getElementById('result-anchor').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+}
+
+// ---------------------------------------------------------------------------
+// FeverPAIN criteria breakdown
+// ---------------------------------------------------------------------------
+const CRITERIA_META = [
+  { key: 'F', letter: 'F', label: 'Fever\n(last 24 h)' },
+  { key: 'P', letter: 'P', label: 'Purulence\n(pus)' },
+  { key: 'A', letter: 'A', label: 'Attend\nrapidly' },
+  { key: 'I', letter: 'I', label: 'Inflamed\ntonsils' },
+  { key: 'N', letter: 'N', label: 'No cough/\ncoryza' },
+];
+
+function renderCriteriaBreakdown(criteria) {
+  const container = document.getElementById('res-criteria');
+  container.innerHTML = '';
+  CRITERIA_META.forEach(({ key, letter, label }) => {
+    const met = !!criteria[key];
+    const chip = document.createElement('div');
+    chip.className = `rounded-lg p-3 text-center text-xs ${met ? 'font-semibold' : 'text-gray-500 bg-gray-100'}`;
+    if (met) {
+      chip.style.background = 'var(--mid-blue)';
+      chip.style.color = 'white';
+    }
+    chip.innerHTML = `
+      <div class="text-xl font-bold mb-0.5" style="color:${met ? 'white' : 'var(--mid-grey)'}">${letter}</div>
+      <div class="leading-snug" style="white-space:pre-line">${label}</div>
+      <div class="mt-1 text-xs font-bold">${met ? '✓ +1' : '✗ 0'}</div>
+    `;
+    container.appendChild(chip);
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Prescribing strategy (rendered once; radio state persists)
+// ---------------------------------------------------------------------------
+function renderStrategyOptions() {
+  const container = document.getElementById('strategy-options');
+  if (container.dataset.rendered) return;
+  container.dataset.rendered = 'true';
+
+  const options = [
+    { value: 'No prescription',        label: 'No prescription' },
+    { value: 'Delay prescription',      label: 'Delayed prescription by', hasDelay: true },
+    { value: 'Immediate prescription',  label: 'Immediate prescription' },
+  ];
+
+  options.forEach(opt => {
+    const wrap = document.createElement('label');
+    wrap.className = 'flex items-center gap-3 text-sm cursor-pointer px-2 py-1.5 rounded-lg hover:bg-gray-50';
+    wrap.innerHTML = `
+      <input type="radio" name="strategy" value="${opt.value}"
+             class="w-4 h-4 flex-shrink-0" style="accent-color: var(--mid-blue);" />
+      <span>${opt.label}</span>
+      ${opt.hasDelay ? `
+        <select id="delay-days"
+                class="border border-gray-200 rounded px-2 py-0.5 text-xs ml-1"
+                style="outline: none;">
+          <option value="">– days</option>
+          ${[1,2,3,4,5,6,7].map(d => `<option value="${d}">${d}</option>`).join('')}
+        </select>
+      ` : ''}
+    `;
+    container.appendChild(wrap);
+  });
+
+  container.querySelectorAll('input[type=radio]').forEach(r => {
+    r.addEventListener('change', () => { selectedStrategy = r.value; refreshPreview(); });
+  });
+  const dd = document.getElementById('delay-days');
+  if (dd) dd.addEventListener('change', () => { delayDays = dd.value; refreshPreview(); });
+}
+
+// ---------------------------------------------------------------------------
+// Copy/paste summary text — mirrors original tool's summary format exactly
+// ---------------------------------------------------------------------------
+function buildSummaryText(score, interp) {
+  const lines = [];
+
+  if (answers.onset) {
+    lines.push(`Ill for ${answers.onset}`);
+    lines.push('');
+  }
+
+  // History narrative
+  const histParts = [];
+  if (answers.sorethroat && answers.sorethroat !== 'None')
+    histParts.push(`${answers.sorethroat} sore throat`);
+  if (answers.cough)
+    histParts.push(`${answers.cough} cough or cold symptoms`);
+  if (answers.aches && answers.aches !== 'None')
+    histParts.push(`${answers.aches} muscle aches`);
+  if (histParts.length) lines.push(histParts.join(', '));
+
+  if (answers.history)
+    lines.push(`${answers.history === 'Yes' ? 'History of' : 'No'} fever in the last 24 hours`);
+
+  // Examination narrative
+  const examParts = [];
+  if (answers.cervical) examParts.push(`Cervical glands ${answers.cervical}`);
+  if (answers.inflamed)  examParts.push(`${answers.inflamed} inflamed tonsils`);
+  if (answers.pus)       examParts.push(`${answers.pus === 'Yes' ? 'Pus' : 'No pus'} on tonsils`);
+  if (examParts.length) lines.push(examParts.join(', '));
+
+  const feverNote = answers.fever && answers.fever.trim();
+  if (feverNote) lines.push(feverNote);
+
+  lines.push('');
+  lines.push(`FeverPAIN Clinical Score = ${score}`);
+  lines.push('');
+  lines.push(interp.text);
+
+  if (selectedStrategy) {
+    let stratLine = `\nPrescribing strategy: ${selectedStrategy}`;
+    if (selectedStrategy === 'Delay prescription' && delayDays)
+      stratLine += ` by ${delayDays} day(s)`;
+    lines.push(stratLine);
+  }
+
+  return lines.join('\n');
+}
+
+function refreshPreview() {
+  if (currentScore === null) return;
+  const previewTA = document.getElementById('clipboard-preview');
+  if (previewTA) previewTA.value = buildSummaryText(currentScore, currentInterp);
+}
+
+// ---------------------------------------------------------------------------
+// Action buttons
+// ---------------------------------------------------------------------------
+function renderActionButtons(score, interp, criteria) {
+  const container = document.getElementById('result-actions');
+  container.innerHTML = '';
+
+  const resultData = {
+    calculator:     'feverpain',
+    result:         score,
+    interpretation: interp.text,
+    working: {
+      score,
+      level:                    interp.level,
+      fever_criterion:          criteria.F,
+      purulence_criterion:      criteria.P,
+      attend_rapidly_criterion: criteria.A,
+      inflamed_criterion:       criteria.I,
+      no_cough_criterion:       criteria.N,
+      streptococcus_rate:       interp.stepRate,
+      prescribing_recommendation: interp.label,
+    },
+    reference: 'Little P, Stuart B, Hobbs FDR, et al. Lancet Infect Dis. 2014. ' +
+               'Little P, Hobbs FR, Moore M, et al. Health Technol Assess. 2014;18(6):1-102.',
+  };
+
+  // Store for dynamic preview refresh when treatment decisions change
+  currentScore = score;
+  currentInterp = interp;
+
+  // Populate clipboard preview textarea
+  const previewWrap = document.getElementById('clipboard-preview-wrap');
+  const previewTA   = document.getElementById('clipboard-preview');
+  previewTA.value = buildSummaryText(score, interp);
+  previewWrap.classList.remove('hidden');
+
+  const ctx = getContext();
+
+  if (ctx === 'tauri' || ctx === 'iframe') {
+    const saveBtn = document.createElement('button');
+    saveBtn.className = 'calc-btn';
+    saveBtn.textContent = saveButtonLabel();
+    saveBtn.addEventListener('click', () => sendResult(resultData));
+    container.appendChild(saveBtn);
+  }
+
+  // Copy full clinical summary — copies the (possibly edited) preview text
+  const copyBtn = document.createElement('button');
+  copyBtn.className = 'calc-btn' +
+    (ctx === 'tauri' || ctx === 'iframe' ? ' calc-btn-outline' : '');
+  copyBtn.textContent = 'Copy to clipboard';
+  copyBtn.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(previewTA.value);
+      copyBtn.textContent = 'Copied ✓';
+    } catch {
+      copyBtn.textContent = 'Copy failed';
+    }
+    setTimeout(() => (copyBtn.textContent = 'Copy to clipboard'), 2000);
+  });
+  container.appendChild(copyBtn);
+
+  // Reset
+  const resetBtn = document.createElement('button');
+  resetBtn.className = 'calc-btn calc-btn-outline';
+  resetBtn.textContent = 'Start over';
+  resetBtn.addEventListener('click', () => {
+    Object.keys(answers).forEach(k => delete answers[k]);
+    selectedStrategy = null;
+    delayDays = null;
+    currentScore = null;
+    currentInterp = null;
+
+    document.querySelectorAll('.freq-btn').forEach(b => {
+      b.classList.remove('selected');
+      b.setAttribute('aria-pressed', 'false');
+    });
+    document.querySelectorAll('.question-row').forEach(r =>
+      r.classList.remove('answered', 'scoring-positive'));
+    document.querySelectorAll('input[name=strategy]').forEach(r => { r.checked = false; });
+    const dd = document.getElementById('delay-days');
+    if (dd) dd.value = '';
+    const ta = document.getElementById('input-fever');
+    if (ta) ta.value = '';
+
+    document.getElementById('result-card').classList.add('hidden');
+    document.getElementById('clipboard-preview-wrap').classList.add('hidden');
+    document.getElementById('counter-display').textContent = '–';
+    document.getElementById('counter-display').style.color = 'rgba(255,255,255,0.5)';
+    updateProgress();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+  container.appendChild(resetBtn);
+}
+
+// ---------------------------------------------------------------------------
+// Patient context
+// ---------------------------------------------------------------------------
+function applyPatientContext() {
+  const ctx = getPatientContext();
+  if (ctx.given_name || ctx.family_name || ctx.patient_id) {
+    const tag = document.createElement('p');
+    tag.className = 'text-xs opacity-70 mt-0.5';
+    const name = [ctx.given_name, ctx.family_name].filter(Boolean).join(' ');
+    tag.textContent = [name, ctx.patient_id ? `ID: ${ctx.patient_id}` : ''].filter(Boolean).join(' · ');
+    const subtitle = document.querySelector('.site-header .text-xs.opacity-70');
+    if (subtitle) subtitle.insertAdjacentElement('afterend', tag);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Init
+// ---------------------------------------------------------------------------
+renderFields();
+applyPatientContext();
+</script>
+
+</body>
+</html>

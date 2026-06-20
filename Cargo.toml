@@ -2,6 +2,8 @@
 members = [
     "cli",
     "mcp",
+    "calc-core",
+    "calc-cli",
 ]
 exclude = [
     "gui/src-tauri",

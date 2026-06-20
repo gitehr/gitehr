@@ -1,0 +1,23 @@
+[package]
+name = "calc-cli"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Command-line interface for the GitEHR clinical calculators. Ships as the standalone `calc` binary and is reused verbatim by the `gitehr calc` subcommand."
+
+# Standalone, cargo-installable binary: `cargo install --git <repo> -p calc-cli`
+[[bin]]
+name = "calc"
+path = "src/main.rs"
+
+# Library surface reused by the gitehr CLI so `gitehr calc` repeats nothing.
+[lib]
+name = "calc_cli"
+path = "src/lib.rs"
+
+[dependencies]
+calc-core = { path = "../calc-core" }
+anyhow.workspace = true
+clap.workspace = true
+serde_json.workspace = true

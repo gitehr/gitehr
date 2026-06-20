@@ -1,0 +1,138 @@
+/* ==========================================================================
+   GitEHR Clinical Calculators — shared styles
+   Loaded by every calculator and the index page.
+   Individual calculators may add local <style> blocks for tool-specific rules.
+========================================================================== */
+
+/* --------------------------------------------------------------------------
+   Brand tokens
+-------------------------------------------------------------------------- */
+:root {
+  --dark-blue:  #003087;
+  --mid-blue:   #005EB8;
+  --light-blue: #41B6E6;
+  --color-green: #009639;
+  --warm-grey:  #F2F2F0;
+  --mid-grey:   #D9D9D9;
+}
+
+/* --------------------------------------------------------------------------
+   Base
+-------------------------------------------------------------------------- */
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: var(--warm-grey);
+  color: #1a1a2e;
+}
+
+/* --------------------------------------------------------------------------
+   Header bar
+-------------------------------------------------------------------------- */
+.site-header {
+  background: var(--dark-blue);
+  color: white;
+}
+.site-header a       { color: #9ecef7; }
+.site-header a:hover { color: white; }
+
+/* --------------------------------------------------------------------------
+   Disclaimer / info box
+-------------------------------------------------------------------------- */
+.disclaimer {
+  border-left: 4px solid var(--light-blue);
+  background: #f0f7fd;
+}
+
+/* --------------------------------------------------------------------------
+   Progress bar
+-------------------------------------------------------------------------- */
+.progress-track {
+  height: 6px;
+  background: var(--mid-grey);
+  border-radius: 9999px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  background: var(--light-blue);
+  border-radius: 9999px;
+  transition: width 0.3s ease;
+}
+
+/* --------------------------------------------------------------------------
+   Segmented control (freq / option buttons)
+-------------------------------------------------------------------------- */
+.freq-group {
+  display: flex;
+  gap: 0;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  border: 1px solid var(--mid-grey);
+}
+.freq-btn {
+  flex: 1;
+  padding: 0.45rem 0.25rem;
+  font-size: 0.72rem;
+  line-height: 1.2;
+  text-align: center;
+  background: white;
+  border: none;
+  border-right: 1px solid var(--mid-grey);
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s;
+  -webkit-tap-highlight-color: transparent;
+  outline-offset: -2px;
+}
+.freq-btn:last-child   { border-right: none; }
+.freq-btn:hover        { background: #e8f3fb; }
+.freq-btn:focus-visible {
+  outline: 2px solid var(--mid-blue);
+  z-index: 1;
+}
+.freq-btn.selected {
+  background: var(--mid-blue);
+  color: white;
+  font-weight: 600;
+}
+@media (max-width: 480px) {
+  .freq-btn { padding: 0.4rem 0.1rem; font-size: 0.62rem; }
+}
+
+/* --------------------------------------------------------------------------
+   Result card (base — calculators add colour-variant overrides locally)
+-------------------------------------------------------------------------- */
+.result-card { border-top: 5px solid var(--dark-blue); }
+
+/* --------------------------------------------------------------------------
+   Action buttons
+-------------------------------------------------------------------------- */
+.calc-btn {
+  background: var(--mid-blue);
+  color: white;
+  border: none;
+  border-radius: 0.4rem;
+  padding: 0.6rem 1.4rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.calc-btn:hover { background: var(--dark-blue); }
+.calc-btn-outline {
+  background: transparent;
+  color: var(--mid-blue);
+  border: 2px solid var(--mid-blue);
+}
+.calc-btn-outline:hover {
+  background: var(--mid-blue);
+  color: white;
+}
+
+/* --------------------------------------------------------------------------
+   Collapsible sections (details / summary + chevron)
+-------------------------------------------------------------------------- */
+details > summary                    { cursor: pointer; list-style: none; }
+details > summary::-webkit-details-marker { display: none; }
+details[open] .chevron               { transform: rotate(180deg); }
+.chevron                             { transition: transform 0.2s; display: inline-block; }
