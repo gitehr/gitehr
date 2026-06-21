@@ -22,11 +22,13 @@
 pub mod calculator;
 pub mod calculators;
 pub mod license;
+pub mod proprietary;
 pub mod response;
 pub mod template;
 
 pub use calculator::{CalcError, Calculator};
 pub use license::CalculatorLicense;
+pub use proprietary::ProprietaryCalculator;
 pub use response::CalculationResponse;
 pub use template::template_from_schema;
 
@@ -35,7 +37,7 @@ pub use template::template_from_schema;
 /// This is the single registry the CLI, MCP server, and GUI all enumerate, so
 /// adding a calculator in one place surfaces it everywhere.
 pub fn all() -> Vec<Box<dyn Calculator>> {
-    vec![
+    let mut list: Vec<Box<dyn Calculator>> = vec![
         Box::new(calculators::feverpain::FeverPain),
         Box::new(calculators::asrs::Asrs),
         Box::new(calculators::phq9::Phq9),
@@ -43,7 +45,13 @@ pub fn all() -> Vec<Box<dyn Calculator>> {
         Box::new(calculators::egfr::Egfr),
         Box::new(calculators::fib4::Fib4),
         Box::new(calculators::cha2ds2vasc::Cha2ds2Vasc),
-    ]
+    ];
+    // Proprietary / licence-locked tools: registered so a clinician learns why
+    // they are absent and where to turn, rather than finding silence.
+    for p in proprietary::PROPRIETARY {
+        list.push(Box::new(*p));
+    }
+    list
 }
 
 /// Look up a single calculator by its machine name (e.g. `"feverpain"`).
