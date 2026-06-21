@@ -48,4 +48,14 @@ pub trait Calculator {
 
     /// Compute a result from JSON inputs.
     fn calculate(&self, input: &Value) -> Result<CalculationResponse, CalcError>;
+
+    /// A fillable input template derived from [`input_schema`](Self::input_schema).
+    ///
+    /// Every input key is present with a placeholder describing the expected
+    /// value, so a caller can fill it in and pass it straight back to
+    /// [`calculate`](Self::calculate). Generated from the schema, so it cannot
+    /// drift from the real contract.
+    fn input_template(&self) -> Value {
+        crate::template::template_from_schema(&self.input_schema())
+    }
 }

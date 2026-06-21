@@ -22,9 +22,11 @@
 pub mod calculator;
 pub mod calculators;
 pub mod response;
+pub mod template;
 
 pub use calculator::{CalcError, Calculator};
 pub use response::CalculationResponse;
+pub use template::template_from_schema;
 
 /// Every calculator known to the engine, in display order.
 ///

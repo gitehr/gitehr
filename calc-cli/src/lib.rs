@@ -5,6 +5,26 @@
 //! and the `gitehr calc` subcommand both drive [`CalcCommand`] + [`run`], so
 //! there is nothing to re-implement when embedding it in GitEHR.
 //!
+//! ## One regular surface for every calculator
+//!
+//! There are no per-calculator flags. Every calculator is driven through the
+//! same registry-backed shape, so adding a calculator to `calc-core` gives it a
+//! working CLI for free, and a human or an LLM learns the interface once:
+//!
+//! ```text
+//! calc list                       # list available calculators
+//! calc <name>                     # print a fillable INPUT TEMPLATE
+//! calc <name> --schema            # print the JSON Schema (the full contract)
+//! calc <name> --input -           # compute, reading JSON from stdin
+//! calc <name> --input data.json   # compute, reading JSON from a file
+//! calc <name> --input '{...}'     # compute, reading an inline JSON string
+//! ```
+//!
+//! The template printed by `calc <name>` has the same shape as the input
+//! `calc <name> --input` expects: fill in the placeholder values and pass it
+//! back. Computing always requires an explicit `--input`, so a bare invocation
+//! never blocks reading stdin.
+//!
 //! To embed in the gitehr CLI:
 //!
 //! ```ignore
@@ -12,112 +32,113 @@
 //! enum Commands {
 //!     // ...
 //!     /// Clinical calculators
-//!     Calc {
-//!         #[command(subcommand)]
-//!         command: calc_cli::CalcCommand,
-//!         #[arg(long, value_enum, default_value_t = calc_cli::OutputFormat::Text)]
-//!         format: calc_cli::OutputFormat,
-//!     },
+//!     Calc(calc_cli::CalcCommand),
 //! }
 //! // ...
-//! Commands::Calc { command, format } => calc_cli::run(command, format)?,
+//! Commands::Calc(cmd) => calc_cli::run(cmd)?,
 //! ```
 
-use anyhow::{anyhow, Result};
-use clap::{Args, Subcommand, ValueEnum};
+use std::io::Read;
+use std::path::Path;
 
-use calc_core::calculators::{asrs, feverpain};
+use anyhow::{anyhow, Result};
+use clap::{Args, ValueEnum};
+
 use calc_core::CalculationResponse;
 
-/// How to render results.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
+/// How to render computed results.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, ValueEnum)]
 pub enum OutputFormat {
     /// Human-readable text.
+    #[default]
     Text,
     /// Machine-readable JSON (the `CalculationResponse` schema).
     Json,
 }
 
-impl Default for OutputFormat {
-    fn default() -> Self {
-        OutputFormat::Text
-    }
-}
-
-/// The `calc` subcommands. Reused unchanged by `gitehr calc`.
-#[derive(Debug, Subcommand)]
-pub enum CalcCommand {
-    /// List the available calculators.
-    List,
-
-    /// FeverPAIN score for acute sore throat (antibiotic stewardship).
-    Feverpain(FeverpainArgs),
-
-    /// ASRS-v1.1 adult ADHD self-report screener.
-    Asrs(AsrsArgs),
-}
-
+/// The `calc` command surface. Reused unchanged by `gitehr calc`.
+///
+/// A single shape covers discovery, schema, and compute for every calculator;
+/// the calculator is selected by `name` and looked up in the `calc-core`
+/// registry at runtime.
 #[derive(Debug, Args)]
-pub struct FeverpainArgs {
-    /// Fever in the last 24 hours.
-    #[arg(long)]
-    pub fever: bool,
-    /// Purulence (pus on the tonsils).
-    #[arg(long)]
-    pub purulence: bool,
-    /// Symptom onset within 3 days (attend rapidly).
-    #[arg(long)]
-    pub attend_rapidly: bool,
-    /// Severely inflamed tonsils.
-    #[arg(long)]
-    pub inflamed_tonsils: bool,
-    /// No cough or coryza.
-    #[arg(long)]
-    pub absence_of_cough: bool,
-    /// Print the JSON Schema for this calculator's inputs and exit.
-    #[arg(long)]
-    pub print_schema: bool,
-}
+pub struct CalcCommand {
+    /// Calculator machine name (e.g. `feverpain`). Omit, or use `list`, to see
+    /// all available calculators.
+    pub name: Option<String>,
 
-#[derive(Debug, Args)]
-pub struct AsrsArgs {
-    /// The 18 frequency responses Q1–Q18, comma-separated, each 0–4
-    /// (0=Never, 1=Rarely, 2=Sometimes, 3=Often, 4=Very Often).
-    #[arg(long, value_delimiter = ',')]
-    pub responses: Option<Vec<u8>>,
-    /// Print the JSON Schema for this calculator's inputs and exit.
+    /// Compute a result from this JSON input: `-` for stdin, a file path, or an
+    /// inline JSON string. Without it, a fillable input template is printed.
+    #[arg(long, value_name = "JSON|FILE|-")]
+    pub input: Option<String>,
+
+    /// Print the calculator's JSON Schema (the full input contract) instead of a
+    /// template.
     #[arg(long)]
-    pub print_schema: bool,
+    pub schema: bool,
+
+    /// Output format for computed results and `list`.
+    #[arg(long, value_enum, default_value_t = OutputFormat::Text)]
+    pub format: OutputFormat,
 }
 
 /// Dispatch a parsed [`CalcCommand`].
-pub fn run(command: CalcCommand, format: OutputFormat) -> Result<()> {
-    match command {
-        CalcCommand::List => print_list(format),
-        CalcCommand::Feverpain(args) => {
-            if args.print_schema {
-                return print_schema(feverpain::NAME, format);
-            }
-            let input = feverpain::FeverPainInput {
-                fever: args.fever,
-                purulence: args.purulence,
-                attend_rapidly: args.attend_rapidly,
-                inflamed_tonsils: args.inflamed_tonsils,
-                absence_of_cough: args.absence_of_cough,
-            };
-            emit(&feverpain::build_response(input), format)
+pub fn run(cmd: CalcCommand) -> Result<()> {
+    // No name (or `list`) means: show the catalogue.
+    let name = match cmd.name.as_deref() {
+        None | Some("list") => return print_list(cmd.format),
+        Some(n) => n,
+    };
+
+    let calc = calc_core::get(name)
+        .ok_or_else(|| anyhow!("unknown calculator: {name} (try `calc list`)"))?;
+
+    // `--schema` prints the formal contract, regardless of everything else.
+    if cmd.schema {
+        println!("{}", serde_json::to_string_pretty(&calc.input_schema())?);
+        return Ok(());
+    }
+
+    match cmd.input.as_deref() {
+        // No input: print a fillable template and explain how to pass it back.
+        None => {
+            println!("{}", serde_json::to_string_pretty(&calc.input_template())?);
+            eprintln!(
+                "\nReplace each placeholder with a value, then compute with one of:\n  \
+                 calc {name} --input <file.json>\n  \
+                 calc {name} --input '<json>'\n  \
+                 calc {name} --input -        # read JSON from stdin\n\
+                 See the full input contract with: calc {name} --schema"
+            );
+            Ok(())
         }
-        CalcCommand::Asrs(args) => {
-            if args.print_schema {
-                return print_schema(asrs::NAME, format);
-            }
-            let responses = args.responses.ok_or_else(|| {
-                anyhow!("--responses is required (18 comma-separated values 0–4); see `calc asrs --print-schema`")
-            })?;
-            let response = asrs::build_response(&asrs::AsrsInput { responses })?;
-            emit(&response, format)
+        // Input supplied: validate (via the calculator's typed deserialization)
+        // and compute.
+        Some(src) => {
+            let input = read_input(src)?;
+            let response = calc.calculate(&input).map_err(|e| anyhow!("{e}"))?;
+            emit(&response, cmd.format)
         }
     }
+}
+
+/// Resolve an `--input` argument to a JSON value.
+///
+/// `-` reads stdin; an existing file path is read from disk; anything else is
+/// treated as an inline JSON string.
+fn read_input(src: &str) -> Result<serde_json::Value> {
+    let raw = if src == "-" {
+        let mut buf = String::new();
+        std::io::stdin().read_to_string(&mut buf)?;
+        buf
+    } else if Path::new(src).is_file() {
+        std::fs::read_to_string(src)?
+    } else {
+        src.to_string()
+    };
+
+    serde_json::from_str(&raw)
+        .map_err(|e| anyhow!("invalid JSON input: {e}\nSee the expected shape with: calc <name>"))
 }
 
 fn print_list(format: OutputFormat) -> Result<()> {
@@ -141,13 +162,6 @@ fn print_list(format: OutputFormat) -> Result<()> {
             }
         }
     }
-    Ok(())
-}
-
-fn print_schema(name: &str, _format: OutputFormat) -> Result<()> {
-    let calc = calc_core::get(name).ok_or_else(|| anyhow!("unknown calculator: {name}"))?;
-    // Schema is always JSON, regardless of result format.
-    println!("{}", serde_json::to_string_pretty(&calc.input_schema())?);
     Ok(())
 }
 

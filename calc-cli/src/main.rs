@@ -5,21 +5,17 @@
 
 use clap::Parser;
 
-use calc_cli::{CalcCommand, OutputFormat};
+use calc_cli::CalcCommand;
 
-/// Open clinical calculators — scoring at the command line.
+/// Open clinical calculators - scoring at the command line.
 #[derive(Debug, Parser)]
 #[command(name = "calc", version, about, long_about = None)]
 struct Cli {
-    #[command(subcommand)]
+    #[command(flatten)]
     command: CalcCommand,
-
-    /// Output format.
-    #[arg(long, value_enum, default_value_t = OutputFormat::Text, global = true)]
-    format: OutputFormat,
 }
 
 fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
-    calc_cli::run(cli.command, cli.format)
+    calc_cli::run(cli.command)
 }

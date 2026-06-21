@@ -181,29 +181,40 @@ pub trait Calculator {
 }
 ```
 
-`input_schema()` is the key LLM affordance: it powers `--print-schema`, MCP tool definitions, and any agent that wants to discover the required inputs without parsing prose. Each calculator additionally exposes a typed `compute()` for ergonomic, compile-time-checked use from Rust.
+`input_schema()` is the key LLM affordance: it powers `calc <name> --schema`, the fillable `calc <name>` template (derived from it via the `input_template()` default method), MCP tool definitions, and any agent that wants to discover the required inputs without parsing prose. Each calculator additionally exposes a typed `compute()` for ergonomic, compile-time-checked use from Rust.
 
 ---
 
 ## CLI design (LLM-friendly)
 
-The CLI is built to be discoverable by an LLM agent from `--help` and machine-readable schemas:
+There are **no per-calculator flags**. Flags do not scale past the simplest scores (QRISK3 has ~20 mixed-type, enumerated, unit-bearing inputs) and would force a hand-written, drift-prone clap struct per calculator. Instead every calculator is driven through one regular, registry-backed surface - so a human or an LLM learns it once, and adding a calculator to `calc-core` gives it a working CLI for free:
 
 ```bash
-calc --help                     # top-level help; --format text|json is global
-calc list                       # list calculators (text or JSON)
-calc list --format json         # [{name,title,description}, ...]
-calc <name> --print-schema      # JSON Schema for that calculator's inputs
-calc <name> [flags]             # compute; text by default
-calc <name> [flags] --format json   # CalculationResponse as JSON on stdout
-
-# Examples
-calc feverpain --fever --purulence --attend-rapidly
-calc feverpain --fever --purulence --attend-rapidly --inflamed-tonsils --absence-of-cough --format json
-calc asrs --responses 2,2,2,3,0,0,1,1,1,1,1,1,1,1,1,1,1,1 --format json
+calc list                       # list calculators (text or JSON via --format)
+calc <name>                     # print a fillable INPUT TEMPLATE (JSON on stdout)
+calc <name> --schema            # print the JSON Schema (the full input contract)
+calc <name> --input -           # compute, reading JSON from stdin
+calc <name> --input data.json   # compute, reading JSON from a file
+calc <name> --input '{...}'     # compute, reading an inline JSON string
+calc <name> --input ... --format json   # CalculationResponse as JSON on stdout
 ```
 
-Conventions: predictable exit codes, JSON on stdout under `--format json`, every input documented in `--help`, and `--print-schema` as the authoritative input contract. Man pages and shell completions are generated from the clap definitions (clap_mangen / clap_complete; the gitehr CLI already uses clap_complete) - this is the immediate next step after the core CLI lands.
+The template printed by `calc <name>` has the same shape as the input that `calc <name> --input` expects: each key carries a placeholder describing the expected value, derived from the schema so it can never drift from the contract. Fill in the placeholders and pass it back:
+
+```bash
+$ calc feverpain
+{
+  "fever": "<boolean> Fever in the last 24 hours",
+  "purulence": "<boolean> Purulence (pus on the tonsils)",
+  ...
+}
+# (a stderr hint explains how to pass it back; the catalogue uses `calc list`)
+
+$ echo '{"fever":true,"purulence":true,"attend_rapidly":true,"inflamed_tonsils":false,"absence_of_cough":false}' \
+    | calc feverpain --input - --format json
+```
+
+Conventions: the template/schema/compute outputs are pure JSON on **stdout**; usage hints go to **stderr** so they never corrupt a piped stream. Computing always requires an explicit `--input`, so a bare `calc <name>` is pure discovery and never blocks reading stdin. Invalid input is rejected by the calculator's own typed deserialization with a clear message and a non-zero exit. This mirrors the MCP surface exactly: there an LLM receives each calculator's `input_schema()` as the tool's `inputSchema` and passes back a JSON object - the same "here is the schema, give me the JSON" contract. Man pages and shell completions are generated from the clap definitions (clap_mangen / clap_complete; the gitehr CLI already uses clap_complete).
 
 ---
 
@@ -268,10 +279,9 @@ The host may append patient identifiers as URL parameters before opening a web c
 
 ## Authoring a new calculator
 
-1. Implement it in `calc-core`: a typed `Input`, a pure `compute()`, a `build_response()` adapter, a `Calculator` impl with `input_schema()`, and unit tests against known vectors. Register it in `all()`.
-2. Add a `calc-cli` subcommand (flags + `--print-schema`) - mechanical, following `feverpain`/`asrs`.
-3. (If a web tool is wanted) create `calc-web/calculators/<name>.html` following the Result Card conventions, with its JS logic validated against the `calc-core` vectors. Add a card to `calc-web/index.html`.
-4. Add authoritative source material to `calc-web/clinical-source-references/`.
+1. Implement it in `calc-core`: a typed `Input`, a pure `compute()`, a `build_response()` adapter, a `Calculator` impl with `input_schema()`, and unit tests against known vectors. Register it in `all()`. This is the **only** Rust work needed - the CLI (`calc <name>`, template, `--schema`, `--input`) and the MCP tool are both driven generically from the registry, so there is no per-calculator CLI or MCP code to write.
+2. (If a web tool is wanted) create `calc-web/calculators/<name>.html` following the Result Card conventions, with its JS logic validated against the `calc-core` vectors. Add a card to `calc-web/index.html`.
+3. Add authoritative source material to `calc-web/clinical-source-references/`.
 
 See `skills/build-calculator/` for the detailed authoring workflow.
 
