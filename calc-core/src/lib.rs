@@ -19,6 +19,11 @@
 //! needs a timestamp stamps it when recording the result, so the core stays
 //! deterministic and trivially testable.
 
+// Some calculators (e.g. QRISK3, QFracture) declare large JSON Schemas via the
+// `json!` macro, which recurses once per property; raise the limit so they
+// compile without per-file workarounds.
+#![recursion_limit = "256"]
+
 pub mod calculator;
 pub mod calculators;
 pub mod license;
@@ -78,6 +83,8 @@ pub fn all() -> Vec<Box<dyn Calculator>> {
         Box::new(calculators::ckd_risk::CkdRisk),
         Box::new(calculators::grace::Grace),
         Box::new(calculators::euroscore2::EuroScore2),
+        Box::new(calculators::qrisk3::Qrisk3),
+        Box::new(calculators::qfracture::Qfracture),
     ];
     // Proprietary / licence-locked tools: registered so a clinician learns why
     // they are absent and where to turn, rather than finding silence.

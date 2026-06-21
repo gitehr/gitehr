@@ -37,6 +37,8 @@ pub mod nhfs;
 pub mod npi;
 pub mod padua;
 pub mod phq9;
+pub mod qfracture;
+pub mod qrisk3;
 pub mod qsofa;
 pub mod sofa;
 pub mod timi;
