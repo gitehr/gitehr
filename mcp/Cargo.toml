@@ -14,6 +14,9 @@ serde_json.workspace = true
 chrono.workspace = true
 tokio.workspace = true
 
+# Clinical calculators: each calc-core calculator is exposed as an MCP tool
+calc-core = { path = "../calc-core" }
+
 # MCP-specific dependencies
 futures = "0.3"
 async-trait = "0.1"

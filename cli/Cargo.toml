@@ -35,6 +35,9 @@ gitehr-mcp = { path = "../mcp" }
 tokio.workspace = true
 tracing = "0.1"
 
+# Clinical calculators: `gitehr calc` reuses the calc-cli library verbatim
+calc-cli = { path = "../calc-cli" }
+
 [dev-dependencies]
 tempfile.workspace = true
 regex = "1"

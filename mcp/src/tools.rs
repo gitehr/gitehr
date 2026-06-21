@@ -106,6 +106,20 @@ impl ToolHandler {
             },
         ];
 
+        // Clinical calculator tools: one per calc-core calculator, all driven by
+        // the single scoring engine. The schema handed to the model is the
+        // calculator's own `input_schema()`, so the LLM gets a typed input
+        // contract rather than scraping it from prose. Namespaced with a `calc_`
+        // prefix to keep them grouped and unambiguous to dispatch.
+        let mut tools = tools;
+        for calc in calc_core::all() {
+            tools.push(Tool {
+                name: format!("calc_{}", calc.name()),
+                description: format!("{} - {}", calc.title(), calc.description()),
+                input_schema: calc.input_schema(),
+            });
+        }
+
         Ok(ToolsList { tools })
     }
 
@@ -120,7 +134,50 @@ impl ToolHandler {
             "update_state" => self.update_state(arguments),
             "verify_journal" => self.verify_journal(arguments),
             "search_repository" => self.search_repository(arguments),
-            _ => Err(anyhow::anyhow!("Unknown tool: {}", name)),
+            other => {
+                if let Some(calc_name) = other.strip_prefix("calc_") {
+                    self.run_calculator(calc_name, arguments)
+                } else {
+                    Err(anyhow::anyhow!("Unknown tool: {}", name))
+                }
+            }
+        }
+    }
+
+    /// Run a clinical calculator from calc-core and return its
+    /// `CalculationResponse` as JSON text. Invalid inputs and unknown
+    /// calculators are reported as tool errors rather than transport errors,
+    /// so the model can see and recover from them.
+    fn run_calculator(
+        &self,
+        name: &str,
+        arguments: serde_json::Value,
+    ) -> anyhow::Result<ToolResult> {
+        let calc = match calc_core::get(name) {
+            Some(c) => c,
+            None => {
+                return Ok(ToolResult {
+                    content: vec![ToolContent::Text {
+                        text: format!("Unknown calculator: {name}"),
+                    }],
+                    is_error: Some(true),
+                });
+            }
+        };
+
+        match calc.calculate(&arguments) {
+            Ok(response) => Ok(ToolResult {
+                content: vec![ToolContent::Text {
+                    text: serde_json::to_string_pretty(&response)?,
+                }],
+                is_error: None,
+            }),
+            Err(e) => Ok(ToolResult {
+                content: vec![ToolContent::Text {
+                    text: format!("Calculation error: {e}"),
+                }],
+                is_error: Some(true),
+            }),
         }
     }
 
@@ -292,6 +349,53 @@ mod tests {
         let parsed: Tool = serde_json::from_str(&json).unwrap();
 
         assert_eq!(parsed.name, "test_tool");
+    }
+
+    #[test]
+    fn test_calculators_listed_as_tools() {
+        let handler = ToolHandler::new(PathBuf::from("."));
+        let tools = handler.list_tools().unwrap().tools;
+        // Every calc-core calculator should surface as a `calc_<name>` tool,
+        // carrying its own input schema.
+        for calc in calc_core::all() {
+            let tool_name = format!("calc_{}", calc.name());
+            let tool = tools
+                .iter()
+                .find(|t| t.name == tool_name)
+                .unwrap_or_else(|| panic!("calculator tool {tool_name} not listed"));
+            assert_eq!(tool.input_schema, calc.input_schema());
+        }
+    }
+
+    #[test]
+    fn test_call_calculator_tool() {
+        let handler = ToolHandler::new(PathBuf::from("."));
+        let result = handler
+            .call_tool(
+                "calc_feverpain",
+                serde_json::json!({
+                    "fever": true,
+                    "purulence": true,
+                    "attend_rapidly": true,
+                    "inflamed_tonsils": false,
+                    "absence_of_cough": false
+                }),
+            )
+            .unwrap();
+        assert!(result.is_error.is_none());
+        let ToolContent::Text { text } = &result.content[0];
+        let response: serde_json::Value = serde_json::from_str(text).unwrap();
+        assert_eq!(response["calculator"], "feverpain");
+        assert_eq!(response["result"], 3);
+    }
+
+    #[test]
+    fn test_unknown_calculator_is_tool_error() {
+        let handler = ToolHandler::new(PathBuf::from("."));
+        let result = handler
+            .call_tool("calc_nonesuch", serde_json::json!({}))
+            .unwrap();
+        assert_eq!(result.is_error, Some(true));
     }
 
     #[test]

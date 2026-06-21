@@ -75,19 +75,20 @@ This roadmap tracks implementation status against the current `spec/` documents.
 
 ## Clinical Calculators Workstream
 
-- [ ] Convert to Cargo workspace structure (root, cli, gitehr-calculators, mcp).
-- [ ] Create `gitehr-calculators` crate with modular calculator library.
-- [ ] Implement RCPCH digital growth charts (UK-WHO 0-4y, UK90 4-20y).
-- [ ] Implement core cardiology calculators (CHADS2, CHA2DS2-VASc, Wells, GRACE, TIMI).
-- [ ] Implement renal calculators (eGFR, CrCl, FENa).
-- [ ] Implement respiratory calculators (CURB-65, PSI/PORT).
-- [ ] Implement emergency medicine calculators (GCS, qSOFA, MEWS).
-- [ ] Add `gitehr calc` CLI command with subcommands for each calculator.
-- [ ] Integrate calculator results with journal (structured metadata, citations).
-- [ ] Add state file storage for latest calculator results (`state/calculations/`).
-- [ ] Add GUI calculator panel with dynamic forms and result display.
-- [ ] Add Tauri command for calculator invocation from GUI.
-- [ ] Validate all calculators against published test cases and literature.
+Architecture is the single-engine, many-surfaces design in `spec/calculators.md`: a pure leaf `calc-core` crate drives the CLI, MCP, GUI, web, and standalone app. The full 50-tool build priority lives in `spec/calculator-roadmap.md`.
+
+- [x] Cargo workspace with `calc-core` (leaf engine), `calc-cli` (`calc` binary + reusable lib), and `calc-web` (single-file HTML tools).
+- [x] `calc-core` engine: `Calculator` trait, `CalculationResponse` schema, `all()`/`get()` registry, JSON Schema input contracts.
+- [x] Reference calculators implemented and unit-tested against published vectors: FeverPAIN, ASRS-v1.1.
+- [x] Standalone `calc` binary: `list`, compute, `--format json`, `--print-schema`.
+- [x] `gitehr calc` subcommand - forwards to `calc_cli::run` (reuses the CLI verbatim, `--format` global).
+- [ ] Record calculator results in the journal (immutable entry: calculator, version, inputs, result, citation).
+- [ ] Add state file storage for latest results (`state/calculations/<name>-latest.json`).
+- [ ] Generate man pages and shell completions for the `calc` CLI (clap_mangen / clap_complete).
+- [ ] Expand the calculator library per `spec/calculator-roadmap.md` (Tier 1 first: QRISK3, PHQ-9, GAD-7, AUDIT, eGFR CKD-EPI, MUST, FRAX/QFracture, FIB-4).
+- [ ] RCPCH digital growth charts (UK-WHO 0-4y, UK90 4-20y) - needs LMS reference tables and RCPCH licensing confirmation.
+- [ ] Add GUI calculator panel + Tauri `calculate_clinical` command calling `calc_core` natively.
+- [ ] Standalone Tauri 2 calculator app (desktop/mobile) backed by `calc-core`.
 - [ ] Document clinical references, citations, and validation studies for each calculator.
 
 ## Model Context Protocol (MCP) Server
@@ -102,7 +103,7 @@ This roadmap tracks implementation status against the current `spec/` documents.
 - [ ] Create `gitehr mcp serve` CLI command (stdio, HTTP, config-based).
 - [ ] Implement encryption awareness (respect `.gitehr/ENCRYPTED` marker).
 - [ ] Add MCP configuration system (`.gitehr/mcp.json`).
-- [ ] Integrate MCP with clinical calculators crate.
+- [x] Integrate MCP with clinical calculators: each `calc-core` calculator is exposed as a `calc_<name>` MCP tool whose `inputSchema` is the calculator's own JSON Schema; `tools/call` runs the shared engine and returns the `CalculationResponse`.
 - [ ] Add GUI MCP client panel for LLM chat interface.
 - [ ] Document MCP integration guide and API reference.
 - [ ] Add MCP client libraries (Python/TypeScript) for testing.
