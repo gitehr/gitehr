@@ -151,6 +151,21 @@ serum biomarkers; the shipped score cannot be reproduced openly.",
         source_url: "https://www.siemens-healthineers.com/laboratory-diagnostics/assays-by-diseases-conditions/liver-disease/elf-test",
     },
     ProprietaryCalculator {
+        name: "cat",
+        title: "CAT (COPD Assessment Test)",
+        purpose: "Symptom-burden / health-status measure in COPD (8 items, 0-40; GOLD/NICE NG115).",
+        owner: "GSK group of companies (CAT Governance Board: GSK / GOLD / COPD Foundation)",
+        reason: "The CAT is trademarked and copyrighted by GSK. Free permissions cover only \
+reproduction of the published instrument by researchers and explicitly forbid incorporating it \
+into any other electronic system or means of data capture; embedding it in software requires a \
+signed licence agreement with GSK.",
+        alternatives: &[
+            "mrc_dyspnoea (MRC dyspnoea scale - breathlessness grading, shipped here)",
+            "Clinical COPD assessment per GOLD / NICE NG115",
+        ],
+        source_url: "https://www.catestonline.org/hcp-homepage/legal-notices.html",
+    },
+    ProprietaryCalculator {
         name: "acq",
         title: "ACQ (Asthma Control Questionnaire)",
         purpose: "Asthma control monitoring (BTS/NICE/SIGN asthma).",
