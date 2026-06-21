@@ -79,7 +79,8 @@ Architecture is the single-engine, many-surfaces design in `spec/calculators.md`
 
 - [x] Cargo workspace with `calc-core` (leaf engine), `calc-cli` (`calc` binary + reusable lib), and `calc-web` (single-file HTML tools).
 - [x] `calc-core` engine: `Calculator` trait, `CalculationResponse` schema, `all()`/`get()` registry, JSON Schema input contracts.
-- [x] Calculators implemented and unit-tested against published vectors: FeverPAIN, ASRS-v1.1, PHQ-9 (with item-9 self-harm safety flag), GAD-7, eGFR (CKD-EPI 2021, race-free, with creatinine unit handling), FIB-4 (NICE NG49, age-adjusted cut-off).
+- [x] Calculators implemented and unit-tested against published vectors: FeverPAIN, ASRS-v1.1, PHQ-9 (with item-9 self-harm safety flag), GAD-7, eGFR (CKD-EPI 2021, race-free, with creatinine unit handling), FIB-4 (NICE NG49, age-adjusted cut-off), CHA2DS2-VASc (NICE NG196, with the full input-definition treatment).
+- [x] Every calculator records a distribution licence + evidence URL (required `Calculator::license()`, enforced by a registry test; surfaced via `gitehr calc <name> --license`).
 - [x] Input-definition design (`spec/calculator-input-definitions.md`): governed, machine-readable per-input TRUE/FALSE definitions (includes/excludes/source/SNOMED ECL) to prevent silent miscalculation; delivered via the schema to CLI, MCP, docs, and web.
 - [x] Standalone `calc` binary: `list`, compute, `--format json`, `--print-schema`.
 - [x] `gitehr calc` subcommand - forwards to `calc_cli::run` (reuses the CLI verbatim, `--format` global).
@@ -87,7 +88,7 @@ Architecture is the single-engine, many-surfaces design in `spec/calculators.md`
 - [ ] Add state file storage for latest results (`state/calculations/<name>-latest.json`).
 - [ ] Generate man pages and shell completions for the `calc` CLI (clap_mangen / clap_complete).
 - [ ] Finish Tier 1 per `spec/calculator-roadmap.md`: AUDIT / AUDIT-C, MUST, QFracture (open algorithm), then QRISK3. Note: **FRAX is proprietary** (University of Sheffield; no open algorithm) - cannot be reimplemented from primary literature, so QFracture is the open UK alternative. QRISK3 needs the published ClinRisk coefficient tables and a licence check.
-- [ ] CHA2DS2-VASc as the flagship for the input-definition system (`spec/calculator-input-definitions.md`): the first score where the full includes/excludes/SNOMED-ECL treatment is exercised (e.g. vascular disease excluding VTE).
+- [x] CHA2DS2-VASc built as the flagship for the input-definition system (`spec/calculator-input-definitions.md`): full includes/excludes/SNOMED-ECL treatment per criterion (vascular disease and S2 both excluding VTE; ECL MINUS-venous clauses), plus the female-sex-modifier and age-band subtleties. ECL expressions are `status: draft` pending terminology review.
 - [ ] RCPCH digital growth charts (UK-WHO 0-4y, UK90 4-20y) - needs LMS reference tables and RCPCH licensing confirmation.
 - [ ] Add GUI calculator panel + Tauri `calculate_clinical` command calling `calc_core` natively.
 - [ ] Standalone Tauri 2 calculator app (desktop/mobile) backed by `calc-core`.

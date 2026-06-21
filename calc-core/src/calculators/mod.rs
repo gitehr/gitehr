@@ -6,6 +6,7 @@
 //! [`crate::all`].
 
 pub mod asrs;
+pub mod cha2ds2vasc;
 pub mod egfr;
 pub mod feverpain;
 pub mod fib4;
