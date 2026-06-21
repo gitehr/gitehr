@@ -6,10 +6,12 @@
 //! [`crate::all`].
 
 pub mod abcd2;
+pub mod abpi;
 pub mod amts;
 pub mod asrs;
 pub mod audit;
 pub mod auditc;
+pub mod bode;
 pub mod cha2ds2vasc;
 pub mod child_pugh;
 pub mod curb65;
@@ -26,10 +28,14 @@ pub mod ipss;
 pub mod meld;
 pub mod mrc_dyspnoea;
 pub mod news2;
+pub mod nhfs;
+pub mod padua;
 pub mod phq9;
 pub mod qsofa;
 pub mod sofa;
 pub mod timi;
 pub mod uacr;
+pub mod ukeld;
+pub mod waterlow;
 pub mod wells_dvt;
 pub mod wells_pe;

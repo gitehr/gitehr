@@ -151,6 +151,37 @@ serum biomarkers; the shipped score cannot be reproduced openly.",
         source_url: "https://www.siemens-healthineers.com/laboratory-diagnostics/assays-by-diseases-conditions/liver-disease/elf-test",
     },
     ProprietaryCalculator {
+        name: "cfs",
+        title: "CFS (Clinical Frailty Scale)",
+        purpose: "9-point judgement-based frailty grading in older adults (1 Very Fit to 9 Terminally Ill).",
+        owner: "Dalhousie University (Geriatric Medicine Research; Kenneth Rockwood et al.)",
+        reason: "The CFS is copyrighted by Dalhousie University. Non-commercial use is free but \
+requires a signed permission agreement that forbids changing or commercialising the scale, and an \
+EMR vendor incorporating it into its offering needs a licence. A no-modification, signed-permission \
+agreement is incompatible with shipping the content under GitEHR's open AGPL licence.",
+        alternatives: &[
+            "Electronic Frailty Index (eFI) - open, derived from routine primary-care EHR data",
+            "PRISMA-7 (7-item frailty screen)",
+            "Edmonton Frail Scale",
+        ],
+        source_url: "https://www.dal.ca/sites/gmr/our-tools/clinical-frailty-scale.html",
+    },
+    ProprietaryCalculator {
+        name: "lanss",
+        title: "LANSS (Leeds Assessment of Neuropathic Symptoms and Signs)",
+        purpose: "Screening for pain of predominantly neuropathic origin (7 items, 0-24; >=12 likely neuropathic).",
+        owner: "Michael I. Bennett; published in Elsevier's journal Pain (2001), all rights reserved",
+        reason: "The LANSS instrument is copyrighted and is reproduced in the literature only with \
+the permission of M. Bennett. There is no public-domain or free-reuse grant, so embedding the \
+scored instrument in software requires permission from the author/publisher.",
+        alternatives: &[
+            "DN4 (Douleur Neuropathique 4 - check licensing)",
+            "painDETECT (check licensing)",
+            "Clinical neuropathic pain assessment per NICE CG173",
+        ],
+        source_url: "https://doi.org/10.1016/S0304-3959(00)00482-6",
+    },
+    ProprietaryCalculator {
         name: "must",
         title: "MUST (Malnutrition Universal Screening Tool)",
         purpose: "Malnutrition risk screening (NICE CG32).",
