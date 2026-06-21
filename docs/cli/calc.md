@@ -98,14 +98,23 @@ $ gitehr calc phq9 --license
 
 ## Available calculators
 
-Run `gitehr calc list` for the current set. The library is being built out in clinical-priority order; today it includes the reference implementations:
+Run `gitehr calc list` for the current set (or `gitehr calc list --format json` for machine-readable output with each calculator's licence). The library covers the UK-focused 50-tool roadmap across five tiers - primary-care and NHS-mandated tools (QRISK3, PHQ-9, GAD-7, AUDIT, eGFR, FIB-4, ...), acute and emergency scores (NEWS2, CURB-65, Wells DVT/PE, CHA2DS2-VASc, HAS-BLED, qSOFA, ...), chronic-disease and specialist tools (DAS28, SOFA, HEART, MELD, Child-Pugh, ...), and PROMs and decision rules (CHALICE, Gleason, NPI, ...).
 
-| Name | Title |
-|---|---|
-| `feverpain` | FeverPAIN Score (acute sore throat, antibiotic stewardship) |
-| `asrs` | ASRS-v1.1 Adult ADHD Screener |
-| `phq9` | PHQ-9 Depression Severity |
-| `gad7` | GAD-7 Anxiety Severity |
+A handful of tools cannot be shipped because they are proprietary or licence-locked (FRAX, MMSE, ELF, ACQ, the Oxford Hip/Knee Scores, CAT, MUST, CFS, LANSS). These are still listed: running one returns an explanation of why it is absent, who owns it, open alternatives, and how to advocate for open clinical tools - see "Proprietary tools" below.
+
+## Proprietary tools
+
+Some clinical tools are owned and licence-controlled by their authors and cannot be distributed in open-source software. Rather than omit them silently, GitEHR registers each as a calculator that returns a structured explanation instead of a score:
+
+```console
+$ gitehr calc frax --input '{}'
+frax = unavailable: proprietary
+
+FRAX (10-year fracture risk) is not available in GitEHR because it is proprietary
+or licence-locked. Owner: University of Sheffield ... Open alternatives: qfracture ...
+```
+
+The response names the owner, the reason, open alternatives (often one GitEHR already ships - e.g. QFracture for FRAX, AMTS for MMSE, FIB-4 for ELF), and advice to advocate for open clinical tools.
 
 ## Use from an LLM
 
