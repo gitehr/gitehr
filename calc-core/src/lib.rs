@@ -36,6 +36,8 @@ pub fn all() -> Vec<Box<dyn Calculator>> {
     vec![
         Box::new(calculators::feverpain::FeverPain),
         Box::new(calculators::asrs::Asrs),
+        Box::new(calculators::phq9::Phq9),
+        Box::new(calculators::gad7::Gad7),
     ]
 }
 

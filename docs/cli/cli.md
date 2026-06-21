@@ -23,6 +23,7 @@ Each command has its own page. Subcommands are sections within the parent comman
 | [`gitehr status`](status.md) | Summarise the repository |
 | [`gitehr encrypt`](encrypt.md) / [`gitehr decrypt`](decrypt.md) | Encryption markers (placeholder implementation) |
 | [`gitehr transport`](transport.md) | Bundle and unbundle the repository as a single archive |
+| [`gitehr calc`](calc.md) | Clinical calculators (scores, screeners, risk tools) |
 | [`gitehr gui`](gui.md) | Launch the bundled or system GUI |
 | [`gitehr upgrade`](upgrade.md) | Upgrade the repository and bundled binary |
 | [`gitehr version`](version.md) | Print the CLI and Git versions |

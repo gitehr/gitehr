@@ -7,3 +7,5 @@
 
 pub mod asrs;
 pub mod feverpain;
+pub mod gad7;
+pub mod phq9;

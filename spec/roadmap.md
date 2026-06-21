@@ -79,13 +79,14 @@ Architecture is the single-engine, many-surfaces design in `spec/calculators.md`
 
 - [x] Cargo workspace with `calc-core` (leaf engine), `calc-cli` (`calc` binary + reusable lib), and `calc-web` (single-file HTML tools).
 - [x] `calc-core` engine: `Calculator` trait, `CalculationResponse` schema, `all()`/`get()` registry, JSON Schema input contracts.
-- [x] Reference calculators implemented and unit-tested against published vectors: FeverPAIN, ASRS-v1.1.
+- [x] Calculators implemented and unit-tested against published vectors: FeverPAIN, ASRS-v1.1, PHQ-9 (with item-9 self-harm safety flag), GAD-7.
+- [x] Input-definition design (`spec/calculator-input-definitions.md`): governed, machine-readable per-input TRUE/FALSE definitions (includes/excludes/source/SNOMED ECL) to prevent silent miscalculation; delivered via the schema to CLI, MCP, docs, and web.
 - [x] Standalone `calc` binary: `list`, compute, `--format json`, `--print-schema`.
 - [x] `gitehr calc` subcommand - forwards to `calc_cli::run` (reuses the CLI verbatim, `--format` global).
 - [ ] Record calculator results in the journal (immutable entry: calculator, version, inputs, result, citation).
 - [ ] Add state file storage for latest results (`state/calculations/<name>-latest.json`).
 - [ ] Generate man pages and shell completions for the `calc` CLI (clap_mangen / clap_complete).
-- [ ] Expand the calculator library per `spec/calculator-roadmap.md` (Tier 1 first: QRISK3, PHQ-9, GAD-7, AUDIT, eGFR CKD-EPI, MUST, FRAX/QFracture, FIB-4).
+- [ ] Finish Tier 1 per `spec/calculator-roadmap.md`: AUDIT / AUDIT-C, eGFR CKD-EPI, MUST, FIB-4, QFracture (open algorithm), then QRISK3. Note: **FRAX is proprietary** (University of Sheffield; no open algorithm) - cannot be reimplemented from primary literature, so QFracture is the open UK alternative. QRISK3 needs the published ClinRisk coefficient tables and a licence check.
 - [ ] RCPCH digital growth charts (UK-WHO 0-4y, UK90 4-20y) - needs LMS reference tables and RCPCH licensing confirmation.
 - [ ] Add GUI calculator panel + Tauri `calculate_clinical` command calling `calc_core` natively.
 - [ ] Standalone Tauri 2 calculator app (desktop/mobile) backed by `calc-core`.
