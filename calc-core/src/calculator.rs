@@ -2,6 +2,7 @@
 
 use serde_json::Value;
 
+use crate::license::CalculatorLicense;
 use crate::response::CalculationResponse;
 
 /// Something went wrong turning inputs into a result.
@@ -39,6 +40,14 @@ pub trait Calculator {
 
     /// Primary citation / guideline reference.
     fn reference(&self) -> &'static str;
+
+    /// The licence the calculator's clinical algorithm/content is distributed
+    /// under, with a URL evidencing it.
+    ///
+    /// This is the algorithm's provenance (distinct from the AGPL code licence).
+    /// It is a required method so the basis for shipping every calculator is
+    /// always on record and can be re-evidenced from the cited source.
+    fn license(&self) -> CalculatorLicense;
 
     /// JSON Schema describing the accepted inputs.
     ///

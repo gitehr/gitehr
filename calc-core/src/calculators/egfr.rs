@@ -12,10 +12,18 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Map, Value};
 
 use crate::calculator::{CalcError, Calculator};
+use crate::license::CalculatorLicense;
 use crate::response::CalculationResponse;
 
 /// Machine name.
 pub const NAME: &str = "egfr";
+
+/// Distribution licence: the CKD-EPI 2021 equation is a published method,
+/// implemented here from the primary literature.
+pub const LICENSE: CalculatorLicense = CalculatorLicense {
+    license: "Public-domain method - implemented from the primary literature (CKD-EPI 2021 equation)",
+    source_url: "https://doi.org/10.1056/NEJMoa2102953",
+};
 
 /// Primary citation.
 pub const REFERENCE: &str =
@@ -198,6 +206,10 @@ impl Calculator for Egfr {
 
     fn reference(&self) -> &'static str {
         REFERENCE
+    }
+
+    fn license(&self) -> CalculatorLicense {
+        LICENSE
     }
 
     fn input_schema(&self) -> Value {

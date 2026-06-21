@@ -9,10 +9,18 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Map, Value};
 
 use crate::calculator::{CalcError, Calculator};
+use crate::license::CalculatorLicense;
 use crate::response::CalculationResponse;
 
 /// Machine name.
 pub const NAME: &str = "feverpain";
+
+/// Distribution licence for the algorithm (the score is a published clinical
+/// method, implemented here from the open-access NIHR HTA report).
+pub const LICENSE: CalculatorLicense = CalculatorLicense {
+    license: "Public-domain method - implemented from the primary literature (NIHR HTA, open access)",
+    source_url: "https://www.ncbi.nlm.nih.gov/books/NBK261544/",
+};
 
 /// Primary citation (matches the payload dispatched by the web calculator).
 pub const REFERENCE: &str = "Little P, Stuart B, Hobbs FDR, et al. Lancet Infect Dis. 2014. \
@@ -159,6 +167,10 @@ impl Calculator for FeverPain {
 
     fn reference(&self) -> &'static str {
         REFERENCE
+    }
+
+    fn license(&self) -> CalculatorLicense {
+        LICENSE
     }
 
     fn input_schema(&self) -> Value {

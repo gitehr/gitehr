@@ -13,10 +13,19 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Map, Value};
 
 use crate::calculator::{CalcError, Calculator};
+use crate::license::CalculatorLicense;
 use crate::response::CalculationResponse;
 
 /// Machine name.
 pub const NAME: &str = "phq9";
+
+/// Distribution licence: Pfizer released the PHQ family into the public domain
+/// in 2010; no permission is required to reproduce, translate, display, or
+/// distribute.
+pub const LICENSE: CalculatorLicense = CalculatorLicense {
+    license: "Public domain - released by Pfizer (2010); no permission required to reproduce, translate, display, or distribute",
+    source_url: "https://www.pfizer.com/news/press-release/press-release-detail/pfizer_to_offer_free_public_access_to_mental_health_assessment_tools_to_improve_diagnosis_and_patient_care",
+};
 
 /// Primary citation.
 pub const REFERENCE: &str =
@@ -169,6 +178,10 @@ impl Calculator for Phq9 {
 
     fn reference(&self) -> &'static str {
         REFERENCE
+    }
+
+    fn license(&self) -> CalculatorLicense {
+        LICENSE
     }
 
     fn input_schema(&self) -> Value {

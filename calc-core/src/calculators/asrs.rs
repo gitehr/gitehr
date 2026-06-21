@@ -9,10 +9,18 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Map, Value};
 
 use crate::calculator::{CalcError, Calculator};
+use crate::license::CalculatorLicense;
 use crate::response::CalculationResponse;
 
 /// Machine name.
 pub const NAME: &str = "asrs";
+
+/// Distribution licence for the instrument (copyright WHO / NYU / Harvard;
+/// free to use with citation, no formal permission required).
+pub const LICENSE: CalculatorLicense = CalculatorLicense {
+    license: "(c) WHO / New York University / President and Fellows of Harvard College - free to use with citation, no permission required",
+    source_url: "https://www.hcp.med.harvard.edu/ncs/asrs.php",
+};
 
 /// Primary citation (matches the payload dispatched by the web calculator).
 pub const REFERENCE: &str =
@@ -161,6 +169,10 @@ impl Calculator for Asrs {
 
     fn reference(&self) -> &'static str {
         REFERENCE
+    }
+
+    fn license(&self) -> CalculatorLicense {
+        LICENSE
     }
 
     fn input_schema(&self) -> Value {

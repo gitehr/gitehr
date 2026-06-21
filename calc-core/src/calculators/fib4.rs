@@ -9,10 +9,18 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Map, Value};
 
 use crate::calculator::{CalcError, Calculator};
+use crate::license::CalculatorLicense;
 use crate::response::CalculationResponse;
 
 /// Machine name.
 pub const NAME: &str = "fib4";
+
+/// Distribution licence: FIB-4 is a published method, implemented here from the
+/// primary literature.
+pub const LICENSE: CalculatorLicense = CalculatorLicense {
+    license: "Public-domain method - implemented from the primary literature",
+    source_url: "https://doi.org/10.1002/hep.21178",
+};
 
 /// Primary citation.
 pub const REFERENCE: &str =
@@ -159,6 +167,10 @@ impl Calculator for Fib4 {
 
     fn reference(&self) -> &'static str {
         REFERENCE
+    }
+
+    fn license(&self) -> CalculatorLicense {
+        LICENSE
     }
 
     fn input_schema(&self) -> Value {

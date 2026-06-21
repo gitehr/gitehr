@@ -176,10 +176,13 @@ pub trait Calculator {
     fn title(&self) -> &'static str;         // human title
     fn description(&self) -> &'static str;   // one-line description
     fn reference(&self) -> &'static str;     // primary citation
+    fn license(&self) -> CalculatorLicense;  // algorithm distribution licence + evidence URL
     fn input_schema(&self) -> serde_json::Value;  // JSON Schema for inputs
     fn calculate(&self, input: &serde_json::Value) -> Result<CalculationResponse, CalcError>;
 }
 ```
+
+`license()` is a **required** method (see Licensing): every calculator must declare the terms its algorithm/content is distributed under, with a URL evidencing them, so the basis for shipping it is always on record.
 
 `input_schema()` is the key LLM affordance: it powers `calc <name> --schema`, the fillable `calc <name>` template (derived from it via the `input_template()` default method), MCP tool definitions, and any agent that wants to discover the required inputs without parsing prose. Each calculator additionally exposes a typed `compute()` for ergonomic, compile-time-checked use from Rust.
 
@@ -279,7 +282,7 @@ The host may append patient identifiers as URL parameters before opening a web c
 
 ## Authoring a new calculator
 
-1. Implement it in `calc-core`: a typed `Input`, a pure `compute()`, a `build_response()` adapter, a `Calculator` impl with `input_schema()`, and unit tests against known vectors. Register it in `all()`. This is the **only** Rust work needed - the CLI (`calc <name>`, template, `--schema`, `--input`) and the MCP tool are both driven generically from the registry, so there is no per-calculator CLI or MCP code to write.
+1. Implement it in `calc-core`: a typed `Input`, a pure `compute()`, a `build_response()` adapter, a `Calculator` impl with `input_schema()` and `license()` (the distribution licence plus an evidence URL), and unit tests against known vectors. Register it in `all()`. This is the **only** Rust work needed - the CLI (`calc <name>`, template, `--schema`, `--license`, `--input`) and the MCP tool are both driven generically from the registry, so there is no per-calculator CLI or MCP code to write.
 2. (If a web tool is wanted) create `calc-web/calculators/<name>.html` following the Result Card conventions, with its JS logic validated against the `calc-core` vectors. Add a card to `calc-web/index.html`.
 3. Add authoritative source material to `calc-web/clinical-source-references/`.
 
@@ -329,6 +332,16 @@ Each calculator must include: a primary peer-reviewed citation; evidence of clin
 - Clinical algorithms: implement from primary literature; most scores are public-domain methods. Do not copy proprietary implementations (e.g. MDCalc).
 - RCPCH growth charts: confirm licensing terms with RCPCH before distribution.
 - All calculators cite original publications and validation studies.
+
+### Per-calculator distribution licence (required)
+
+Distinct from the code licence (AGPL-3.0), every calculator must record the terms under which its **clinical algorithm or content** is distributed, plus a URL evidencing those terms, so the basis for shipping each calculator is on record and can be re-verified at any time. This is enforced in code, not by convention:
+
+- The `Calculator` trait requires `fn license(&self) -> CalculatorLicense`, where `CalculatorLicense { license, source_url }` carries the terms (an SPDX id where one applies, otherwise a short description such as "Public domain - no permission required") and a reverifiable URL. A calculator that omits it does not compile.
+- A registry test (`every_calculator_records_its_license`) asserts every registered calculator has a non-empty licence and an `http(s)` source URL, so a new calculator cannot ship without recording its basis.
+- The licence is surfaced for evidencing via `gitehr calc <name> --license` and in `gitehr calc list --format json` (`license`, `license_source`). When calculator results are recorded into the journal (a later phase), the licence should travel with the recorded result as provenance.
+
+Most scores are pure published methods (algorithms are generally not subject to copyright), implemented from the primary literature and citing the publication as their source. Some instruments carry an explicit grant: PHQ-9 and GAD-7 are public domain (Pfizer, 2010); the ASRS is copyright WHO / NYU / Harvard and free to use with citation. Where terms are proprietary or unclear (e.g. FRAX), the calculator is not shipped until the basis is established.
 
 ---
 

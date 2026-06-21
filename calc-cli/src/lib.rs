@@ -77,6 +77,10 @@ pub struct CalcCommand {
     #[arg(long)]
     pub schema: bool,
 
+    /// Print the calculator's distribution licence and the URL evidencing it.
+    #[arg(long)]
+    pub license: bool,
+
     /// Output format for computed results and `list`.
     #[arg(long, value_enum, default_value_t = OutputFormat::Text)]
     pub format: OutputFormat,
@@ -96,6 +100,12 @@ pub fn run(cmd: CalcCommand) -> Result<()> {
     // `--schema` prints the formal contract, regardless of everything else.
     if cmd.schema {
         println!("{}", serde_json::to_string_pretty(&calc.input_schema())?);
+        return Ok(());
+    }
+
+    // `--license` prints the algorithm's distribution licence and evidence URL.
+    if cmd.license {
+        println!("{}", serde_json::to_string_pretty(&calc.license())?);
         return Ok(());
     }
 
@@ -147,10 +157,13 @@ fn print_list(format: OutputFormat) -> Result<()> {
             let items: Vec<_> = calc_core::all()
                 .iter()
                 .map(|c| {
+                    let lic = c.license();
                     serde_json::json!({
                         "name": c.name(),
                         "title": c.title(),
                         "description": c.description(),
+                        "license": lic.license,
+                        "license_source": lic.source_url,
                     })
                 })
                 .collect();

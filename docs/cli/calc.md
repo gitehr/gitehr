@@ -11,6 +11,7 @@ Clinical calculators: scores, screeners, and risk tools. The same scoring engine
 gitehr calc list                       # list available calculators
 gitehr calc <name>                     # print a fillable input TEMPLATE (JSON)
 gitehr calc <name> --schema            # print the JSON Schema (the full contract)
+gitehr calc <name> --license           # print the algorithm's distribution licence + evidence URL
 gitehr calc <name> --input -           # compute, reading JSON from stdin
 gitehr calc <name> --input data.json   # compute, reading JSON from a file
 gitehr calc <name> --input '{...}'     # compute, reading an inline JSON string
@@ -82,6 +83,18 @@ Error: invalid input: invalid type: string "yes", expected a boolean
 `gitehr calc <name> --schema` prints the JSON Schema for the inputs: types, required fields, enumerated values, and ranges. This is the authoritative contract, and the template above is generated from it (so the two cannot disagree).
 
 The schema also carries, for inputs that have one, a **definition**: an authoritative, source-cited statement of exactly what makes the input TRUE or FALSE, including explicit exclusions (for example, that venous thromboembolism does not count as "vascular disease" in CHA2DS2-VASc). This guards against the silent-miscalculation trap, where a plausible but wrong input selection produces a wrong score with no error.
+
+## Licence and provenance
+
+Each calculator records the licence its clinical algorithm is distributed under, with a URL evidencing it (distinct from the AGPL-3.0 code licence). `gitehr calc <name> --license` prints both, and `gitehr calc list --format json` includes `license` and `license_source` for every calculator, so the basis on which each is shipped can be re-verified at any time.
+
+```console
+$ gitehr calc phq9 --license
+{
+  "license": "Public domain - released by Pfizer (2010); no permission required to reproduce, translate, display, or distribute",
+  "source_url": "https://www.pfizer.com/news/press-release/press-release-detail/pfizer_to_offer_free_public_access_to_mental_health_assessment_tools_to_improve_diagnosis_and_patient_care"
+}
+```
 
 ## Available calculators
 

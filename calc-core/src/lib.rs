@@ -21,10 +21,12 @@
 
 pub mod calculator;
 pub mod calculators;
+pub mod license;
 pub mod response;
 pub mod template;
 
 pub use calculator::{CalcError, Calculator};
+pub use license::CalculatorLicense;
 pub use response::CalculationResponse;
 pub use template::template_from_schema;
 
@@ -46,4 +48,31 @@ pub fn all() -> Vec<Box<dyn Calculator>> {
 /// Look up a single calculator by its machine name (e.g. `"feverpain"`).
 pub fn get(name: &str) -> Option<Box<dyn Calculator>> {
     all().into_iter().find(|c| c.name() == name)
+}
+
+#[cfg(test)]
+mod registry_tests {
+    use super::*;
+
+    /// Policy: every calculator must declare a non-empty distribution licence
+    /// with a reverifiable source URL. This guards the requirement at CI time,
+    /// so a new calculator cannot ship without recording the basis on which we
+    /// distribute it.
+    #[test]
+    fn every_calculator_records_its_license() {
+        for calc in all() {
+            let lic = calc.license();
+            assert!(
+                !lic.license.trim().is_empty(),
+                "{}: license must not be empty",
+                calc.name()
+            );
+            assert!(
+                lic.source_url.starts_with("http"),
+                "{}: license source_url must be a URL, got {:?}",
+                calc.name(),
+                lic.source_url
+            );
+        }
+    }
 }
