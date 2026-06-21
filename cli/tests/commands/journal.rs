@@ -3,16 +3,9 @@ use chrono::Utc;
 use regex::Regex;
 use serial_test::serial;
 use std::fs;
-use std::path::Path;
 use tempfile::tempdir;
 
-use gitehr::commands::journal::{
-    cat_journal_entries, create_journal_entry, get_latest_journal_entry,
-};
-
-fn setup() -> tempfile::TempDir {
-    tempdir().unwrap()
-}
+use gitehr::commands::journal::{create_journal_entry, parsed_entries, sorted_entries};
 
 fn setup_with_git() -> Result<tempfile::TempDir> {
     let temp_dir = tempdir()?;
@@ -26,6 +19,9 @@ fn setup_with_git() -> Result<tempfile::TempDir> {
     std::process::Command::new("git")
         .args(["config", "user.email", "test@example.com"])
         .output()?;
+    std::process::Command::new("git")
+        .args(["config", "commit.gpgsign", "false"])
+        .output()?;
     Ok(temp_dir)
 }
 
@@ -35,9 +31,7 @@ fn test_create_journal_entry() -> Result<()> {
     let _temp_dir = setup_with_git()?;
 
     let content = "Test entry";
-    let parent_hash = Some("test_hash".to_string());
-
-    create_journal_entry(content, parent_hash.clone())?;
+    create_journal_entry(content)?;
 
     let entries: Vec<_> = fs::read_dir("journal")?.collect();
     assert_eq!(entries.len(), 1, "Expected one journal entry");
@@ -64,15 +58,6 @@ fn test_create_journal_entry() -> Result<()> {
         .expect("No YAML front matter found");
     let entry: gitehr::commands::journal::JournalEntry = serde_yaml_ng::from_str(yaml_content)?;
 
-    assert_eq!(
-        entry.parent_hash,
-        Some("test_hash".to_string()),
-        "Parent hash doesn't match"
-    );
-    assert!(
-        entry.parent_entry.is_none(),
-        "Parent entry should be None for test_hash that doesn't exist"
-    );
     assert!(
         entry.timestamp <= Utc::now(),
         "Timestamp should be in the past"
@@ -84,24 +69,29 @@ fn test_create_journal_entry() -> Result<()> {
 
 #[test]
 #[serial]
-fn test_get_latest_journal_entry() -> Result<()> {
+fn test_entries_sorted_newest_first() -> Result<()> {
     let _temp_dir = setup_with_git()?;
 
-    create_journal_entry("First entry", None)?;
+    create_journal_entry("First entry")?;
     std::thread::sleep(std::time::Duration::from_millis(10));
-    create_journal_entry("Second entry", None)?;
+    create_journal_entry("Second entry")?;
 
-    let latest = get_latest_journal_entry()?;
-    assert!(latest.is_some());
-    let (filename, hash) = latest.unwrap();
+    let sorted = sorted_entries(false)?;
+    assert_eq!(sorted.len(), 2, "Expected two entries");
 
-    let content = fs::read_to_string(Path::new("journal").join(&filename))?;
-    assert!(content.contains("Second entry"));
+    // sorted_entries returns newest-first, so the most recent is index 0.
+    let newest_path = std::path::Path::new("journal").join(&sorted[0]);
+    let newest_content = fs::read_to_string(&newest_path)?;
+    assert!(
+        newest_content.contains("Second entry"),
+        "Newest entry should be the most recently created"
+    );
 
-    let calculated_hash = gitehr::utils::sha256_hex(content.as_bytes());
-    assert_eq!(
-        hash, calculated_hash,
-        "File hash does not match expected hash"
+    let oldest_path = std::path::Path::new("journal").join(&sorted[1]);
+    let oldest_content = fs::read_to_string(&oldest_path)?;
+    assert!(
+        oldest_content.contains("First entry"),
+        "Oldest entry should be the first created"
     );
 
     Ok(())
@@ -109,34 +99,23 @@ fn test_get_latest_journal_entry() -> Result<()> {
 
 #[test]
 #[serial]
-fn test_parent_entry_linking() -> Result<()> {
+fn test_parsed_entries_reads_back_content() -> Result<()> {
     let _temp_dir = setup_with_git()?;
 
-    create_journal_entry("First entry", None)?;
+    create_journal_entry("First entry")?;
+    std::thread::sleep(std::time::Duration::from_millis(10));
+    create_journal_entry("Second entry")?;
 
-    let latest = get_latest_journal_entry()?.unwrap();
-    let (first_filename, first_hash) = latest;
+    // parsed_entries returns oldest-first.
+    let parsed = parsed_entries()?;
+    assert_eq!(parsed.len(), 2, "Expected two parsed entries");
+    assert_eq!(parsed[0].content, "First entry");
+    assert_eq!(parsed[1].content, "Second entry");
 
-    std::thread::sleep(std::time::Duration::from_millis(5));
-
-    create_journal_entry("Second entry", Some(first_hash))?;
-
-    let entries: Vec<_> = fs::read_dir("journal")?.collect();
-    let mut entries: Vec<_> = entries.into_iter().map(|e| e.unwrap()).collect();
-    entries.sort_by_key(|e| e.file_name());
-    let second_entry = &entries[1];
-
-    let content = fs::read_to_string(second_entry.path())?;
-    let yaml_content = content
-        .split("---")
-        .nth(1)
-        .expect("No YAML front matter found");
-    let entry: gitehr::commands::journal::JournalEntry = serde_yaml_ng::from_str(yaml_content)?;
-
-    assert_eq!(
-        entry.parent_entry,
-        Some(first_filename),
-        "Parent entry filename should match first entry"
+    // Timestamps are recorded and ordered.
+    assert!(
+        parsed[0].metadata.timestamp <= parsed[1].metadata.timestamp,
+        "Entries parsed oldest-first should have non-decreasing timestamps"
     );
 
     Ok(())
@@ -144,11 +123,11 @@ fn test_parent_entry_linking() -> Result<()> {
 
 #[test]
 #[serial]
-fn test_timestamp_ordering() -> Result<()> {
+fn test_timestamp_uniqueness_and_ordering() -> Result<()> {
     let _temp_dir = setup_with_git()?;
 
     for i in 0..5 {
-        create_journal_entry(&format!("Entry {}", i), None)?;
+        create_journal_entry(&format!("Entry {}", i))?;
         std::thread::sleep(std::time::Duration::from_millis(2));
     }
 
@@ -167,34 +146,6 @@ fn test_timestamp_ordering() -> Result<()> {
         unique_timestamps.len(),
         "All timestamps should be unique"
     );
-
-    Ok(())
-}
-
-#[test]
-#[serial]
-fn test_cat_journal_entries_no_entries() -> Result<()> {
-    let _temp_dir = setup_with_git()?;
-    // Journal dir exists but is empty; cat should still succeed with the no-entries message.
-    cat_journal_entries(false)?;
-    Ok(())
-}
-
-#[test]
-#[serial]
-fn test_cat_journal_entries_returns_ok_with_entries() -> Result<()> {
-    let _temp_dir = setup_with_git()?;
-
-    create_journal_entry("First entry", None)?;
-    let (_, hash1) = get_latest_journal_entry()?.expect("should have first entry");
-    create_journal_entry("Second entry", Some(hash1))?;
-    let (_, hash2) = get_latest_journal_entry()?.expect("should have second entry");
-    create_journal_entry("Third entry", Some(hash2))?;
-
-    // Forward order
-    cat_journal_entries(false)?;
-    // Reverse order
-    cat_journal_entries(true)?;
 
     Ok(())
 }

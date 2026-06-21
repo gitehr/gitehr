@@ -4,8 +4,8 @@ use std::fs;
 use std::path::Path;
 use tempfile::tempdir;
 
-use gitehr::commands::decrypt::decrypt_repository;
-use gitehr::commands::encrypt::encrypt_repository;
+use gitehr::commands::decrypt::run as decrypt_repository;
+use gitehr::commands::encrypt::run as encrypt_repository;
 
 fn setup() -> tempfile::TempDir {
     let temp_dir = tempdir().unwrap();

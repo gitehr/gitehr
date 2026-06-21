@@ -4,13 +4,30 @@ use std::fs;
 use std::path::Path;
 use tempfile::tempdir;
 
-use gitehr::commands::init::initialise;
-use gitehr::commands::upgrade::{upgrade_binary, upgrade_repository};
+use gitehr::commands::init;
+use gitehr::commands::upgrade::run as upgrade_repository;
+use gitehr::commands::upgrade_binary::run as upgrade_binary;
 
 fn setup() -> tempfile::TempDir {
     let temp_dir = tempdir().unwrap();
     let _ = std::env::set_current_dir(&temp_dir);
     temp_dir
+}
+
+/// Initialise a repo and configure a local git identity so that journal commits
+/// (made during a version-changing upgrade) succeed without GPG signing.
+fn initialise() -> Result<()> {
+    init::run()?;
+    std::process::Command::new("git")
+        .args(["config", "user.name", "Test User"])
+        .output()?;
+    std::process::Command::new("git")
+        .args(["config", "user.email", "test@example.com"])
+        .output()?;
+    std::process::Command::new("git")
+        .args(["config", "commit.gpgsign", "false"])
+        .output()?;
+    Ok(())
 }
 
 #[test]

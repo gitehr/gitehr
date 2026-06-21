@@ -4,7 +4,8 @@ use std::fs;
 use std::path::Path;
 use tempfile::tempdir;
 
-use gitehr::commands::transport::{create_transport_archive, extract_transport_archive};
+use gitehr::commands::transport::create::run as create_transport_archive;
+use gitehr::commands::transport::extract::run as extract_transport_archive;
 
 fn setup() -> tempfile::TempDir {
     let temp_dir = tempdir().unwrap();

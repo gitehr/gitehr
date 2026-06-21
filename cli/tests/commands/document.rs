@@ -3,7 +3,9 @@ use serial_test::serial;
 use std::fs;
 use std::path::Path;
 
-use gitehr::commands::document::{MANIFEST_FILENAME, add_document, verify_documents};
+use gitehr::commands::document::MANIFEST_FILENAME;
+use gitehr::commands::document::add::run as add_document;
+use gitehr::commands::document::verify::run as verify_documents;
 use gitehr::commands::journal::parsed_entries;
 
 fn setup_with_git() -> Result<tempfile::TempDir> {
@@ -19,6 +21,9 @@ fn setup_with_git() -> Result<tempfile::TempDir> {
         .output()?;
     std::process::Command::new("git")
         .args(["config", "user.email", "test@example.com"])
+        .output()?;
+    std::process::Command::new("git")
+        .args(["config", "commit.gpgsign", "false"])
         .output()?;
     Ok(temp_dir)
 }

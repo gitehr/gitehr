@@ -4,7 +4,8 @@ use std::fs;
 use std::path::Path;
 use tempfile::tempdir;
 
-use gitehr::commands::remote::{add_remote, remove_remote};
+use gitehr::commands::remote::add::run as add_remote;
+use gitehr::commands::remote::remove::run as remove_remote;
 
 fn setup() -> tempfile::TempDir {
     let temp_dir = tempdir().unwrap();
