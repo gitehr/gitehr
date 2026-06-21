@@ -151,6 +151,21 @@ serum biomarkers; the shipped score cannot be reproduced openly.",
         source_url: "https://www.siemens-healthineers.com/laboratory-diagnostics/assays-by-diseases-conditions/liver-disease/elf-test",
     },
     ProprietaryCalculator {
+        name: "must",
+        title: "MUST (Malnutrition Universal Screening Tool)",
+        purpose: "Malnutrition risk screening (NICE CG32).",
+        owner: "BAPEN (British Association for Parenteral and Enteral Nutrition)",
+        reason: "BAPEN holds copyright in the MUST tool. The download is free only to individual \
+professionals using it; reproducing MUST (which shipping an implementation does) requires \
+applying to BAPEN for permission under a renewable, audited licence agreement, so it cannot be \
+shipped under an open licence.",
+        alternatives: &[
+            "Clinical assessment per NICE CG32 (BMI, unplanned weight loss, acute disease effect)",
+            "MNA (Mini Nutritional Assessment - check licensing)",
+        ],
+        source_url: "https://www.bapen.org.uk/must-and-self-screening/reproducing-must-application-form/",
+    },
+    ProprietaryCalculator {
         name: "cat",
         title: "CAT (COPD Assessment Test)",
         purpose: "Symptom-burden / health-status measure in COPD (8 items, 0-40; GOLD/NICE NG115).",

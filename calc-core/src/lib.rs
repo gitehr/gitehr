@@ -59,6 +59,13 @@ pub fn all() -> Vec<Box<dyn Calculator>> {
         Box::new(calculators::abcd2::Abcd2),
         Box::new(calculators::qsofa::Qsofa),
         Box::new(calculators::fourat::FourAt),
+        Box::new(calculators::das28::Das28),
+        Box::new(calculators::uacr::Uacr),
+        Box::new(calculators::sofa::Sofa),
+        Box::new(calculators::heart::Heart),
+        Box::new(calculators::timi::Timi),
+        Box::new(calculators::child_pugh::ChildPugh),
+        Box::new(calculators::meld::Meld),
     ];
     // Proprietary / licence-locked tools: registered so a clinician learns why
     // they are absent and where to turn, rather than finding silence.
