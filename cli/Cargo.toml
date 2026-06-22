@@ -36,9 +36,10 @@ tokio.workspace = true
 tracing = "0.1"
 
 # Clinical calculators: `gitehr calc` reuses the calc-cli library verbatim.
-# Lives in the sibling gitehr/tools repo; switch to a git dep (or crates.io)
-# for CI/contributors who do not check out tools alongside.
-calc-cli = { path = "../../tools/calc-cli" }
+# Lives in the gitehr/tools repo; pinned to a rev for reproducible builds
+# (this crate does not commit Cargo.lock). Switch to crates.io once tools
+# has a published distribution pipeline.
+calc-cli = { git = "ssh://git@github.com/gitehr/tools", rev = "38efb7c1bd297d4443f63cb04c3211301f103d7a" }
 
 [dev-dependencies]
 tempfile.workspace = true
