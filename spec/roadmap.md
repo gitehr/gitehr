@@ -104,6 +104,10 @@ The calculators live in their own repository, **[gitehr/tools](https://github.co
 - [ ] Document MCP integration guide and API reference.
 - [ ] Add MCP client libraries (Python/TypeScript) for testing.
 
+## Security and Integrity (to review)
+
+- [ ] **Evaluate [gittuf](https://gittuf.dev/) for GitEHR.** gittuf applies The Update Framework (TUF) concepts to a Git repository, adding security that Git itself lacks: policy-controlled, signed access to branches/tags/refs, key management and rotation, and protection against attacks on references (unauthorised ref updates, rollback/freeze, tag tampering). This is directly relevant to GitEHR's integrity, provenance, and tamper-evidence goals (who may update which refs in a patient repository, and proving a ref's history has not been rewritten). It is still in beta - the action is to keep an eye on it and review whether and how it can fit into GitEHR's security model once it matures.
+
 ## Documentation and Operations
 
 - [x] Maintain Zensical site scaffolding (`docs/`, `mkdocs.yml`, `requirements.txt`).

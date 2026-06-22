@@ -92,10 +92,23 @@ It does not, because that workload was never the patient record's job in the fir
 
 The current paradigm collapses these two roles into one system, which is why losing the database means losing the record. Separating them is the point.
 
+## But the relational model always wins in the end
+
+The most serious version of the objection comes from database research itself. In [*What Goes Around Comes Around... And Around...*](https://db.cs.cmu.edu/papers/2024/whatgoesaround-sigmodrec2024.pdf) (2024), Michael Stonebraker and Andrew Pavlo survey sixty years of data models and conclude that the relational model and SQL keep winning: hierarchical, network, object, XML, document and graph stores all came around, faded, and had their good ideas absorbed into SQL. By that logic, "store the record as files" is just the next doomed alternative.
+
+They are right - about the layer they are describing. That paper is about the **query and active-data-management layer**: the engine you reach for to run ad-hoc queries over large, mutable, multi-tenant datasets. GitEHR makes no claim there. Its claim is about a different layer: the **custody layer**, the durable, portable, patient-owned source of truth.
+
+GitEHR concedes the query layer to exactly the technology Stonebraker champions. When you need to query across patients, you build a derived database - very possibly relational - on top of the canonical files, and rebuild it whenever you like. That is the lakehouse pattern again: files at the bottom, a relational engine on top. "The relational model keeps winning" can be entirely true at the query layer while saying nothing about how the record itself should be kept.
+
+And the two layers have different jobs. The custody layer's unit is one patient's record - megabytes, mostly read, append-only - not a billion-row analytical table, so the "a DBMS wins at scale" arguments simply do not apply to it. What it must optimise for is fifty-year readability, cryptographic tamper-evidence, offline portability, and patient ownership: properties a relational database does not primarily target, and that a folder of signed, content-addressed files provides directly.
+
+There is a sting in the tail of Stonebraker's own argument. His through-line is that SQL endures by *absorbing* good ideas. The one good idea mainstream databases have not absorbed is distributed, content-addressed, immutable version control - Git and Merkle DAGs - which is exactly what GitEHR brings to the custody layer. By the paper's own logic, a good idea does not lose; it gets absorbed. We would call that a win.
+
 ## Further reading
 
 - [Local-first software](https://www.inkandswitch.com/local-first/) - Ink and Switch (Kleppmann, Wiggins, van Hardenberg, McGranaghan), 2019. The closest thing to a manifesto for this whole movement.
 - [File over app](https://stephango.com/file-over-app) - Steph Ango (Obsidian CEO), 2023.
 - [Immutability Changes Everything](https://queue.acm.org/detail.cfm?id=2884038) - Pat Helland, 2015. Make the case from inside the database world.
+- [What Goes Around Comes Around... And Around...](https://db.cs.cmu.edu/papers/2024/whatgoesaround-sigmodrec2024.pdf) - Stonebraker and Pavlo, SIGMOD Record 2024. The serious counter-argument that the relational model endures; addressed above.
 - [SQLite as an Application File Format](https://www.sqlite.org/affcase1.html) - Richard Hipp.
 - [What is a Lakehouse?](https://www.databricks.com/glossary/data-lakehouse) - the original framing from Databricks.

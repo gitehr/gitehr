@@ -23,3 +23,5 @@ In healthcare - and governmental IT in general - vendor lock-in seems to be a pa
 - **Leaving costs:** Exiting a vendor relationship may involve significant fees, extended contracts, or technical barriers.
 - **Risk of data loss:** Even successful migrations frequently lead to lossy or degraded data, which over time means the patient record 'decays' in quality and fidelity.
 
+These are not hypothetical. A large share of healthcare organisations report difficulty moving legacy data into new systems because of proprietary or non-standard formats, and a common fallback when data simply cannot be migrated is to keep the old EHR running in **read-only mode** indefinitely, purely so the records remain accessible. This "read-only legacy system" is a recurring, expensive band-aid for a problem that an open, vendor-neutral file format removes at the root.
+
