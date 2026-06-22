@@ -52,3 +52,11 @@ Lists users with their status: `[active]`, `[enabled]`, or `[disabled]`.
 Alias: `gitehr contributor`
 
 If no subcommand is provided, defaults to `list`.
+
+## Planned configuration
+
+Beyond the current name, email, and generated elliptic-curve public key, contributor configuration is intended to grow to cover:
+
+- **Committer name** used for git commits, configured per repository (so journal commits carry a consistent, contributor-controlled identity).
+- **GPG keys** as an alternative to the generated EC key pair, for contributors who already hold a GPG identity and want their journal commits GPG-signed.
+- **URI namespace link** - a stable external URI identifying the contributor (and/or the repository's identity namespace), linking the local contributor record to a resolvable identity rather than a bare local ID.

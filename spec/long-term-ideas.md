@@ -353,6 +353,20 @@ GitEHR inverts this:
 
 This requires cultural shift, not just technical standards.
 
+### Radical portability is a double-edged sword
+
+GitEHR's core strength - that a patient can hold and share their entire record as a single portable repository - is also a risk to acknowledge and design against. If sharing a complete medical history becomes trivially easy, parties who should not have blanket access may pressure patients to grant it: insurers requesting full record access as a condition of cover, employers, or others with asymmetric power over the patient. The same property that empowers patients can be turned against them through coercion or "consent" that is not truly free.
+
+Mitigations to design for: granular, time-limited, purpose-scoped sharing rather than all-or-nothing repository access; clear provenance of what was shared, with whom, and why (the journal can record disclosures); and patient-facing guidance about the implications of granting access. This is a societal and regulatory problem as much as a technical one, and GitEHR should not pretend the technical capability is neutral.
+
+### Alignment with the Quintuple Aims
+
+GitEHR's contribution should be articulated against the Quintuple Aim (better population health, better patient experience, lower cost, improved clinician wellbeing, and health equity). A sketch of where it plausibly helps: patient experience and equity through patient-owned, portable records that travel with the person; clinician wellbeing by reducing copy-paste and re-keying and by making the record legible to agents; cost through avoided duplicate testing and a lighter integration burden; population health through consented, governed derived datasets over canonical files. This deserves a proper positioning piece, including an honest account of where GitEHR does *not* obviously help.
+
+### EPRs freed to compete on experience
+
+If the canonical record is a portable, standard, patient-owned substrate, EPR/EHR vendors no longer compete by locking in the data. They are freed - and forced - to compete on what actually helps clinicians and patients: user interface, workflow, decision support, and features built *on top of* the shared substrate. This reframes GitEHR not as a competitor to EPRs but as the layer beneath them, turning the market from data lock-in toward genuine product quality - closer to how applications compete atop a filesystem or the web than to owning the user's files.
+
 ---
 
 ## Next Steps for Long-Term Ideas

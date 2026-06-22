@@ -33,7 +33,10 @@ This roadmap tracks implementation status against the current `spec/` documents.
 - [x] Implement `gitehr encrypt` placeholder marker flow.
 - [x] Implement `gitehr decrypt` placeholder marker removal flow.
 - [x] Implement `gitehr status` summary output.
-- [x] Implement `gitehr transport` (`create`, `extract`).
+- [x] Implement `gitehr transport` (`create`, `extract`) - "transport mode" bundling.
+- [x] Implement `gitehr calc` clinical calculators (forwarding to `calc_cli::run`; the engine lives in the gitehr/tools repo).
+- [x] Implement `gitehr journal` `new-entry`/`commit`/`list`/`show`. Note: the journal is append-only - drafts (`new-entry`) can be edited or discarded before commit, but committed entries are immutable, so there is no `journal edit`/`journal delete` of committed entries by design.
+- [ ] Add `gitehr export` - generate standardised export bundles (FHIR / EHRxF / openEHR) from a repository for cross-border sharing and portability (see `spec/fhir-openehr.md` and the EHDS/EHRxF notes in `spec/long-term-ideas.md`).
 - [x] Implement `gitehr user` (`create`, `add`, `enable`, `disable`, `activate`, `deactivate`, `list`) and `contributor` alias.
 - [x] Implement `gitehr upgrade`.
 - [x] Implement `gitehr upgrade-binary`.

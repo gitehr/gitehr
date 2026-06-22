@@ -166,3 +166,8 @@ TODO: gitehr journal verify needs an option for increased verbosity to show deta
 - The file content after the front matter holds the clinical narrative or data supplied to `gitehr add` or the genesis message (see [src/commands/journal.rs](../../src/commands/journal.rs) and [src/commands/init.rs](../../src/commands/init.rs)).
 
 - File naming embeds chronological ordering and uniqueness via timestamp and UUID, enabling simple sorting to reconstruct history (see [src/commands/journal.rs](../../src/commands/journal.rs)).
+
+## Planned refinements
+
+- **Genesis without a false-genesis claim.** GitEHR is moving away from per-entry `parent_hash`/`parent_entry` linkage (chaining can be derived from git history) toward leaving the parent fields null and instead embedding a random seed in the genesis entry's content together with a URL to an external genesis-registration record. The seed plus a registered, timestamped registration makes it computationally hard for anyone to fabricate an earlier "first" entry and backdate a false genesis claim. (Note: the runtime `JournalEntry` struct has already dropped `parent_hash`/`parent_entry`; this section and the data-model description above should be reconciled with the current code.)
+- **Shorter filename uniqueness token.** The `journal/<timestamp>-<uuid>.md` filename pairs a millisecond timestamp with a full UUID. Because the millisecond timestamp already provides strong uniqueness, the UUID could be shortened to a fragment of a hash or a short random suffix for shorter, more readable filenames.
