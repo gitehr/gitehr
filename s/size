@@ -1,0 +1,96 @@
+#!/usr/bin/env bash
+# Show GitEHR's disk footprint: shipped binary sizes, the target/ build
+# cache (your cargo clean / cargo sweep signal), and the repo on disk.
+#
+# Works with standard tools (du, ls, strip). If `dust` or `cargo-bloat`
+# are installed it points at the deeper views. Run from anywhere:
+#   s/size            full report
+#   s/size --bloat    also run `cargo bloat --release --crates` (if installed)
+
+set -euo pipefail
+
+# Repo root = parent of this script's directory, so cwd does not matter.
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$ROOT"
+
+BOLD=$'\033[1m'; DIM=$'\033[2m'; RESET=$'\033[0m'; ARROW=$'\033[33m'
+
+# Human-readable size of a file or dir; "-" if it does not exist.
+hsize() { [ -e "$1" ] && du -sh "$1" 2>/dev/null | cut -f1 || echo "-"; }
+# Size in bytes (for thresholds); 0 if missing.
+bytes() { [ -e "$1" ] && du -sb "$1" 2>/dev/null | cut -f1 || echo 0; }
+
+rule() { printf '  %s\n' "────────────────────────────────────────────────"; }
+row()  { printf '  %-26s %10s\n' "$1" "$2"; }
+row2() { printf '  %-26s %10s %10s\n' "$1" "$2" "$3"; }
+
+printf '\n  %s%s%s\n' "$BOLD" "GitEHR size report" "$RESET"
+printf '  %s%s%s\n\n' "$DIM" "$ROOT" "$RESET"
+
+# --- Release binaries (the thing that actually ships) ---
+printf '  %sRelease binaries%s            %son disk%s   %sstripped%s\n' \
+  "$BOLD" "$RESET" "$DIM" "$RESET" "$DIM" "$RESET"
+rule
+if [ -d target/release ]; then
+  found=0
+  while IFS= read -r bin; do
+    found=1
+    name="$(basename "$bin")"
+    on_disk="$(hsize "$bin")"
+    stripped="-"
+    if command -v strip >/dev/null 2>&1; then
+      tmp="$(mktemp)"; cp "$bin" "$tmp"; strip "$tmp" 2>/dev/null || true
+      stripped="$(hsize "$tmp")"; rm -f "$tmp"
+    fi
+    row2 "$name" "$on_disk" "$stripped"
+  done < <(find target/release -maxdepth 1 -type f -executable 2>/dev/null | sort)
+  [ "$found" -eq 0 ] && row "(none - run cargo build --release)" ""
+else
+  row "(no release build yet)" ""
+fi
+echo
+
+# --- Build cache (target/) - the cargo clean / sweep signal ---
+printf '  %sBuild cache (target/)%s         %ssize%s\n' "$BOLD" "$RESET" "$DIM" "$RESET"
+rule
+row "debug"   "$(hsize target/debug)"
+row "release" "$(hsize target/release)"
+target_total="$(hsize target)"
+target_bytes="$(bytes target)"
+if [ "$target_bytes" -gt $((2 * 1024 * 1024 * 1024)) ]; then
+  printf '  %-26s %10s   %s%s%s\n' "total" "$target_total" "$ARROW" "← consider trimming" "$RESET"
+else
+  row "total" "$target_total"
+fi
+echo
+
+# --- Repo on disk ---
+printf '  %sRepo on disk%s                  %ssize%s\n' "$BOLD" "$RESET" "$DIM" "$RESET"
+rule
+row ".git" "$(hsize .git)"
+[ -d gui/node_modules ] && row "gui/ (node_modules)" "$(hsize gui/node_modules)"
+row "whole repo" "$(hsize .)"
+echo
+
+# --- Tip ---
+if [ "$target_bytes" -gt $((2 * 1024 * 1024 * 1024)) ]; then
+  printf '  %stip:%s target/ is %s. Trim stale artifacts with ' "$BOLD" "$RESET" "$target_total"
+  if command -v cargo-sweep >/dev/null 2>&1; then
+    printf '`cargo sweep --time 14`,\n       or `cargo clean` to reclaim it all.\n'
+  else
+    printf '`cargo clean`\n       (or install cargo-sweep for `cargo sweep --time 14`).\n'
+  fi
+fi
+
+# --- Optional deeper views ---
+if [ "${1:-}" = "--bloat" ]; then
+  if command -v cargo-bloat >/dev/null 2>&1; then
+    echo; printf '  %sBinary composition (cargo bloat --release --crates)%s\n\n' "$BOLD" "$RESET"
+    cargo bloat --release --crates -n 15 2>/dev/null || true
+  else
+    echo; printf '  %s--bloat needs cargo-bloat: cargo install cargo-bloat%s\n' "$DIM" "$RESET"
+  fi
+fi
+
+command -v dust >/dev/null 2>&1 || printf '\n  %sfor a visual tree: cargo install du-dust, then `dust`%s\n' "$DIM" "$RESET"
+echo
