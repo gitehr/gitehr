@@ -125,7 +125,7 @@ The MCP server exposes each calculator as a tool named `calc_<name>` whose input
 The calculators also ship as a small, dependency-light standalone binary with the same interface, for use without a GitEHR repository:
 
 ```console
-$ cargo install --git https://github.com/gitehr/gitehr -p calc-cli
+$ cargo install --git https://github.com/gitehr/tools calc-cli
 $ calc phq9 --input '{"responses":[2,2,1,1,1,0,1,0,0]}' --format json
 ```
 

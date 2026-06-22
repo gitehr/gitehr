@@ -14,8 +14,10 @@ serde_json.workspace = true
 chrono.workspace = true
 tokio.workspace = true
 
-# Clinical calculators: each calc-core calculator is exposed as an MCP tool
-calc-core = { path = "../calc-core" }
+# Clinical calculators: each calc-core calculator is exposed as an MCP tool.
+# Lives in the sibling gitehr/tools repo; switch to a git dep (or crates.io)
+# for CI/contributors who do not check out tools alongside.
+calc-core = { path = "../../tools/calc-core" }
 
 # MCP-specific dependencies
 futures = "0.3"
