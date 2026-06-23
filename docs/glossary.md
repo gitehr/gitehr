@@ -7,6 +7,7 @@
 - **Document** - A clinical source artifact stored as a file in the patient record: a PDF, scanned letter, photograph, Word document, or imaging study. Documents are immutable and write-once, and are referenced by one or more journal entries.
 - **Organisation-centric** - Records structured around the healthcare organisation rather than the patient.
 - **Patient-centric** - Records structured around one patient, independent of any single organisation.
+- **Main Patient Index (MPI)** - A single index file (`gitehr-mpi.json`) at a store root that resolves identifiers (such as an NHS number or MRN) to a canonical subject and repository path, with create/link/merge semantics. Each repository in a store represents one *subject* - usually a patient, but the index generalises to any entity (for example buildings or devices), so in a non-clinical deployment it can be read as a Main *Subject* Index. *Previously called the **Master Patient Index**; GitEHR dropped "Master" for the same reasons GitHub renamed the default branch from "master" to "main". The **MPI** acronym is unchanged.*
 - **Hacktitioner** - A light-hearted term combining “hacker” and “general practitioner”.
 - **Lossy** - A transformation where output may omit information present in the input.
 
@@ -37,6 +38,7 @@
 *[HTML]: Hyper Text Markup Language
 *[IT]: Information Technology
 *[lossy]: A lossy transformation of data is one in which the output may have lost data compared to the input. The opposite is 'lossless'.
+*[MPI]: Main Patient Index (formerly Master Patient Index) - the index that resolves identifiers to a canonical subject and repository in a GitEHR store.
 *[NHS]: National Health Service - the taxpayer-funded universal health care system in the UK, free at the point of use, and much loved by the British.
 *[NPfIT]: The UK NHS National Project for IT was a plan to build a single health record across all of the NHS. It collapsed under its own weight after 12.5 billion GBP of taxpayer money had been ploughed into it.
 *[OpenEHR]: OpenEHR is a standard for the structure of healthcare records.

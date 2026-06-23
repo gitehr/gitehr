@@ -105,7 +105,7 @@ Adds, enables, disables, activates, or deactivates users for the GitEHR record.
 
 ### [`gitehr mpi`](commands/mpi.md)
 
-Resolves and manages patient identifiers against a local Master Patient Index (MPI).
+Resolves and manages patient identifiers against a local Main Patient Index (MPI).
 
 ### [`gitehr gui`](commands/gui.md)
 
@@ -197,7 +197,7 @@ The documsntation site has nav sections for GUI and CLI usage, as well as detail
 
 ## Scaling Many Repos, Sharding, and Patient Indexing
 
-This section captures practical limits and architectural patterns for hosting **hundreds of thousands** of GitEHR repositories on shared storage, and outlines a recommended sharding strategy plus a Master Patient Index (MPI).
+This section captures practical limits and architectural patterns for hosting **hundreds of thousands** of GitEHR repositories on shared storage, and outlines a recommended sharding strategy plus a Main Patient Index (MPI).
 
 ### Filesystem Limits and Practical Constraints
 
@@ -240,9 +240,9 @@ Notes:
 - Keep the **repo directory name** a deterministic function of the canonical patient ID so it is reproducible and collision‑resistant.
 - For `gitehr init`, the repo directory name is the **Crockford Base32 UUIDv7** generated for the patient.
 
-### Master Patient Index (MPI)
+### Main Patient Index (MPI)
 
-At scale, a Master Patient Index is strongly recommended to map multiple identifiers to a single GitEHR repo. The default, "batteries included" approach is a **single local MPI file** stored in the directory above all repos (the "store root"). More sophisticated deployments can replace or mirror this with a service or API.
+At scale, a Main Patient Index is strongly recommended to map multiple identifiers to a single GitEHR repo. The default, "batteries included" approach is a **single local MPI file** stored in the directory above all repos (the "store root"). More sophisticated deployments can replace or mirror this with a service or API.
 
 MPI responsibilities:
 - **Cross‑reference** identifiers (e.g., NHS number, hospital MRN, national IDs).

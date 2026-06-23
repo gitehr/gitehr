@@ -2,7 +2,9 @@
 
 # `gitehr mpi`
 
-Resolve and manage patient identifiers against a local Master Patient Index (MPI).
+Resolve and manage patient identifiers against a local Main Patient Index (MPI).
+
+> **Naming.** This was previously called the *Master Patient Index*. GitEHR dropped "Master" (as GitHub did when it renamed the default branch to "main"), keeping the established **MPI** acronym. Each repository in a store is one subject - usually a patient, but the index generalises to any entity, so in a non-clinical deployment it can be read as a *Main Subject Index*.
 
 Default MPI location:
 - A single file at the store root (directory above all repos), named `gitehr-mpi.json`.

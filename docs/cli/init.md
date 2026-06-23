@@ -29,4 +29,4 @@ gitehr journal add "First entry: initial registration."
 ```
 
 !!! note "Multi-patient stores"
-    For deployments managing many patient repos under a single store root with a Master Patient Index, see [`gitehr store`](../design/repository-structure.md). Single-patient `gitehr init` is the right path for development, demos, and most clinical use today.
+    For deployments managing many patient repos under a single store root with a Main Patient Index, see [`gitehr store`](../design/repository-structure.md). Single-patient `gitehr init` is the right path for development, demos, and most clinical use today.

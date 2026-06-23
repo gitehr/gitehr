@@ -44,7 +44,7 @@ The Tauri app exposes these commands to the frontend:
 - `is_gitehr_repo(path)` - Check if path is a GitEHR repo
 - `init_repo(path)` - Initialize new GitEHR repo
 
-### MPI (Master Patient Index)
+### MPI (Main Patient Index)
 - `has_mpi(path)` - Check if MPI exists
 - `get_mpi(path)` - Load MPI data
 

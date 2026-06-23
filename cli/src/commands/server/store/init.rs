@@ -39,7 +39,7 @@ This directory is a GitEHR store root containing multiple patient repositories.
 
 ```
 .
-├── gitehr-mpi.json          # Master Patient Index
+├── gitehr-mpi.json          # Main Patient Index
 ├── patients/                # Individual patient repositories
 │   └── <patient-uuid>/      # Each patient has their own Git repository
 └── README.md                # This file
@@ -67,7 +67,7 @@ gitehr gui
 
 The GUI will detect the MPI and allow you to select and manage individual patient repositories.
 
-## Master Patient Index (MPI)
+## Main Patient Index (MPI)
 
 The `gitehr-mpi.json` file contains:
 - List of all patient repositories in this store
