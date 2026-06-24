@@ -21,6 +21,7 @@ pub mod version;
 
 use anyhow::Result;
 use clap::{CommandFactory, Parser, Subcommand};
+use std::path::PathBuf;
 
 use document::DocumentCommands;
 use journal::JournalCommands;
@@ -42,7 +43,13 @@ struct Cli {
 #[derive(Subcommand)]
 enum Commands {
     Init,
-    Import,
+    #[command(about = "Import journal entries or documents from a file or directory")]
+    Import {
+        #[arg(long, value_enum, help = "What kind of data to import")]
+        mode: import::ImportMode,
+        #[arg(help = "File or directory to import")]
+        path: PathBuf,
+    },
     Journal {
         #[command(subcommand)]
         command: JournalCommands,
@@ -126,7 +133,7 @@ pub fn run() -> Result<()> {
 
     match cli.command {
         Commands::Init => init::run()?,
-        Commands::Import => import::run()?,
+        Commands::Import { mode, path } => import::run(mode, &path)?,
         Commands::Journal { command } => journal::run(command)?,
         Commands::State { command } => state::run(command)?,
         Commands::Remote { command } => remote::run(command)?,
