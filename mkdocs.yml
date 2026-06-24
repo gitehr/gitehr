@@ -53,6 +53,7 @@ nav:
       - upgrade: cli/upgrade.md
       - version: cli/version.md
       - completions: cli/completions.md
+      - plugins: cli/plugins.md
       - Developer workflow: cli/developer-workflow.md
       - MCP usage: cli/mcp-usage.md
   - GUI:

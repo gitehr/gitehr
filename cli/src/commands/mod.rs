@@ -11,6 +11,7 @@ pub mod gui;
 pub mod init;
 pub mod journal;
 pub mod mcp;
+pub mod plugin;
 pub mod remote;
 #[cfg(feature = "server")]
 pub mod server;

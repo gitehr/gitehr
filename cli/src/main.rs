@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use anyhow::Result;
-use clap::{CommandFactory, Parser, Subcommand};
+use clap::{CommandFactory, FromArgMatches, Parser, Subcommand};
 
 mod commands;
 mod utils;
@@ -95,13 +95,25 @@ Restart your shell after installing completions."#
         #[arg(help = "Shell type (bash, zsh, fish, powershell)")]
         shell: clap_complete::Shell,
     },
+    /// List installed plugins (gitehr-<command> executables on PATH)
+    Plugins,
+    /// Run an installed `gitehr-<command>` plugin from PATH. Any subcommand
+    /// that is not built in is dispatched here; built-ins always take priority.
+    #[command(external_subcommand)]
+    External(Vec<String>),
 }
 
 fn main() -> Result<()> {
-    let cli = Cli::parse();
+    // Built-in names (and their aliases) always shadow a same-named plugin.
+    let builtins = commands::plugin::builtin_names(&Cli::command());
+
+    // Build the command, injecting any discovered plugins into `--help`.
+    let mut cmd = Cli::command();
+    if let Some(section) = commands::plugin::plugins_help_section(&builtins) {
+        cmd = cmd.after_help(section);
+    }
 
     if std::env::args().len() == 1 {
-        let mut cmd = Cli::command();
         let version = cmd.get_version().unwrap_or_default();
         println!("GitEHR {}", version);
         println!();
@@ -109,6 +121,11 @@ fn main() -> Result<()> {
         println!();
         return Ok(());
     }
+
+    let cli = match Cli::from_arg_matches(&cmd.get_matches()) {
+        Ok(cli) => cli,
+        Err(e) => e.exit(),
+    };
 
     match cli.command {
         Commands::Init => commands::init::run()?,
@@ -132,6 +149,8 @@ fn main() -> Result<()> {
             let mut cmd = Cli::command();
             commands::completions::run(shell, &mut cmd);
         }
+        Commands::Plugins => commands::plugin::list(&builtins)?,
+        Commands::External(args) => commands::plugin::run(args)?,
     }
 
     Ok(())

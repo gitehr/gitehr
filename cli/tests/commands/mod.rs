@@ -6,6 +6,8 @@ pub mod document;
 pub mod encrypt;
 pub mod init;
 pub mod journal;
+#[cfg(unix)]
+pub mod plugin;
 pub mod remote;
 pub mod state;
 pub mod status;
