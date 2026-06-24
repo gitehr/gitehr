@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SPDX-FileCopyrightText: 2026 Marcus Baw and Baw Medical Ltd
+# SPDX-License-Identifier: AGPL-3.0-or-later
 #
 # Lint the workspace - the formatting and clippy checks CI enforces, to run
 # before committing (alongside `s/test`). Both must be clean:
