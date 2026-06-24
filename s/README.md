@@ -2,6 +2,16 @@
 
 The `s/` directory contains some simple convenience scripts to speed up and standardise working with this repository.
 
+## `s/test`
+
+Run the test suite (`cargo test` across the `gitehr` CLI and `gitehr-mcp`). Arguments pass through to `cargo test`.
+
+- `s/test` - run everything
+- `s/test -p gitehr-mcp` - just the MCP crate
+- `s/test journal` - only tests matching `journal`
+
+The clinical calculators now live in the separate [gitehr/tools](https://github.com/gitehr/tools) repo and are tested there.
+
 ## `s/size`
 
 Print a tidy table of GitEHR's disk footprint: the size of each release binary (as built and stripped - the real "what ships" figure), the `target/` build cache split into debug/release/total (your `cargo clean` / `cargo sweep` signal), and the repo on disk (`.git`, `gui/` node_modules, whole repo). Works from any directory with standard tools.

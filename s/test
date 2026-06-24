@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+#
+# Run the GitEHR test suite: `cargo test` across the workspace (the `gitehr`
+# CLI and `gitehr-mcp`). Arguments pass straight through to `cargo test`:
+#
+#   s/test                 # everything
+#   s/test -p gitehr-mcp   # just the MCP crate
+#   s/test journal         # only tests whose name matches "journal"
+#
+# Notes:
+# - The clinical calculators now live in the separate gitehr/tools repo, so
+#   here they are a dependency and are tested there, not by this command.
+# - The CLI integration tests create throwaway git repos and disable commit
+#   signing inside them, so this works regardless of your global git config.
+
+set -euo pipefail
+cd "$(git rev-parse --show-toplevel)"
+
+exec cargo test "$@"
