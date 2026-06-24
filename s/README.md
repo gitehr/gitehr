@@ -12,6 +12,15 @@ Run the test suite (`cargo test` across the `gitehr` CLI and `gitehr-mcp`). Argu
 
 The clinical calculators now live in the separate [gitehr/tools](https://github.com/gitehr/tools) repo and are tested there.
 
+## `s/lint`
+
+Run the formatting and clippy checks CI enforces (`cargo fmt --all --check`, then `cargo clippy --all-targets -- -D warnings`). Run it with `s/test` before committing. Arguments forward to clippy.
+
+- `s/lint` - check everything
+- `s/lint -p gitehr-mcp` - clippy just the MCP crate
+
+To auto-apply fixes: `cargo fmt --all && cargo clippy --fix --all-targets --allow-dirty`.
+
 ## `s/size`
 
 Print a tidy table of GitEHR's disk footprint: the size of each release binary (as built and stripped - the real "what ships" figure), the `target/` build cache split into debug/release/total (your `cargo clean` / `cargo sweep` signal), and the repo on disk (`.git`, `gui/` node_modules, whole repo). Works from any directory with standard tools.

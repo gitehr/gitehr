@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+#
+# Lint the workspace - the formatting and clippy checks CI enforces, to run
+# before committing (alongside `s/test`). Both must be clean:
+#   cargo fmt --all --check                    (formatting, makes no changes)
+#   cargo clippy --all-targets -- -D warnings  (lints treated as errors)
+#
+# Arguments are forwarded to clippy, e.g. `s/lint -p gitehr-mcp`.
+# To auto-apply fixes instead of just checking:
+#   cargo fmt --all && cargo clippy --fix --all-targets --allow-dirty
+
+set -euo pipefail
+cd "$(git rev-parse --show-toplevel)"
+
+echo "==> cargo fmt --all --check"
+cargo fmt --all --check
+
+echo "==> cargo clippy --all-targets -- -D warnings"
+exec cargo clippy --all-targets "$@" -- -D warnings
