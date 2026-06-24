@@ -2,162 +2,68 @@
 
 # `gitehr journal`
 
-Aliases:
+Create, commit, list, and read journal entries. A journal entry is a single, immutable clinical record event. Every subcommand requires the current directory to be a GitEHR repository (presence of `.gitehr`).
 
-### `gitehr journal add [content] [OPTIONS]`
+Writing an entry is a two-step flow: `new-entry` opens a draft in your editor, and `commit` finalises that draft into the immutable `journal/`. This keeps half-written notes out of the permanent record until they are deliberately committed.
 
-Appends a new clinical journal entry containing the provided content.
+### `gitehr journal new-entry`
 
-**Arguments:**
+Aliases: `new`, `touch`.
 
-| Argument | Description |
-|----------|-------------|
-| `content` | The content to add to the journal (optional if using --file) |
+Creates an empty draft and opens it in your editor.
 
-**Options:**
+- Writes an empty file `tmp/journal/draft-<timestamp>-<uuid>.md`.
+- Opens it in `$EDITOR` (falling back to `$VISUAL`, then `vi`).
+- On a successful editor exit, prints `Draft saved: <path>`. The draft is not part of the record until it is committed.
 
-| Option | Short | Description |
-|--------|-------|-------------|
-| `--file <path>` | `-f` | Read content from a file (use `-` for stdin) |
+### `gitehr journal commit <entry>`
 
-**Input modes:**
+Finalises a draft into the immutable journal.
 
-1. **Inline content**: `gitehr journal add "Your clinical note here"`
-2. **File input**: `gitehr journal add --file /path/to/note.md`
-3. **Stdin**: `cat note.md | gitehr journal add --file -`
+`<entry>` is a draft filename relative to `tmp/journal/`, an absolute path, or a [relative entry reference](#entry-references) such as `LATEST` (resolved against drafts).
 
-**Examples:**
-
-```bash
-# Add inline content
-gitehr journal add "Patient presented with fever. Prescribed paracetamol."
-
-# Add from a file
-gitehr journal add --file ~/notes/consultation.md
-
-# Add from stdin (useful for piping)
-echo "Quick note about follow-up" | gitehr journal add --file -
-
-# Add multi-line content from heredoc
-gitehr journal add --file - << 'EOF'
-## Consultation Notes
-
-Patient reports improvement in symptoms.
-Continue current medication.
-EOF
-```
-
-**Behavior:**
-
-- Requires the current directory to already be a GitEHR repository (presence of `.gitehr`).
-- Must provide either inline content OR --file, but not both (and not neither).
-- Determines the most recent journal entry by filename ordering. If found, calculates its SHA-256 hash and sets that as the new entry's `parent_hash`.
-- Creates a new Markdown file named `journal/<timestamp>-<uuid>.md`.
-- Prepends YAML front matter containing `parent_hash`, `parent_entry`, the creation timestamp, and (currently optional) `author`.
-- Runs `git add` on the new file and creates a git commit with message `Journal entry: <filename>`.
-- Prints the created filename on success.
-
-### `gitehr journal show [OPTIONS]`
-
-Lists journal entries in chronological order (oldest first by default), with optional pagination.
-
-**Options:**
-
-| Option | Short | Description |
-|--------|-------|-------------|
-| `--limit <N>` | `-n` | Maximum number of entries to display (default: 10) |
-| `--offset <N>` | `-o` | Number of entries to skip from the start (default: 0) |
-| `--reverse` | `-r` | Show newest entries first instead of oldest first |
-| `--all` | `-a` | Show all entries (ignores --limit) |
-
-**Output format:**
-
-Each entry is displayed as:
-```
-[N] <filename>
-    Timestamp: <ISO 8601 timestamp>
-    Parent: <parent_entry or "(genesis)">
-    Preview: <first 80 characters of content>...
-```
-
-**Examples:**
+- Reads the draft and prepends YAML front matter: `timestamp`, `author` (the currently active contributor, if any), and optional `documents`.
+- Writes `journal/<timestamp>-<uuid>.md` and removes the draft from `tmp/journal/`.
+- Runs `git add` and `git commit` with the message `Journal entry: <filename>`.
+- Prints `Committed: <filename>`.
 
 ```bash
-# Show first 10 entries (default)
-gitehr journal show
-
-# Show 20 entries starting from the 10th
-gitehr journal show --limit 20 --offset 10
-
-# Show all entries, newest first
-gitehr journal show --all --reverse
-
-# Show just the 5 most recent entries
-gitehr journal show -n 5 -r
+gitehr journal commit LATEST                 # commit the most recent draft
+gitehr journal commit draft-20260619T...-<uuid>.md
 ```
 
-**Behavior:**
+### `gitehr journal list-entry [--drafts]`
 
-- Requires the current directory to be a GitEHR repository (presence of `.gitehr`).
-- Reads all files from the `journal/` directory and sorts them by filename (which contains the timestamp).
-- Parses each entry's YAML front matter to extract metadata for display.
-- Truncates content preview at 80 characters to keep output readable.
-- Prints a summary line showing "Showing X of Y entries" at the end.
+Aliases: `list`, `ls`.
 
-### `gitehr journal cat [OPTIONS]`
+Lists journal entry filenames, one per line, sorted oldest-first, followed by a count (`(N entries)`).
 
-Prints the full body of every journal entry in chronological order. This is the "play back the record" view, intended for reading the journal end to end.
+- `--drafts` lists draft filenames in `tmp/journal/` instead, with a `(N drafts)` count.
+- Prints `No journal entries found.` (or `No drafts found.`) when there are none.
 
-**Options:**
+### `gitehr journal show <entry> [OPTIONS]`
 
-| Option | Short | Description |
-|--------|-------|-------------|
-| `--reverse` | `-r` | Show newest entries first |
+Alias: `cat`.
 
-**Output format:**
+Shows a single journal entry. `<entry>` is a filename or a [relative entry reference](#entry-references) such as `LATEST` or `LATEST^`.
 
-Each entry is rendered as:
+| Option | Description |
+|--------|-------------|
+| `--drafts` | Resolve and read from drafts in `tmp/journal/` instead of committed entries |
+| `--raw` | Print the raw file, including the YAML front matter |
+| `--metadata` | Print only the YAML front matter block |
 
-```
---- Entry N | <ISO 8601 timestamp> | author: <author or (unknown)> ---
-<filename>
-
-<full body of the entry>
-
-```
-
-The final line shows the total entry count: `(<N> entries)`.
-
-**Examples:**
+By default (no flags) it prints just the entry body (the clinical narrative). `--raw` prints the whole file; `--metadata` prints only the front matter. The two flags are mutually exclusive in practice (`--raw` takes precedence).
 
 ```bash
-# Read the whole record, oldest first
-gitehr journal cat
-
-# Read the whole record, newest first
-gitehr journal cat --reverse
+gitehr journal show LATEST            # body of the most recent entry
+gitehr journal show LATEST^ --raw     # the previous entry, full file with front matter
+gitehr journal show --drafts LATEST   # the most recent draft's body
 ```
 
-**Behavior:**
+### Integrity
 
-- Requires the current directory to be a GitEHR repository.
-- Reads every file in `journal/` whose name matches the timestamp-uuid pattern.
-- Sorts by filename (chronological by virtue of the timestamp prefix).
-- Skips entries with invalid front matter, printing a one-line error on stderr but continuing.
-
-### `gitehr journal verify`
-
-Validates the integrity of the journal chain (see [src/commands/verify.rs](../../src/commands/verify.rs) and [src/main.rs](../../src/main.rs)).
-
-- Requires a GitEHR repository and the existence of the `journal` directory; otherwise, it returns an error.
-- Sorts all journal files by filename, computes each entry’s SHA-256 hash, and builds a map of hash → filename for lookup.
-- For each entry, parses YAML front matter into a `JournalEntry`; errors if the front matter is missing or invalid.
-- For non-genesis entries, ensures the declared `parent_hash` exists in the map and the recorded `parent_entry` matches the expected filename; otherwise, it reports a broken chain or missing parent.
-- On success, prints “Journal verification successful: N entries verified.”
-
-> TODO: Front matter parsing currently assumes the YAML is delimited by `---` and that non-genesis entries include `parent_entry`. If this changes, update verification logic accordingly.
-
-TODO: gitehr journal verify needs an option for increased verbosity to show details of any verification failures (e.g., which entry is broken, expected vs actual parent hash/entry). This will be crucial for debugging integrity issues in the journal chain.
+There is no `gitehr journal verify` subcommand. Each committed entry is its own git commit, so the journal's history, ordering, and tamper-evidence derive from the underlying git history rather than from a per-entry hash chain in the front matter. (An earlier `parent_hash`/`parent_entry` chain was removed; see [Planned refinements](#planned-refinements).)
 
 ## Entry references
 
@@ -192,13 +98,11 @@ gitehr journal show --drafts LATEST^                   # the second most recent 
 
 ## Journal Data Model
 
-- Each entry file starts with YAML front matter representing `JournalEntry` with fields `parent_hash` (optional), `parent_entry` (optional for genesis), `timestamp` (UTC), `author` (optional, automatically set to the currently active user ID via `gitehr user activate <id>`), and `documents` (optional, a list of references to [Documents](document.md) this entry relates to, each with `path`, `sha256`, and optional `original_filename`) (see [src/commands/journal.rs](../../src/commands/journal.rs)).
-
-- The file content after the front matter holds the clinical narrative or data supplied to `gitehr add` or the genesis message (see [src/commands/journal.rs](../../src/commands/journal.rs) and [src/commands/init.rs](../../src/commands/init.rs)).
-
-- File naming embeds chronological ordering and uniqueness via timestamp and UUID, enabling simple sorting to reconstruct history (see [src/commands/journal.rs](../../src/commands/journal.rs)).
+- Each entry file is YAML front matter followed by a Markdown body. The front matter is a `JournalEntry` with `timestamp` (UTC), `author` (optional, set from the currently active contributor via `gitehr user activate <id>`), and `documents` (optional, a list of references to [Documents](document.md) this entry relates to, each with `path`, `sha256`, and optional `original_filename`). See [cli/src/commands/journal/mod.rs](../../cli/src/commands/journal/mod.rs).
+- The body after the front matter holds the clinical narrative or data written in the draft (or the genesis message created by `gitehr init`).
+- File naming embeds chronological ordering and uniqueness via the timestamp and UUID, so a simple filename sort reconstructs history.
 
 ## Planned refinements
 
-- **Genesis without a false-genesis claim.** GitEHR is moving away from per-entry `parent_hash`/`parent_entry` linkage (chaining can be derived from git history) toward leaving the parent fields null and instead embedding a random seed in the genesis entry's content together with a URL to an external genesis-registration record. The seed plus a registered, timestamped registration makes it computationally hard for anyone to fabricate an earlier "first" entry and backdate a false genesis claim. (Note: the runtime `JournalEntry` struct has already dropped `parent_hash`/`parent_entry`; this section and the data-model description above should be reconciled with the current code.)
+- **Genesis without a false-genesis claim.** GitEHR has dropped the per-entry `parent_hash`/`parent_entry` linkage (chaining is derived from git history instead). A future refinement is to embed a random seed in the genesis entry's content together with a URL to an external genesis-registration record, so that the seed plus a registered, timestamped registration makes it computationally hard for anyone to fabricate an earlier "first" entry and backdate a false genesis claim.
 - **Shorter filename uniqueness token.** The `journal/<timestamp>-<uuid>.md` filename pairs a millisecond timestamp with a full UUID. Because the millisecond timestamp already provides strong uniqueness, the UUID could be shortened to a fragment of a hash or a short random suffix for shorter, more readable filenames.
