@@ -4,15 +4,9 @@
 # The three checks every contributor runs locally (s/lint + s/test) and that
 # must pass before merge: formatting, clippy as errors, and the test suite.
 #
-# Note: gitehr depends on the clinical-calculator crates in the *private*
-# gitehr/tools repo via an SSH git dependency (see cli/Cargo.toml,
-# mcp/Cargo.toml, and .cargo/config.toml). Compiling here therefore needs read
-# access to that repo, provided by an SSH deploy key:
-#   1. Add a read-only deploy key to github.com/gitehr/tools.
-#   2. Store its private key as the `TOOLS_DEPLOY_KEY` secret on this repo.
-# `cargo fmt` does not compile, so it works without the key; clippy and test do.
-# Making gitehr/tools public removes this entirely (switch the git deps to
-# https and drop the ssh-agent step and .cargo/config.toml).
+# gitehr depends on the clinical-calculator crates in the public
+# pacharanero/calc repo via a git dependency (see cli/Cargo.toml and
+# mcp/Cargo.toml); cargo fetches it over HTTPS, so no credentials are needed.
 
 name: CI
 
@@ -34,11 +28,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-
-      - name: Load deploy key for the private gitehr/tools dependency
-        uses: webfactory/ssh-agent@e83874834305fe9a4a2997156cb26c5de65a8555 # v0.10.0
-        with:
-          ssh-private-key: ${{ secrets.TOOLS_DEPLOY_KEY }}
 
       - name: Install Rust toolchain (stable, with rustfmt and clippy)
         uses: dtolnay/rust-toolchain@67ef31d5b988238dd797d409d6f9574278e20537 # stable

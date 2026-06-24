@@ -10,7 +10,7 @@ Run the test suite (`cargo test` across the `gitehr` CLI and `gitehr-mcp`). Argu
 - `s/test -p gitehr-mcp` - just the MCP crate
 - `s/test journal` - only tests matching `journal`
 
-The clinical calculators now live in the separate [gitehr/tools](https://github.com/gitehr/tools) repo and are tested there.
+The clinical calculators now live in the separate [pacharanero/calc](https://github.com/pacharanero/calc) repo and are tested there.
 
 ## `s/lint`
 
