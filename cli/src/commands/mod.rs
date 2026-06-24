@@ -85,8 +85,6 @@ enum Commands {
         #[command(subcommand)]
         command: McpCommands,
     },
-    /// Clinical calculators (scores, screeners, risk tools)
-    Calc(calc_cli::CalcCommand),
     Upgrade,
     #[command(
         name = "upgrade-binary",
@@ -141,7 +139,6 @@ pub fn run() -> Result<()> {
         Commands::Server { command } => server::run(command)?,
         Commands::Document { command } => document::run(command)?,
         Commands::Mcp { command } => mcp::run(command)?,
-        Commands::Calc(command) => calc_cli::run(command)?,
         Commands::Upgrade => upgrade::run()?,
         Commands::UpgradeBinary => upgrade_binary::run()?,
         Commands::Version => version::run(),

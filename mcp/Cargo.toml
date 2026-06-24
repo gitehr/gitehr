@@ -14,11 +14,6 @@ serde_json.workspace = true
 chrono.workspace = true
 tokio.workspace = true
 
-# Clinical calculators: each calc-core calculator is exposed as an MCP tool.
-# Lives in the gitehr/tools repo; pinned to the same rev as cli's calc-cli
-# dep so cargo unifies on one calc-core. Switch to crates.io when published.
-calc-core = { git = "ssh://git@github.com/gitehr/tools", rev = "38efb7c1bd297d4443f63cb04c3211301f103d7a" }
-
 # MCP-specific dependencies
 futures = "0.3"
 async-trait = "0.1"
