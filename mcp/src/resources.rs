@@ -114,10 +114,10 @@ impl ResourceHandler {
             for entry in std::fs::read_dir(&journal_dir)? {
                 let entry = entry?;
                 let path = entry.path();
-                if path.extension().and_then(|s| s.to_str()) == Some("md") {
-                    if let Some(filename) = path.file_name().and_then(|s| s.to_str()) {
-                        entries.push(filename.to_string());
-                    }
+                if path.extension().and_then(|s| s.to_str()) == Some("md")
+                    && let Some(filename) = path.file_name().and_then(|s| s.to_str())
+                {
+                    entries.push(filename.to_string());
                 }
             }
         }
@@ -168,12 +168,11 @@ impl ResourceHandler {
             for entry in std::fs::read_dir(&state_dir)? {
                 let entry = entry?;
                 let path = entry.path();
-                if path.is_file() {
-                    if let Some(filename) = path.file_name().and_then(|s| s.to_str()) {
-                        if filename != "README.md" {
-                            files.push(filename.to_string());
-                        }
-                    }
+                if path.is_file()
+                    && let Some(filename) = path.file_name().and_then(|s| s.to_str())
+                    && filename != "README.md"
+                {
+                    files.push(filename.to_string());
                 }
             }
         }

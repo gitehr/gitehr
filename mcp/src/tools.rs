@@ -289,10 +289,10 @@ impl ToolHandler {
                 let path = entry.path();
                 if path.extension().and_then(|s| s.to_str()) == Some("md") {
                     let content = std::fs::read_to_string(&path)?;
-                    if content.to_lowercase().contains(&query.to_lowercase()) {
-                        if let Some(filename) = path.file_name().and_then(|s| s.to_str()) {
-                            results.push(format!("journal/{}", filename));
-                        }
+                    if content.to_lowercase().contains(&query.to_lowercase())
+                        && let Some(filename) = path.file_name().and_then(|s| s.to_str())
+                    {
+                        results.push(format!("journal/{}", filename));
                     }
                 }
             }
@@ -306,10 +306,10 @@ impl ToolHandler {
                 let path = entry.path();
                 if path.is_file() {
                     let content = std::fs::read_to_string(&path)?;
-                    if content.to_lowercase().contains(&query.to_lowercase()) {
-                        if let Some(filename) = path.file_name().and_then(|s| s.to_str()) {
-                            results.push(format!("state/{}", filename));
-                        }
+                    if content.to_lowercase().contains(&query.to_lowercase())
+                        && let Some(filename) = path.file_name().and_then(|s| s.to_str())
+                    {
+                        results.push(format!("state/{}", filename));
                     }
                 }
             }

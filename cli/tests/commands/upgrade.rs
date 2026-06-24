@@ -109,9 +109,9 @@ fn test_upgrade_repository_already_latest() -> Result<()> {
 
     initialise()?;
 
-    let result = upgrade_repository()?;
+    upgrade_repository()?;
 
-    assert_eq!(result, (), "Should succeed even if already latest");
+    assert_eq!((), (), "Should succeed even if already latest");
 
     Ok(())
 }

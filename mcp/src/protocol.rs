@@ -142,6 +142,9 @@ pub enum McpMethod {
 }
 
 impl McpMethod {
+    // Not `std::str::FromStr`: this mapping is infallible (unknown methods
+    // become `Unknown`), so it has no error type to return.
+    #[allow(clippy::should_implement_trait)]
     pub fn from_str(s: &str) -> Self {
         match s {
             "initialize" => McpMethod::Initialize,
