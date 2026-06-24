@@ -159,6 +159,37 @@ Validates the integrity of the journal chain (see [src/commands/verify.rs](../..
 
 TODO: gitehr journal verify needs an option for increased verbosity to show details of any verification failures (e.g., which entry is broken, expected vs actual parent hash/entry). This will be crucial for debugging integrity issues in the journal chain.
 
+## Entry references
+
+Commands that act on a single journal entry accept a **relative entry reference** anywhere a filename is accepted, so you rarely need to copy a full `<timestamp>-<uuid>.md` filename. The reference is resolved by `resolve_entry` (see [src/commands/journal/mod.rs](../../cli/src/commands/journal/mod.rs)) and is used by `gitehr journal show` and `gitehr journal commit`.
+
+| Expression | Meaning |
+|---|---|
+| `LATEST` | the most recent entry |
+| `LATEST^` | one entry older than the most recent (the second most recent) |
+| `LATEST^^^^` | N carets = N entries older than the most recent |
+| `LATEST~N` | N entries older than the most recent |
+| `<filename>^` | one entry older than the named file |
+| `<filename>~N` | N entries older than the named file |
+
+Rules:
+
+- The offset always moves toward **older** entries (back in time). `~N` and a run of `^` carets are equivalent: `LATEST~3` is the same as `LATEST^^^`.
+- A bare filename with no `^` or `~N` suffix is used as-is (it is not resolved against the entry list).
+- The reference resolves against committed entries by default, or against drafts when `--drafts` is given. `gitehr journal commit` always resolves against drafts, since it operates on `tmp/journal/`.
+- Resolution fails with a clear error when there are no entries (`no entries found`), when a named anchor file is not in the set (`entry not found`), or when the offset runs past the oldest entry (`out of range`).
+
+### Examples
+
+```bash
+gitehr journal show LATEST                            # most recent committed entry
+gitehr journal show LATEST^^^                          # three entries before the most recent
+gitehr journal show LATEST~10                          # ten entries back
+gitehr journal show 20260619T143012.123Z-<uuid>.md^    # one entry older than the named file
+gitehr journal commit LATEST                           # commit the most recent draft
+gitehr journal show --drafts LATEST^                   # the second most recent draft
+```
+
 ## Journal Data Model
 
 - Each entry file starts with YAML front matter representing `JournalEntry` with fields `parent_hash` (optional), `parent_entry` (optional for genesis), `timestamp` (UTC), `author` (optional, automatically set to the currently active user ID via `gitehr user activate <id>`), and `documents` (optional, a list of references to [Documents](document.md) this entry relates to, each with `path`, `sha256`, and optional `original_filename`) (see [src/commands/journal.rs](../../src/commands/journal.rs)).
