@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
+#![allow(dead_code)]
 
 // The user-management functions here are only invoked by `gitehr server user`,
 // which is gated behind the off-by-default `server` feature. In a default build

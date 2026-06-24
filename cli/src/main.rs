@@ -26,6 +26,7 @@ struct Cli {
 #[derive(Subcommand)]
 enum Commands {
     Init,
+    Import,
     Journal {
         #[command(subcommand)]
         command: JournalCommands,
@@ -111,6 +112,7 @@ fn main() -> Result<()> {
 
     match cli.command {
         Commands::Init => commands::init::run()?,
+        Commands::Import => commands::import::run()?,
         Commands::Journal { command } => commands::journal::run(command)?,
         Commands::State { command } => commands::state::run(command)?,
         Commands::Remote { command } => commands::remote::run(command)?,
