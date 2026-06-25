@@ -28,6 +28,15 @@ Git-style `$PATH` extensibility (see [`spec/commands/plugin.md`](commands/plugin
 - [x] Plugin authoring guidelines documented in `spec/commands/plugin.md` and `docs/cli/plugins.md`.
 - [x] Plugin example documented (a `gitehr-hello` sample).
 
+## Import and Document Capture
+
+Bringing existing records into a repository (see [`spec/commands/import.md`](commands/import.md), [`docs/cli/import.md`](../docs/cli/import.md), `cli/src/commands/import.rs`).
+
+- [x] Implement `gitehr import` (`--mode journal | documents`): import well-formed journal entries verbatim (filename/UUID/author/provenance preserved, non-entries skipped, already-present skipped so it is idempotent, each entry committed), or bulk-import documents of any format (each copied into `documents/` with a lightweight linking journal entry). Accepts a file or a directory, walked recursively with hidden files skipped, and reports a summary count.
+- [ ] **Built-in OCR for imported documents (eventually).** Make it as trivially easy as possible for less-technical patients using the GUI to bring their own medical records together. When importing a scan or photo via `--mode documents`, run OCR so the journal entry carries searchable, machine-readable text alongside the original file, not just a link - a patient should be able to drop in a photo of a letter and get a real, searchable record entry with near-zero friction. Keep it **built-in and offline** (no shipping medical images to a cloud OCR service), and treat the OCR text as a derived convenience layer, never a replacement for the original document.
+- [ ] Add further import modes as the need arises (e.g. an imaging-scanned mode), per the "other modes later" note in `spec/commands/import.md`.
+- [ ] Once a config file exists, let `--mode documents` filter against a configured file-format whitelist (per the TODO in `spec/commands/import.md`).
+
 ## Command Coverage vs Spec
 
 - [x] Implement `gitehr state` (`list`, `get`, `set`).

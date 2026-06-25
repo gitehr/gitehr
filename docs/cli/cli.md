@@ -17,6 +17,7 @@ Each command has its own page. Subcommands are sections within the parent comman
 |---|---|
 | [`gitehr init`](init.md) | Initialise a new GitEHR repository |
 | [`gitehr journal`](journal.md) | Append-only clinical journal (`add`, `show`, `cat`, `verify`) |
+| [`gitehr import`](import.md) | Import journal entries or documents from a file or directory |
 | [`gitehr state`](state.md) | Mutable current state files (`list`, `get`, `set`) |
 | [`gitehr user`](user.md) | Manage contributors and the active author |
 | [`gitehr remote`](remote.md) | Named remote repositories for sync |

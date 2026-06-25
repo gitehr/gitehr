@@ -41,6 +41,7 @@ nav:
       - init: cli/init.md
       - journal: cli/journal.md
       - document: cli/document.md
+      - import: cli/import.md
       - state: cli/state.md
       - user: cli/user.md
       - remote: cli/remote.md
