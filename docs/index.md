@@ -1,3 +1,9 @@
+---
+hide:
+  - navigation
+  - toc
+---
+
 <div class="gitehr-landing">
 
   <!-- HERO SECTION -->
