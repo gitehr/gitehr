@@ -35,6 +35,12 @@ gitehr-mcp = { path = "../mcp" }
 tokio.workspace = true
 tracing = "0.1"
 
+# Clinical calculators: `gitehr calc` reuses the calc-cli library verbatim.
+# Lives in the public pacharanero/calc repo; pinned to a rev for reproducible builds
+# (this crate does not commit Cargo.lock). Switch to crates.io once calc
+# has a published distribution pipeline.
+calc-cli = { git = "https://github.com/pacharanero/calc", rev = "c45a06dc1304530073531a69756977f67b5c185b" }
+
 [dev-dependencies]
 tempfile.workspace = true
 regex = "1"

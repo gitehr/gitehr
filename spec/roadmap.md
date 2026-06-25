@@ -18,13 +18,15 @@ This roadmap tracks implementation status against the current `spec/` documents.
 
 ## Plugin System
 
-- [ ] Implement plugin discovery mechanism: scan `$PATH` for `gitehr-[command]` executables.
-- [ ] Implement command resolution order: built-in commands first, then plugins.
-- [ ] Implement argument pass-through: `gitehr plugin arg1 arg2` executes `gitehr-plugin arg1 arg2`.
-- [ ] Add `gitehr plugins` command to list available plugins.
-- [ ] Update `gitehr --help` to show available plugins alongside built-in commands.
-- [ ] Document plugin authoring guidelines (exit codes, help text, argument handling).
-- [ ] Add plugin examples to documentation (sample `gitehr-backup`, `gitehr-export`).
+Git-style `$PATH` extensibility (see [`spec/commands/plugin.md`](commands/plugin.md), `cli/src/commands/plugin.rs`).
+
+- [x] Plugin discovery: scan `$PATH` for `gitehr-<command>` executables (`gitehr plugins`).
+- [x] Resolution order, built-in commands first: implemented via clap `#[command(external_subcommand)]`, so a plugin can never shadow a built-in (security property, with plugin-name validation against path traversal).
+- [x] Argument pass-through: `gitehr foo arg1 arg2` execs `gitehr-foo arg1 arg2` (on Unix the plugin replaces the process, so stdio/signals/exit code pass through).
+- [x] `gitehr plugins` command listing installed plugins (built-in-shadowed names excluded).
+- [x] `gitehr --help` shows discovered plugins alongside built-in commands (dynamic `after_help`).
+- [x] Plugin authoring guidelines documented in `spec/commands/plugin.md` and `docs/cli/plugins.md`.
+- [x] Plugin example documented (a `gitehr-hello` sample).
 
 ## Command Coverage vs Spec
 
@@ -34,7 +36,7 @@ This roadmap tracks implementation status against the current `spec/` documents.
 - [x] Implement `gitehr decrypt` placeholder marker removal flow.
 - [x] Implement `gitehr status` summary output.
 - [x] Implement `gitehr transport` (`create`, `extract`) - "transport mode" bundling.
-- [x] Implement `gitehr calc` clinical calculators (forwarding to `calc_cli::run`; the engine lives in the gitehr/tools repo).
+- [x] Implement `gitehr calc` clinical calculators (forwarding to `calc_cli::run`; the engine lives in the pacharanero/calc repo).
 - [x] Implement `gitehr journal` `new-entry`/`commit`/`list`/`show`. Note: the journal is append-only - drafts (`new-entry`) can be edited or discarded before commit, but committed entries are immutable, so there is no `journal edit`/`journal delete` of committed entries by design.
 - [ ] Add `gitehr export` - generate standardised export bundles (FHIR / EHRxF / openEHR) from a repository for cross-border sharing and portability (see `spec/fhir-openehr.md` and the EHDS/EHRxF notes in `spec/long-term-ideas.md`).
 - [x] Implement `gitehr user` (`create`, `add`, `enable`, `disable`, `activate`, `deactivate`, `list`) and `contributor` alias.
@@ -78,11 +80,11 @@ This roadmap tracks implementation status against the current `spec/` documents.
 
 ## Clinical Calculators Workstream
 
-The calculators live in their own repository, **[gitehr/tools](https://github.com/gitehr/tools)** (`~/code/gitehr/tools`), built and tested there. GitEHR consumes them as a dependency: `cli` depends on `calc-cli` (so `gitehr calc` forwards to `calc_cli::run`) and `mcp` depends on `calc-core` (so each calculator is exposed as a `calc_<name>` MCP tool). The architecture, roadmap, and input-definition design specs moved with them to that repo's `spec/`.
+The calculators live in their own repository, **[pacharanero/calc](https://github.com/pacharanero/calc)** (`~/code/pacharanero/calc`), built and tested there. GitEHR consumes them as a dependency: `cli` depends on `calc-cli` (so `gitehr calc` forwards to `calc_cli::run`) and `mcp` depends on `calc-core` (so each calculator is exposed as a `calc_<name>` MCP tool). The architecture, roadmap, and input-definition design specs moved with them to that repo's `spec/`.
 
-- [x] **The full 50-tool calculator library is complete in gitehr/tools** - 42 implemented and verified against primary sources (including QRISK3 and QFracture, ported from ClinRisk's LGPL source and validated against its C reference), plus 8 proprietary/licence-locked tools shipped as protest stubs. Single-engine design: `calc-core` (serde-only leaf) drives the `calc` CLI, MCP, GUI, and web; every calculator records a `license()` and carries machine-readable input definitions.
+- [x] **The full 50-tool calculator library is complete in pacharanero/calc** - 42 implemented and verified against primary sources (including QRISK3 and QFracture, ported from ClinRisk's LGPL source and validated against its C reference), plus 8 proprietary/licence-locked tools shipped as protest stubs. Single-engine design: `calc-core` (serde-only leaf) drives the `calc` CLI, MCP, GUI, and web; every calculator records a `license()` and carries machine-readable input definitions.
 - [x] `gitehr calc` subcommand and MCP `calc_<name>` tools wired to the external crates.
-- [ ] Switch the `calc-cli`/`calc-core` dependencies from a sibling path to a git dep (then crates.io once gitehr/tools has a distribution pipeline).
+- [ ] Switch the `calc-cli`/`calc-core` dependencies from a sibling path to a git dep (then crates.io once pacharanero/calc has a distribution pipeline).
 - [ ] Record calculator results in the journal (immutable entry: calculator, version, inputs, result, citation) - GitEHR-side integration.
 - [ ] Add state file storage for latest results (`state/calculations/<name>-latest.json`) - GitEHR-side.
 - [ ] Add a GUI calculator panel + Tauri `calculate_clinical` command calling `calc_core` natively.

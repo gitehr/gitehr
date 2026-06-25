@@ -1,3 +1,4 @@
+// SPDX-FileCopyrightText: 2026 Marcus Baw and Baw Medical Ltd
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 //! MCP JSON-RPC 2.0 Protocol Implementation
@@ -142,6 +143,9 @@ pub enum McpMethod {
 }
 
 impl McpMethod {
+    // Not `std::str::FromStr`: this mapping is infallible (unknown methods
+    // become `Unknown`), so it has no error type to return.
+    #[allow(clippy::should_implement_trait)]
     pub fn from_str(s: &str) -> Self {
         match s {
             "initialize" => McpMethod::Initialize,

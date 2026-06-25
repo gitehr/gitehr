@@ -1,5 +1,0 @@
-# The calculator crates (calc-cli, calc-core) are a git dependency on the
-# gitehr/tools repository, fetched over SSH. Use the system git CLI so SSH
-# keys and known_hosts are honoured (libgit2 cannot use the agent the same way).
-[net]
-git-fetch-with-cli = true

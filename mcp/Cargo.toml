@@ -14,6 +14,11 @@ serde_json.workspace = true
 chrono.workspace = true
 tokio.workspace = true
 
+# Clinical calculators: each calc-core calculator is exposed as an MCP tool.
+# Lives in the public pacharanero/calc repo; pinned to the same rev as cli's calc-cli
+# dep so cargo unifies on one calc-core. Switch to crates.io when published.
+calc-core = { git = "https://github.com/pacharanero/calc", rev = "c45a06dc1304530073531a69756977f67b5c185b" }
+
 # MCP-specific dependencies
 futures = "0.3"
 async-trait = "0.1"

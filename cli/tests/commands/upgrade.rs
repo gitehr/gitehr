@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Marcus Baw and Baw Medical Ltd
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 use anyhow::Result;
 use serial_test::serial;
 use std::fs;
@@ -109,9 +112,9 @@ fn test_upgrade_repository_already_latest() -> Result<()> {
 
     initialise()?;
 
-    let result = upgrade_repository()?;
+    upgrade_repository()?;
 
-    assert_eq!(result, (), "Should succeed even if already latest");
+    assert_eq!((), (), "Should succeed even if already latest");
 
     Ok(())
 }

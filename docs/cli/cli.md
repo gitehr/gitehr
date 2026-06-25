@@ -28,6 +28,7 @@ Each command has its own page. Subcommands are sections within the parent comman
 | [`gitehr upgrade`](upgrade.md) | Upgrade the repository and bundled binary |
 | [`gitehr version`](version.md) | Print the CLI and Git versions |
 | [`gitehr completions`](completions.md) | Generate shell completion scripts |
+| [`gitehr plugins`](plugins.md) | List installed `gitehr-*` plugins (Git-style `$PATH` extensibility) |
 
 ## Developer-facing pages
 
