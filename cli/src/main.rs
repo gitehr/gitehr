@@ -27,6 +27,13 @@ struct Cli {
 #[derive(Subcommand)]
 enum Commands {
     Init,
+    /// Import journal entries or documents from a file or directory
+    Import {
+        #[arg(long, value_enum, help = "What kind of data to import")]
+        mode: commands::import::ImportMode,
+        #[arg(help = "File or directory to import")]
+        path: std::path::PathBuf,
+    },
     Journal {
         #[command(subcommand)]
         command: JournalCommands,
@@ -129,6 +136,7 @@ fn main() -> Result<()> {
 
     match cli.command {
         Commands::Init => commands::init::run()?,
+        Commands::Import { mode, path } => commands::import::run(mode, &path)?,
         Commands::Journal { command } => commands::journal::run(command)?,
         Commands::State { command } => commands::state::run(command)?,
         Commands::Remote { command } => commands::remote::run(command)?,
