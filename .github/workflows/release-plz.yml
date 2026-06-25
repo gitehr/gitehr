@@ -1,0 +1,100 @@
+# SPDX-FileCopyrightText: 2026 Marcus Baw and Baw Medical Ltd
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+# release-plz: trialling the industry-standard Rust release automation
+# (see ~/code/house-style/distribution.md). On every push to main it opens (or
+# refreshes) a "Release PR" that bumps the workspace version and rewrites
+# CHANGELOG.md from the conventional commits. Merging that PR tags the release
+# and creates the GitHub Release.
+#
+# gitehr depends on the calc crates via a git rev, so it cannot be published to
+# crates.io yet; `publish = false` in release-plz.toml disables cargo publish,
+# leaving release-plz to manage version + changelog + tag + GitHub Release only.
+#
+# ACTIVATION: the gitehr org blocks the default GITHUB_TOKEN from creating PRs,
+# so this workflow uses a PAT in the RELEASE_PLZ_TOKEN secret (a fine-grained
+# token with contents:write + pull-requests:write on this repo). Using a PAT is
+# also the release-plz-recommended setup, because the Release PR then triggers
+# CI (PRs opened by GITHUB_TOKEN do not). Until that secret is set the jobs
+# below skip cleanly, so this file is dormant - no failing runs - and activates
+# automatically once the secret exists.
+
+name: release-plz
+
+permissions:
+  contents: write
+  pull-requests: write
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  # Tag + create the GitHub Release once a Release PR (a version bump) is merged.
+  release-plz-release:
+    name: release-plz release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check for release token
+        id: guard
+        env:
+          TOKEN: ${{ secrets.RELEASE_PLZ_TOKEN }}
+        run: |
+          if [ -n "$TOKEN" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::RELEASE_PLZ_TOKEN not set - release-plz is dormant (see release-plz.yml header)."
+          fi
+      - if: steps.guard.outputs.enabled == 'true'
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.RELEASE_PLZ_TOKEN }}
+      - if: steps.guard.outputs.enabled == 'true'
+        uses: dtolnay/rust-toolchain@67ef31d5b988238dd797d409d6f9574278e20537 # stable
+        with:
+          toolchain: stable
+      - name: release-plz release
+        if: steps.guard.outputs.enabled == 'true'
+        uses: release-plz/action@e8792575c7f2366cf6ff3ccc33ead9ace5b691c7 # v0.5.130
+        with:
+          command: release
+        env:
+          GITHUB_TOKEN: ${{ secrets.RELEASE_PLZ_TOKEN }}
+
+  # Open/refresh the Release PR (version bump + changelog) from conventional commits.
+  release-plz-pr:
+    name: release-plz PR
+    runs-on: ubuntu-latest
+    concurrency:
+      group: release-plz-${{ github.ref }}
+      cancel-in-progress: false
+    steps:
+      - name: Check for release token
+        id: guard
+        env:
+          TOKEN: ${{ secrets.RELEASE_PLZ_TOKEN }}
+        run: |
+          if [ -n "$TOKEN" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::RELEASE_PLZ_TOKEN not set - release-plz is dormant (see release-plz.yml header)."
+          fi
+      - if: steps.guard.outputs.enabled == 'true'
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.RELEASE_PLZ_TOKEN }}
+      - if: steps.guard.outputs.enabled == 'true'
+        uses: dtolnay/rust-toolchain@67ef31d5b988238dd797d409d6f9574278e20537 # stable
+        with:
+          toolchain: stable
+      - name: release-plz release-pr
+        if: steps.guard.outputs.enabled == 'true'
+        uses: release-plz/action@e8792575c7f2366cf6ff3ccc33ead9ace5b691c7 # v0.5.130
+        with:
+          command: release-pr
+        env:
+          GITHUB_TOKEN: ${{ secrets.RELEASE_PLZ_TOKEN }}
