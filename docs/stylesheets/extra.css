@@ -33,6 +33,16 @@
   overflow-x: clip;
 }
 
+/* The `modern` theme variant renders the primary nav as a position:fixed panel
+   with an unconditional `display:block`, so - unlike the secondary/TOC sidebar -
+   it ignores the `hidden` attribute that `hide: navigation` front matter sets.
+   That left the left-hand menu floating over the homepage hero. The front matter
+   sets `hidden` only on the landing page, so suppressing the hidden primary
+   sidebar here is scoped to the homepage and leaves content pages untouched. */
+.md-sidebar--primary[hidden] {
+  display: none !important;
+}
+
 /* Full Width Bands */
 .gitehr-band {
   width: 100%;
