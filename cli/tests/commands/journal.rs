@@ -79,7 +79,7 @@ fn test_entries_sorted_newest_first() -> Result<()> {
     std::thread::sleep(std::time::Duration::from_millis(10));
     create_journal_entry("Second entry")?;
 
-    let sorted = sorted_entries(false)?;
+    let sorted = sorted_entries()?;
     assert_eq!(sorted.len(), 2, "Expected two entries");
 
     // sorted_entries returns newest-first, so the most recent is index 0.

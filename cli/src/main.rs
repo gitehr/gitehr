@@ -187,6 +187,9 @@ fn absolutize_external_paths(command: &mut Commands, base: &Path) {
     }
     match command {
         Commands::Import { path, .. } => fix_pb(path, base),
+        Commands::Journal {
+            command: JournalCommands::Add { file: Some(f), .. },
+        } if f != "-" => fix_str(f, base),
         Commands::Document {
             command: DocumentCommands::Add { path, .. },
         } => fix_pb(path, base),

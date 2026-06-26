@@ -54,7 +54,7 @@ Each builds a parser, registers `cmark` + `medical_markdown` (with the active re
 
 - `gitehr journal show <entry> --structured` (or `--json`) prints the extracted JSON alongside, or instead of, the rendered narrative. Read-only, derived, safe on historic entries.
 - `gitehr journal extract <entry>` as an explicit extraction command for piping into other tools.
-- The draft-editing flow (`journal new-entry`, [`cli/src/commands/journal/new_entry.rs`](../cli/src/commands/journal/new_entry.rs)) is unchanged; clinicians still write free text in their editor. A later phase can add a `--validate` pass on commit that warns about unrecognised codes without blocking the commit (the record still only grows; a warning is advisory).
+- The editor flow (`journal add with no arguments`, [`cli/src/commands/journal/add.rs`](../cli/src/commands/journal/add.rs)) is unchanged; clinicians still write free text in their editor. A later phase can add a `--validate` pass on commit that warns about unrecognised codes without blocking the commit (the record still only grows; a warning is advisory).
 
 ### MCP: structured access for agents
 

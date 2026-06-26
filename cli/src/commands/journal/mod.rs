@@ -10,31 +10,32 @@ use uuid::Uuid;
 
 use super::{contributor, git};
 
-pub mod commit;
+pub mod add;
 pub mod list;
-pub mod new_entry;
 pub mod show;
 
 #[derive(Subcommand)]
 pub enum JournalCommands {
-    #[command(name = "new-entry", aliases = ["new", "touch"], about = "Create a draft journal entry and open it in your editor")]
-    NewEntry,
-    #[command(about = "Commit a draft: prepend frontmatter, move to journal/, and git-commit")]
-    Commit {
-        #[arg(help = "Draft filename (relative to tmp/journal/) or absolute path")]
-        file: String,
+    #[command(
+        about = "Add a journal entry (inline text, --file <path>, --file - for stdin, or your editor)"
+    )]
+    Add {
+        #[arg(help = "Entry text. Omit (on a terminal) to open your $EDITOR, or use --file.")]
+        text: Option<String>,
+        #[arg(
+            long,
+            value_name = "PATH",
+            conflicts_with = "text",
+            help = "Read the entry from a file, or '-' for stdin"
+        )]
+        file: Option<String>,
     },
     #[command(name = "list-entry", aliases = ["list", "ls"], about = "List journal entries")]
-    List {
-        #[arg(long, help = "List drafts in tmp/journal/ instead")]
-        drafts: bool,
-    },
+    List,
     #[command(aliases = ["cat"], about = "Show a journal entry (body by default; --raw or --metadata for more)")]
     Show {
-        #[arg(help = "Journal entry filename")]
+        #[arg(help = "Journal entry filename (or LATEST, LATEST^, LATEST~N)")]
         filename: String,
-        #[arg(long, help = "Operate on drafts in tmp/journal/ instead")]
-        drafts: bool,
         #[arg(long, help = "Print raw file content including frontmatter")]
         raw: bool,
         #[arg(long, help = "Print only the frontmatter")]
@@ -50,15 +51,13 @@ pub fn run(command: JournalCommands) -> Result<()> {
     }
 
     match command {
-        JournalCommands::NewEntry => new_entry::run(),
-        JournalCommands::Commit { file } => commit::run(file),
-        JournalCommands::List { drafts } => list::run(drafts),
+        JournalCommands::Add { text, file } => add::run(text, file),
+        JournalCommands::List => list::run(),
         JournalCommands::Show {
             filename,
-            drafts,
             raw,
             metadata,
-        } => show::run(filename, drafts, raw, metadata),
+        } => show::run(filename, raw, metadata),
     }
 }
 
@@ -93,15 +92,9 @@ pub struct ParsedEntry {
 
 // ── Entry resolution (LATEST syntax) ─────────────────────────────────────────
 
-/// Returns filenames sorted newest-first.
-/// For committed entries, reads `journal/`; for drafts, `tmp/journal/`.
-pub fn sorted_entries(drafts: bool) -> Result<Vec<String>> {
-    let dir = if drafts {
-        PathBuf::from("tmp/journal")
-    } else {
-        PathBuf::from("journal")
-    };
-
+/// Committed journal entry filenames, sorted newest-first.
+pub fn sorted_entries() -> Result<Vec<String>> {
+    let dir = PathBuf::from("journal");
     if !dir.exists() {
         return Ok(Vec::new());
     }
@@ -110,18 +103,10 @@ pub fn sorted_entries(drafts: bool) -> Result<Vec<String>> {
         .filter_map(|e| e.ok())
         .filter_map(|e| {
             let name = e.file_name().to_string_lossy().to_string();
-            if drafts {
-                if name.ends_with(".md") {
-                    Some(name)
-                } else {
-                    None
-                }
+            if is_journal_entry_file(&name) {
+                Some(name)
             } else {
-                if is_journal_entry_file(&name) {
-                    Some(name)
-                } else {
-                    None
-                }
+                None
             }
         })
         .collect();
@@ -163,7 +148,7 @@ fn parse_entry_ref(input: &str) -> Result<(&str, usize)> {
 /// Anchor may be `LATEST` (most recent) or any literal filename.
 /// Offset moves toward older entries: `LATEST^` = one before most recent,
 /// `some-file.md~3` = three entries older than `some-file.md`.
-pub fn resolve_entry(input: &str, drafts: bool) -> Result<String> {
+pub fn resolve_entry(input: &str) -> Result<String> {
     let (anchor, offset) = parse_entry_ref(input)?;
 
     // No LATEST and no offset — plain filename, return as-is.
@@ -171,7 +156,7 @@ pub fn resolve_entry(input: &str, drafts: bool) -> Result<String> {
         return Ok(input.to_string());
     }
 
-    let entries = sorted_entries(drafts)?;
+    let entries = sorted_entries()?;
 
     if entries.is_empty() {
         anyhow::bail!("no entries found");
