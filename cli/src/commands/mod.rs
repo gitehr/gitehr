@@ -14,6 +14,7 @@ pub mod journal;
 pub mod mcp;
 pub mod plugin;
 pub mod remote;
+pub mod scaffold;
 pub mod state;
 pub mod status;
 pub mod store;

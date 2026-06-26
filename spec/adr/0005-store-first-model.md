@@ -1,6 +1,6 @@
 # GitEHR is Store-first: every install is a Store of one or more subject repos, indexed by an MPI
 
-A GitEHR deployment is always a **Store**: a directory containing one or more subject **repos** (each a complete patient/subject record) plus a single `gitehr-mpi.json` index - the Main Patient Index (MPI) - at its root. There is no standalone single-repo mode. `gitehr store init` bootstraps everything (the Store, the MPI, and the first subject repo) in one step; `gitehr store add-patient` creates each further subject repo and registers it; there is no top-level `gitehr init`. The repo is the git-like unit you `cd` into to work on a record; the Store is the thin organising layer a few commands operate on. All operations on the MPI live under `gitehr store` - the MPI is an index file, not its own command.
+A GitEHR deployment is always a **Store**: a directory containing one or more subject **repos** (each a complete patient/subject record) plus a single `gitehr-mpi.json` index - the Main Patient Index (MPI) - at its root. There is no standalone single-repo mode. `gitehr store init` bootstraps everything (the Store, the MPI, and the first subject repo) in one step; `gitehr store add` creates each further subject repo and registers it; there is no top-level `gitehr init`. The repo is the git-like unit you `cd` into to work on a record; the Store is the thin organising layer a few commands operate on. All operations on the MPI live under `gitehr store` - the MPI is an index file, not its own command.
 
 ## Who this is for
 
@@ -28,8 +28,8 @@ One model serves all three, and a family or pet-owner self-hoster grows into a c
 ## All multi-subject operations live under `gitehr store`
 
 - `gitehr store init` - bootstrap the Store, MPI, and first subject repo.
-- `gitehr store add-patient` - create and register a new subject repo.
-- `gitehr store remove-patient` - de-register a subject.
+- `gitehr store add` - create and register a new subject repo.
+- `gitehr store remove` - de-register a subject.
 - `gitehr store list` - list subjects.
 - (future) identifier resolution - `search`, `link`, `merge`, `path` - folded in as `gitehr store` subcommands, **not** a separate `gitehr mpi` command.
 
@@ -42,7 +42,7 @@ One model serves all three, and a family or pet-owner self-hoster grows into a c
 
 ## Consequences
 
-- `store init` grows from "write an empty MPI" to a real bootstrap (Store + MPI + first repo), reusing the repo-scaffolding logic that currently lives in `gitehr init`; `add-patient` changes from "register an existing repo" to "create and register a new repo"; the top-level `init` command is removed. One shared repo-scaffolding implementation.
+- `store init` grows from "write an empty MPI" to a real bootstrap (Store + MPI + first repo), reusing the repo-scaffolding logic that currently lives in `gitehr init`; `add` changes from "register an existing repo" to "create and register a new repo"; the top-level `init` command is removed. One shared repo-scaffolding implementation.
 - Commands gain Store/repo **context detection** (walk up for `.gitehr/` and `gitehr-mpi.json`) plus the single-subject auto-target, replacing today's bare `.gitehr`-in-cwd checks.
 - **Contributor scoping is deliberately left open** (per-repo `.gitehr/contributors.json` today vs a Store-level staff directory): parked until multi-subject workflows are fleshed out.
 - Docs gain a first-class self-hoster story - **families and pets** - alongside clinics, on the homepage and audience pages.

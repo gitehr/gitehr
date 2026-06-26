@@ -5,67 +5,67 @@ use anyhow::Result;
 use clap::Subcommand;
 use serde::{Deserialize, Serialize};
 
-pub mod add_patient;
+pub mod add;
 pub mod init;
 pub mod list;
-pub mod remove_patient;
+pub mod remove;
 
 #[derive(Subcommand)]
 pub enum StoreCommands {
-    #[command(about = "Initialize a new store root (multi-patient)")]
-    Init,
-    #[command(about = "List all patients in the store")]
-    List,
-    #[command(about = "Add a patient repository to the store")]
-    AddPatient {
-        #[arg(help = "Patient ID (UUID or other unique identifier)")]
-        patient_id: String,
-        #[arg(help = "Path to patient repository (e.g., patients/patient-uuid)")]
-        repo_path: String,
+    /// Initialise a new Store: creates the Store, its MPI, and the first subject repo
+    Init {
+        #[arg(
+            help = "Friendly name for the first subject (a person or pet). Omit for an auto-generated id."
+        )]
+        name: Option<String>,
+    },
+    /// Add a new subject: creates a repo and registers it in the MPI
+    Add {
+        #[arg(help = "Friendly name for the subject. Omit for an auto-generated id.")]
+        name: Option<String>,
         #[arg(
             long,
-            help = "Identifiers in format type:value (e.g., NHS:1234567890). Can be specified multiple times."
+            help = "Identifier as type:value (e.g. NHS:1234567890). Repeatable."
         )]
         identifier: Vec<String>,
     },
-    #[command(about = "Remove a patient repository from the store")]
-    RemovePatient {
-        #[arg(help = "Patient ID to remove")]
-        patient_id: String,
+    /// Remove a subject from the MPI (does not delete files)
+    Remove {
+        #[arg(help = "Subject to remove, by canonical id or friendly name")]
+        subject: String,
     },
+    /// List the subjects in the Store
+    List,
 }
 
 pub fn run(command: StoreCommands) -> Result<()> {
     match command {
-        StoreCommands::Init => init::run(),
-        StoreCommands::List => list::run(),
-        StoreCommands::AddPatient {
-            patient_id,
-            repo_path,
-            identifier,
-        } => {
-            // Parse identifier strings of the form "type:value"
-            let identifiers: Result<Vec<(String, String)>> = identifier
-                .iter()
-                .map(|id_str| {
-                    let parts: Vec<&str> = id_str.splitn(2, ':').collect();
-                    if parts.len() != 2 {
-                        anyhow::bail!(
-                            "Invalid identifier format '{}'. Use type:value (e.g., NHS:1234567890)",
-                            id_str
-                        );
-                    }
-                    Ok((parts[0].to_string(), parts[1].to_string()))
-                })
-                .collect();
-
-            add_patient::run(patient_id, repo_path, identifiers?)
+        StoreCommands::Init { name } => init::run(name.as_deref()),
+        StoreCommands::Add { name, identifier } => {
+            add::run(name.as_deref(), parse_identifiers(&identifier)?)
         }
-        StoreCommands::RemovePatient { patient_id } => remove_patient::run(patient_id),
+        StoreCommands::Remove { subject } => remove::run(&subject),
+        StoreCommands::List => list::run(),
     }
 }
 
-// ── Shared data structures ────────────────────────────────────────────────────
+/// Parse `type:value` identifier strings (e.g. `NHS:1234567890`).
+fn parse_identifiers(raw: &[String]) -> Result<Vec<(String, String)>> {
+    raw.iter()
+        .map(|s| {
+            s.split_once(':')
+                .map(|(t, v)| (t.to_string(), v.to_string()))
+                .ok_or_else(|| {
+                    anyhow::anyhow!(
+                        "Invalid identifier '{}'. Use type:value (e.g. NHS:1234567890)",
+                        s
+                    )
+                })
+        })
+        .collect()
+}
+
+// ── Shared data structures (the MPI - gitehr-mpi.json at the Store root) ───────
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct MpiInfo {
@@ -76,7 +76,9 @@ pub struct MpiInfo {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct MpiPatient {
+    /// Canonical, stable id (a UUIDv7 in Crockford base32). Never changes.
     pub patient_id: String,
+    /// On-disk directory for the subject's repo (friendly slug or the id).
     pub repo_path: String,
     pub status: String,
     pub merged_into: Option<String>,
