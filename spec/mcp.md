@@ -54,7 +54,7 @@ GitEHR CLI can operate as **both** a traditional CLI tool **and** an MCP server:
 
 ```bash
 # Traditional CLI mode (current behavior)
-gitehr init
+gitehr store init
 gitehr journal add "Patient note"
 gitehr status
 

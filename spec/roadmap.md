@@ -4,7 +4,7 @@ This roadmap tracks implementation status against the current `spec/` documents.
 
 ## Core CLI and Repository Lifecycle
 
-- [x] Implement binary bundling in `gitehr init` (`.gitehr/gitehr`).
+- [x] Implement binary bundling in `gitehr store init` (`.gitehr/gitehr`).
 - [x] Implement finalized journal file layout (`journal/<timestamp>-<uuid>.md`).
 - [x] Implement journal YAML front matter fields: `parent_hash`, `parent_entry`, `timestamp`, optional `author`.
 - [x] Implement `gitehr journal add` input modes: inline, `--file <path>`, and stdin via `--file -`.
@@ -13,7 +13,7 @@ This roadmap tracks implementation status against the current `spec/` documents.
 - [x] Implement contributor activation so journal entries include current `author`.
 - [x] Implement `gitehr version` output with both GitEHR and Git versions.
 - [x] Implement shell completions generation (`gitehr completions <shell>`).
-- [ ] **Store-first bootstrap ([ADR-0005](adr/0005-store-first-model.md)):** make `gitehr store init` create the Store, the MPI, and the first subject repo in one step (reusing the repo-scaffolding from the old `gitehr init`), and **remove the top-level `gitehr init`**. Subject repos use the UUIDv7 + Crockford directory naming from the spec.
+- [ ] **Store-first bootstrap ([ADR-0005](adr/0005-store-first-model.md)):** make `gitehr store init` create the Store, the MPI, and the first subject repo in one step (reusing the repo-scaffolding from the old `gitehr store init`), and **remove the top-level `gitehr store init`**. Subject repos use the UUIDv7 + Crockford directory naming from the spec.
 - [ ] Add robust `gitehr journal verify --verbose` (or equivalent) failure diagnostics per spec TODO.
 
 ## Plugin System
@@ -52,7 +52,7 @@ Bringing existing records into a repository (see [`spec/commands/import.md`](com
 - [x] Implement `gitehr upgrade`.
 - [x] Implement `gitehr upgrade-binary`.
 - [x] `gitehr store` ([ADR-0005](adr/0005-store-first-model.md)): `init [name]` bootstraps the Store + MPI + first subject repo; `add [name]` creates and registers a new subject repo; `remove <id|name>` de-registers; `list` shows subjects. Each subject gets a canonical UUIDv7 (Crockford base32) id and a friendly-name-or-id directory (`cli/src/commands/scaffold.rs`).
-- [ ] **Store-first, remaining ([ADR-0005](adr/0005-store-first-model.md)):** Store/repo context detection (walk up for `.gitehr/` and `gitehr-mpi.json`) plus single-subject auto-targeting; then **remove the top-level `gitehr init`** and move the test suite onto `gitehr store init`. The MPI identifier operations (`search`, `link`, `unlink`, `merge`, `path`) and the `GITEHR_MPI_PATH` override fold in as `gitehr store` subcommands later.
+- [ ] **Store-first, remaining ([ADR-0005](adr/0005-store-first-model.md)):** Store/repo context detection (walk up for `.gitehr/` and `gitehr-mpi.json`) plus single-subject auto-targeting; then **remove the top-level `gitehr store init`** and move the test suite onto `gitehr store init`. The MPI identifier operations (`search`, `link`, `unlink`, `merge`, `path`) and the `GITEHR_MPI_PATH` override fold in as `gitehr store` subcommands later.
 - [ ] **Self-hoster on-ramp docs (families and pets):** make the single-user, multi-subject story first-class on the site and in GUI onboarding - individuals and families keeping their own records, and **pet owners** keeping their animals' records - alongside the clinic story. Per ADR-0005 these are primary audiences, not afterthoughts.
 - [ ] Align `gitehr gui` launcher with command spec (prefer bundled `.gitehr/gitehr-gui`, then PATH `gitehr-gui`; current implementation still launches dev command).
 

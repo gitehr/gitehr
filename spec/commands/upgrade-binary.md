@@ -40,4 +40,4 @@ Binary upgrade complete!
 ## Related Commands
 
 - [`gitehr upgrade`](upgrade.md) - Upgrades the repository structure/schema and also updates the bundled binary.
-- [`gitehr init`](init.md) - Creates a new repository with the binary bundled.
+- [`gitehr store init`](store.md) - Creates a new repository with the binary bundled.

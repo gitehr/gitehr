@@ -5,7 +5,7 @@
 
 ## Big picture
 - Monorepo with three main surfaces: Rust CLI (`cli/`), documentation site (`docs/` + `mkdocs.yml`), and GUI app (`gui/`, Tauri + React/Mantine).
-- CLI manages on-disk EHR repos: a `.gitehr` marker + template folder structure from `folder-structure/` copied by `gitehr init`.
+- CLI manages on-disk EHR repos: a `.gitehr` marker + template folder structure from `folder-structure/` copied by `gitehr store init`.
 - Journal is append-only: entries live in `journal/` with YAML front matter and SHA-256 hash chaining (see `src/commands/journal.rs`, `src/commands/verify.rs`).
 
 ## Key paths & patterns
@@ -17,12 +17,12 @@
 
 ## Dev workflows (project-specific)
 - CLI build: `cargo build` from repo root; install via `cargo install --path .` (see `docs/developers/developers.md`).
-- Manual CLI tests: create a throwaway repo, run `gitehr init`, then `gitehr journal add "..."` (see `docs/developers/developers.md`).
+- Manual CLI tests: create a throwaway repo, run `gitehr store init`, then `gitehr journal add "..."` (see `docs/developers/developers.md`).
 - GUI dev: `cd gui && npm install && npm run tauri dev` (requires Tauri system deps; documented in developers guide).
 - Docs: `docker compose up` runs Zensical on :8766 (see `docker-compose.yml`). Or locally: `pip install -r requirements.txt && zensical serve`.
 
 ## Conventions
-- Repository template lives under `folder-structure/` and is copied verbatim on `gitehr init`; update both template + CLI logic when needed.
+- Repository template lives under `folder-structure/` and is copied verbatim on `gitehr store init`; update both template + CLI logic when needed.
 - Use SHA-256 hashes for journal chain verification (`sha2` crate); verify scans all entries and maps hash -> filename.
 - Keep command specs aligned with current CLI behavior.
 

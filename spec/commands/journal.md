@@ -99,7 +99,7 @@ gitehr journal show --drafts LATEST^                   # the second most recent 
 ## Journal Data Model
 
 - Each entry file is YAML front matter followed by a Markdown body. The front matter is a `JournalEntry` with `timestamp` (UTC), `author` (optional, set from the currently active contributor via `gitehr user activate <id>`), and `documents` (optional, a list of references to [Documents](document.md) this entry relates to, each with `path`, `sha256`, and optional `original_filename`). See [cli/src/commands/journal/mod.rs](../../cli/src/commands/journal/mod.rs).
-- The body after the front matter holds the clinical narrative or data written in the draft (or the genesis message created by `gitehr init`).
+- The body after the front matter holds the clinical narrative or data written in the draft (or the genesis message created by `gitehr store init`).
 - File naming embeds chronological ordering and uniqueness via the timestamp and UUID, so a simple filename sort reconstructs history.
 
 ## Planned refinements

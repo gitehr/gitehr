@@ -38,7 +38,7 @@ nav:
       - GUI: install/gui.md
   - CLI:
       - Overview: cli/cli.md
-      - init: cli/init.md
+      - store: cli/store.md
       - journal: cli/journal.md
       - document: cli/document.md
       - import: cli/import.md

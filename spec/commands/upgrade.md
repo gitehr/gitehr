@@ -38,4 +38,4 @@ Upgrade complete!
 ## Related Commands
 
 - [`gitehr upgrade-binary`](upgrade-binary.md) - Updates only the bundled binary without recording in journal.
-- [`gitehr init`](init.md) - Creates a new repository with the current version.
+- [`gitehr store init`](store.md) - Creates a new repository with the current version.

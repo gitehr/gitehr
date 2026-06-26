@@ -85,7 +85,8 @@ def main():
 
     if args.parallel == 1:
         for _ in range(args.repos):
-            run([gitehr_bin, "init"], cwd=store_root)
+            sub = "init" if not os.path.exists(mpi_path) else "add"
+            run([gitehr_bin, "store", sub], cwd=store_root)
             repo_dir = resolve_repo_from_mpi(store_root, mpi_path)
 
             if not args.no_journal:

@@ -20,7 +20,7 @@ This specification summarises the behaviour described in the codebase and docume
 
 ## Layout of a GitEHR Repository
 
-When `gitehr init` runs, it copies the template from `folder-structure` into the current (or otherwise specified)directory and creates a `.gitehr` marker directory used to detect a valid repository (see [src/commands/init.rs](../../src/commands/init.rs)). Key directories:
+When `gitehr store init` runs, it copies the template from `folder-structure` into the current (or otherwise specified)directory and creates a `.gitehr` marker directory used to detect a valid repository (see [src/commands/init.rs](../../src/commands/init.rs)). Key directories:
 
 - `/journal` – Chronological Markdown entries named with timestamp and GUID; each represents a single clinical event and is immutable after creation (see [folder-structure/journal/README.md](../../folder-structure/journal/README.md)).
 
@@ -71,7 +71,7 @@ GitEHR supports extensibility through a plugin system. Any executable named `git
 
 The CLI currently provides the following commands.
 
-### [`gitehr init`](commands/init.md)
+### [`gitehr store`](commands/store.md)
 
 Initializes a new GitEHR repository **from the store root**, creating a new repo directory named with a Crockford Base32 UUIDv7, recording it in the MPI, and then creating the necessary folder structure and bundled binary within that new repo.
 
@@ -139,7 +139,7 @@ journal/
 - Each file is named with its creation timestamp (UTC, millisecond precision) followed by a UUID to guarantee uniqueness.
 - Example: `20260205T032720.630Z-dab47f45-f5ff-45a2-b6b4-6f2285b173ac.md`
 - Files are sorted chronologically by filename.
-- The first entry (genesis) is created automatically by `gitehr init` and anchors the chain with a random seed hash.
+- The first entry (genesis) is created automatically by `gitehr store init` and anchors the chain with a random seed hash.
 
 ## File format
 
@@ -168,7 +168,7 @@ Markdown narrative of the clinical interaction...
 
 ### Initialization
 
-Running `gitehr init` creates a new repository with:
+Running `gitehr store init` creates a new repository with:
 - The folder structure from the template (`journal/`, `state/`, `imaging/`, `documents/`)
 - A `.gitehr/` configuration directory with version information
 - A genesis journal entry that anchors the hash chain with a random seed
@@ -238,7 +238,7 @@ Notes:
 - 2 prefix bytes yields 65,536 shards (256×256), which is generally sufficient.
 - 3 prefix bytes yields 16,777,216 shards; only needed at very large scale.
 - Keep the **repo directory name** a deterministic function of the canonical patient ID so it is reproducible and collision‑resistant.
-- For `gitehr init`, the repo directory name is the **Crockford Base32 UUIDv7** generated for the patient.
+- For `gitehr store init`, the repo directory name is the **Crockford Base32 UUIDv7** generated for the patient.
 
 ### Main Patient Index (MPI)
 

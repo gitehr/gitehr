@@ -16,4 +16,4 @@ Output includes:
 - State file list (excluding `README.md`)
 - Git working directory status, when the directory is also a Git repository
 
-If the current directory is not a GitEHR repository, prints a hint to run `gitehr init`.
+If the current directory is not a GitEHR repository, prints a hint to run `gitehr store init`.

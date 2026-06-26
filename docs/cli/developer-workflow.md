@@ -7,7 +7,7 @@ For contributors hacking on the CLI itself. End users should use [Install the CL
 Relevant paths inside the CLI repo:
 
 - `cli/` - Rust CLI project root
-- `folder-structure/` - template copied by `gitehr init`
+- `folder-structure/` - template copied by `gitehr store init`
   - `README.md` - root repository README template
   - `journal/` - journal directory template
   - `state/` - clinical state directory template
@@ -39,13 +39,13 @@ From the repo root:
    mkdir test-ehr
    cd test-ehr
 
-   gitehr init
+   gitehr store init
    gitehr journal add "Test entry"
    ```
 
 4. Inspect generated files and adjust implementation as needed.
 
-## Manually testing `gitehr init`
+## Manually testing `gitehr store init`
 
 1. Choose or create a directory to act as a test EHR repo (outside the CLI repo is recommended):
 
@@ -59,7 +59,7 @@ From the repo root:
 2. Run init:
 
    ```sh
-   gitehr init
+   gitehr store init
    ```
 
 3. Verify structure:

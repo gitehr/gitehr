@@ -15,7 +15,7 @@ Each command has its own page. Subcommands are sections within the parent comman
 
 | Command | Purpose |
 |---|---|
-| [`gitehr init`](init.md) | Initialise a new GitEHR repository |
+| [`gitehr store`](store.md) | Manage the Store - subjects + MPI (`init`, `add`, `remove`, `list`) |
 | [`gitehr journal`](journal.md) | Append-only clinical journal (`add`, `show`, `cat`, `verify`) |
 | [`gitehr document`](document.md) | Attach immutable source documents - PDFs, scans, imaging - referenced from journal entries |
 | [`gitehr import`](import.md) | Import journal entries or documents from a file or directory |
@@ -43,7 +43,7 @@ The shortest useful demonstration of the CLI:
 
 ```bash
 mkdir patient-record && cd patient-record
-gitehr init
+gitehr store init
 
 gitehr user add me "Dr Marcus Baw" --role gp
 gitehr user activate me

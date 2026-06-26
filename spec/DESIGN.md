@@ -212,11 +212,11 @@ appears once a record is open).
 
 **Components:**
 - `Button` ("Open existing record") - triggers a Tauri directory picker via `@tauri-apps/plugin-dialog`. After the user picks a directory, validate that it contains a `.gitehr/` subdirectory before proceeding; show an inline error if it does not.
-- `Button` variant="outline" ("Create new record") - opens the new record form (this will invoke `gitehr init` in a chosen directory)
+- `Button` variant="outline" ("Create new record") - opens the new record form (this will invoke `gitehr store init` in a chosen directory)
 - A short list of recently opened records (stored in Tauri app local data) rendered
   as `NavLink` items
 
-Note: GitEHR repositories are UUID-named directories created by `gitehr init` under a store root directory (which contains `gitehr-mpi.json`). Users who want to navigate by the MPI can open the store root; the MVP record selector simply lets them open any directory and validates the `.gitehr/` marker.
+Note: GitEHR repositories are UUID-named directories created by `gitehr store init` under a store root directory (which contains `gitehr-mpi.json`). Users who want to navigate by the MPI can open the store root; the MVP record selector simply lets them open any directory and validates the `.gitehr/` marker.
 
 **Do not** build a patient search or a multi-patient record manager here. One record
 at a time.

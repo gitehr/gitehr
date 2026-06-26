@@ -10,7 +10,7 @@ Displays the current status of the GitEHR repository.
 
 Behavior:
 
-- If the current directory is not a GitEHR repository, prints a message and suggests running `gitehr init`.
+- If the current directory is not a GitEHR repository, prints a message and suggests running `gitehr store init`.
 - Prints repository version (from `.gitehr/GITEHR_VERSION`) when present.
 - Shows encryption status based on `.gitehr/ENCRYPTED`.
 - Shows the number of journal entries.
