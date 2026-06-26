@@ -45,7 +45,7 @@ pub enum JournalCommands {
 pub fn run(command: JournalCommands) -> Result<()> {
     if !PathBuf::from(".gitehr").exists() {
         anyhow::bail!(
-            "Not a GitEHR repository (or not in the repository root). Run 'gitehr init' to create a new repository."
+            "Not a GitEHR repository (or not in the repository root). Run 'gitehr store init' to create a new repository."
         );
     }
 

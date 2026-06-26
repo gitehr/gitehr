@@ -10,7 +10,6 @@ pub mod encrypt;
 mod git;
 pub mod gui;
 pub mod import;
-pub mod init;
 pub mod journal;
 pub mod mcp;
 pub mod plugin;

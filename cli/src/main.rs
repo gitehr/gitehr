@@ -27,7 +27,6 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    Init,
     /// Manage contributors and the active author
     #[command(visible_alias = "contributor")]
     User {
@@ -144,7 +143,6 @@ fn main() -> Result<()> {
     apply_context(&mut cli.command)?;
 
     match cli.command {
-        Commands::Init => commands::init::run()?,
         Commands::User { command } => commands::user::run(command)?,
         Commands::Import { mode, path } => commands::import::run(mode, &path)?,
         Commands::Journal { command } => commands::journal::run(command)?,

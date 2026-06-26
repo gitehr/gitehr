@@ -16,7 +16,7 @@ pub fn run(repo_path: Option<PathBuf>) -> Result<()> {
     // Validate it's a GitEHR repository
     if !path.join(".gitehr").exists() {
         anyhow::bail!(
-            "Not a GitEHR repository: {}\nRun 'gitehr init' to create a new repository.",
+            "Not a GitEHR repository: {}\nRun 'gitehr store init' to create a new repository.",
             path.display()
         );
     }

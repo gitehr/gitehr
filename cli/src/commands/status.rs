@@ -112,7 +112,7 @@ pub fn run() -> Result<()> {
 
     if !status.is_gitehr_repo {
         println!("Not a GitEHR repository (or not in the repository root).");
-        println!("Run 'gitehr init' to create a new repository.");
+        println!("Run 'gitehr store init' to create a new repository.");
         return Ok(());
     }
 

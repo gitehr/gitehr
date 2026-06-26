@@ -25,7 +25,7 @@ pub enum ImportMode {
 pub fn run(mode: ImportMode, source: &Path) -> Result<()> {
     if !PathBuf::from(".gitehr").exists() {
         bail!(
-            "Not a GitEHR repository (or not in the repository root). Run 'gitehr init' to create a new repository."
+            "Not a GitEHR repository (or not in the repository root). Run 'gitehr store init' to create a new repository."
         );
     }
     if !source.exists() {

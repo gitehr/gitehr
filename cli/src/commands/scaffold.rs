@@ -47,7 +47,8 @@ pub fn create_subject_repo(parent: &Path, name: Option<&str>) -> Result<(String,
 }
 
 /// Scaffold a GitEHR repo in the current directory: `.gitehr/` (with the bundled
-/// binary, version, and canonical id), a git repo, and the template folders.
+/// binary, version, and canonical id), a git repo, and the template folders. The
+/// primitive behind [`create_subject_repo`]; also used directly by tests.
 pub fn scaffold_cwd(canonical_id: &str) -> Result<()> {
     let gitehr_dir = PathBuf::from(".gitehr");
     if gitehr_dir.exists() {

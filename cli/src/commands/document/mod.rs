@@ -99,7 +99,7 @@ pub(super) struct Manifest {
 
 pub fn ensure_gitehr_repository() -> Result<()> {
     if !Path::new(".gitehr").exists() {
-        bail!("Not in a gitehr repository. Run 'gitehr init' first.");
+        bail!("Not in a gitehr repository. Run 'gitehr store init' first.");
     }
     Ok(())
 }

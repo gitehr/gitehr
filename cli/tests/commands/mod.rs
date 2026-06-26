@@ -4,12 +4,12 @@
 pub mod contributor;
 pub mod document;
 pub mod encrypt;
-pub mod init;
 pub mod journal;
 #[cfg(unix)]
 pub mod plugin;
 pub mod remote;
 pub mod state;
 pub mod status;
+pub mod store;
 pub mod transport;
 pub mod upgrade;
