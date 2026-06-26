@@ -51,7 +51,8 @@ Bringing existing records into a repository (see [`spec/commands/import.md`](com
 - [x] Implement `gitehr user` (`create`, `add`, `enable`, `disable`, `activate`, `deactivate`, `list`) and `contributor` alias.
 - [x] Implement `gitehr upgrade`.
 - [x] Implement `gitehr upgrade-binary`.
-- [ ] Implement `gitehr mpi` command family (`search`, `link`, `unlink`, `create`, `merge`, `list`, `path`) and MPI path override behavior.
+- [x] `gitehr store` - basic multi-patient store / MPI management: `init`, `list`, `add-patient`, `remove-patient`, maintaining `gitehr-mpi.json` at the store root. (Flattened out of the former `gitehr server` tree.)
+- [ ] Full MPI identifier-resolution operations per `spec/commands/mpi.md` (`search`, `link`, `unlink`, `merge`, `path`) plus the `GITEHR_MPI_PATH` override. **Open naming decision:** the code and `docs/cli/init.md` use `gitehr store`, the spec (`spec/commands/mpi.md`, `spec/spec.md`) uses `gitehr mpi` - reconcile to one name (and align the implemented `add-patient` vs the spec's `create`).
 - [ ] Align `gitehr gui` launcher with command spec (prefer bundled `.gitehr/gitehr-gui`, then PATH `gitehr-gui`; current implementation still launches dev command).
 
 ## Repository Template and Data Layout

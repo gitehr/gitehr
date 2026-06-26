@@ -28,6 +28,7 @@ struct Cli {
 enum Commands {
     Init,
     /// Manage contributors and the active author
+    #[command(visible_alias = "contributor")]
     User {
         #[command(subcommand)]
         command: Option<UserCommands>,
