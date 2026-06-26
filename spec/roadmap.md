@@ -13,7 +13,7 @@ This roadmap tracks implementation status against the current `spec/` documents.
 - [x] Implement contributor activation so journal entries include current `author`.
 - [x] Implement `gitehr version` output with both GitEHR and Git versions.
 - [x] Implement shell completions generation (`gitehr completions <shell>`).
-- [ ] Update `gitehr init` to follow store-root flow from spec: create/use `gitehr-mpi.json`, create UUIDv7+Crockford repo directory, then initialize inside that repo.
+- [ ] **Store-first bootstrap ([ADR-0005](adr/0005-store-first-model.md)):** make `gitehr store init` create the Store, the MPI, and the first subject repo in one step (reusing the repo-scaffolding from the old `gitehr init`), and **remove the top-level `gitehr init`**. Subject repos use the UUIDv7 + Crockford directory naming from the spec.
 - [ ] Add robust `gitehr journal verify --verbose` (or equivalent) failure diagnostics per spec TODO.
 
 ## Plugin System
@@ -52,7 +52,8 @@ Bringing existing records into a repository (see [`spec/commands/import.md`](com
 - [x] Implement `gitehr upgrade`.
 - [x] Implement `gitehr upgrade-binary`.
 - [x] `gitehr store` - basic multi-patient store / MPI management: `init`, `list`, `add-patient`, `remove-patient`, maintaining `gitehr-mpi.json` at the store root. (Flattened out of the former `gitehr server` tree.)
-- [ ] Full MPI identifier-resolution operations per `spec/commands/mpi.md` (`search`, `link`, `unlink`, `merge`, `path`) plus the `GITEHR_MPI_PATH` override. **Open naming decision:** the code and `docs/cli/init.md` use `gitehr store`, the spec (`spec/commands/mpi.md`, `spec/spec.md`) uses `gitehr mpi` - reconcile to one name (and align the implemented `add-patient` vs the spec's `create`).
+- [ ] **Store-first command model ([ADR-0005](adr/0005-store-first-model.md)):** `gitehr store add-patient` should *create* a new subject repo (not register an existing one); repo-level commands gain Store/repo context detection (walk up for `.gitehr/` and `gitehr-mpi.json`) plus single-subject auto-targeting. The MPI identifier operations (`search`, `link`, `unlink`, `merge`, `path`) and the `GITEHR_MPI_PATH` override fold in as `gitehr store` subcommands - there is no separate `gitehr mpi` command.
+- [ ] **Self-hoster on-ramp docs (families and pets):** make the single-user, multi-subject story first-class on the site and in GUI onboarding - individuals and families keeping their own records, and **pet owners** keeping their animals' records - alongside the clinic story. Per ADR-0005 these are primary audiences, not afterthoughts.
 - [ ] Align `gitehr gui` launcher with command spec (prefer bundled `.gitehr/gitehr-gui`, then PATH `gitehr-gui`; current implementation still launches dev command).
 
 ## Repository Template and Data Layout

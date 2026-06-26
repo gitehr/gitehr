@@ -2,6 +2,8 @@
 
 # `gitehr mpi`
 
+> **Superseded by [ADR-0005](../adr/0005-store-first-model.md).** These operations are not a separate `gitehr mpi` command - they fold into **`gitehr store`** (the MPI is the Store's index file, not its own command surface). This page is retained as the design for the identifier-resolution operations themselves (`search`, `link`, `unlink`, `merge`, `path`); read every `gitehr mpi` below as `gitehr store`.
+
 Resolve and manage patient identifiers against a local Main Patient Index (MPI).
 
 > **Naming.** This was previously called the *Master Patient Index*. GitEHR dropped "Master" (as GitHub did when it renamed the default branch to "main"), keeping the established **MPI** acronym. Each repository in a store is one subject - usually a patient, but the index generalises to any entity, so in a non-clinical deployment it can be read as a *Main Subject Index*.
