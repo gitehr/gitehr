@@ -122,7 +122,7 @@ The `parent_hash` in the newest file should match `HASH`.
 
 ## Versioning
 
-GitEHR follows semantic versioning (`MAJOR.MINOR.PATCH`) and keeps the canonical version in `cli/Cargo.toml` under the `[workspace.package]` section.
+GitEHR follows semantic versioning (`MAJOR.MINOR.PATCH`) and keeps the canonical Rust workspace version in the root `Cargo.toml` under `[workspace.package]`.
 
 ### Version bump policy
 
@@ -135,37 +135,28 @@ GitEHR follows semantic versioning (`MAJOR.MINOR.PATCH`) and keeps the canonical
     - Breaking changes to the CLI interface or on-disk format.
     - Anything that may invalidate existing EHR repos or tools built on top of GitEHR.
 
-### Bumping the version
+### Release automation
 
-Use the helper script from the repo root:
+GitEHR uses `release-plz` for normal releases. Because GitEHR is currently released as binaries rather than published to crates.io, `release-plz.toml` sets `publish = false` and `git_only = true`; the existing `vX.Y.Z` tags are the release source of truth.
 
-```sh
-s/version++ patch   # or: minor, major
-```
+On every push to `main`, `.github/workflows/release-plz.yml` opens or refreshes a Release PR. That PR bumps the Cargo workspace version, rewrites `CHANGELOG.md` from conventional commits, and is the only version-bump PR maintainers should normally merge. When the Release PR is merged, release-plz creates the `vX.Y.Z` tag and GitHub Release.
 
-This calls `cargo set-version` to rewrite the workspace version and creates a `v<version>` git tag on the current commit if the working tree is clean.
-
-After bumping, rebuild and install as usual:
-
-```sh
-s/install
-```
+The workflow uses the `RELEASE_PLZ_TOKEN` repository secret rather than the default `GITHUB_TOKEN`, so Release PRs trigger the normal CI checks. Until that secret exists, the workflow skips cleanly.
 
 ### Recommended workflow
 
-1. Make and test your changes.
-2. Decide the appropriate semver level (patch / minor / major).
-3. From the repo root:
+1. Make and test changes locally.
+2. Commit using conventional commits (`fix:`, `feat:`, `feat!:` / `BREAKING CHANGE:`, `docs:`, `ci:`, etc.).
+3. Merge to `main`.
+4. Review and merge the release-plz Release PR.
+5. Let release-plz create the tag and GitHub Release. Do not create release tags locally.
 
-   ```sh
-   s/version++ patch
-   ```
+### Manual fallback
 
-4. Commit your changes, including the touched `Cargo.toml` and any code.
-5. Push tags if you use them:
+`s/version++` is kept only as an explicit local fallback for bypassing release-plz. It no longer creates tags.
 
-   ```sh
-   git push --tags
-   ```
+```sh
+s/version++ --manual patch   # or: minor, major
+```
 
-This keeps the Cargo version, git history, and published binaries aligned.
+The fallback bumps the root Cargo workspace version and the GUI version files (`gui/src-tauri/Cargo.toml`, `gui/src-tauri/tauri.conf.json`, `gui/package.json`, `gui/package-lock.json`). Commit those changes manually if you use it.

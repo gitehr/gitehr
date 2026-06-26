@@ -1,23 +1,21 @@
 # SPDX-FileCopyrightText: 2026 Marcus Baw and Baw Medical Ltd
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
-# release-plz: trialling the industry-standard Rust release automation
-# (see ~/code/house-style/distribution.md). On every push to main it opens (or
-# refreshes) a "Release PR" that bumps the workspace version and rewrites
-# CHANGELOG.md from the conventional commits. Merging that PR tags the release
-# and creates the GitHub Release.
+# release-plz owns GitEHR's Rust release automation. On every push to main it
+# opens (or refreshes) a Release PR that bumps the Cargo workspace version and
+# rewrites CHANGELOG.md from the conventional commits. Merging that PR tags the
+# release and creates the GitHub Release.
 #
-# gitehr depends on the calc crates via a git rev, so it cannot be published to
-# crates.io yet; `publish = false` in release-plz.toml disables cargo publish,
-# leaving release-plz to manage version + changelog + tag + GitHub Release only.
+# gitehr is released as binaries and is not currently published to crates.io;
+# release-plz.toml disables cargo publish and uses git tags as the release
+# source of truth.
 #
 # ACTIVATION: the gitehr org blocks the default GITHUB_TOKEN from creating PRs,
 # so this workflow uses a PAT in the RELEASE_PLZ_TOKEN secret (a fine-grained
 # token with contents:write + pull-requests:write on this repo). Using a PAT is
 # also the release-plz-recommended setup, because the Release PR then triggers
 # CI (PRs opened by GITHUB_TOKEN do not). Until that secret is set the jobs
-# below skip cleanly, so this file is dormant - no failing runs - and activates
-# automatically once the secret exists.
+# below skip cleanly, with no failing runs.
 
 name: release-plz
 

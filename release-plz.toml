@@ -1,9 +1,9 @@
 # SPDX-FileCopyrightText: 2026 Marcus Baw and Baw Medical Ltd
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
-# Trial config. gitehr depends on the calc crates via a git rev, so it cannot be
-# published to crates.io yet. Disable cargo publish; release-plz still manages
-# the version, CHANGELOG.md, the git tag, and the GitHub Release. Changelog
-# layout (per-crate vs a single root file) can be tuned once we see a Release PR.
+# gitehr is released as binaries and is not currently published to crates.io.
+# Use git tags as the release source of truth; release-plz still manages the
+# Cargo workspace version, CHANGELOG.md, the git tag, and the GitHub Release.
 [workspace]
 publish = false
+git_only = true

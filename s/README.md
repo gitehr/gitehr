@@ -21,6 +21,16 @@ Run the formatting and clippy checks CI enforces (`cargo fmt --all --check`, the
 
 To auto-apply fixes: `cargo fmt --all && cargo clippy --fix --all-targets --allow-dirty`.
 
+## `s/version++`
+
+GitEHR releases are managed by release-plz. Running `s/version++` without arguments explains the Release PR flow and exits without changing files. Use the explicit manual fallback only when deliberately bypassing release-plz:
+
+```
+s/version++ --manual patch   # or: minor, major
+```
+
+The fallback bumps local version files and does not commit or tag.
+
 ## `s/size`
 
 Print a tidy table of GitEHR's disk footprint: the size of each release binary (as built and stripped - the real "what ships" figure), the `target/` build cache split into debug/release/total (your `cargo clean` / `cargo sweep` signal), and the repo on disk (`.git`, `gui/` node_modules, whole repo). Works from any directory with standard tools.

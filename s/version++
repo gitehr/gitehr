@@ -3,11 +3,31 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
 # set -v  # Enable verbose mode
-set -e  # Exit on error
+set -euo pipefail  # Exit on error
 
 # scripts may need to be made executable on some platforms before they can be run
 # chmod +x s/<filename> is the command to do this on unixy systems
 
+if [[ "${1-}" != "--manual" ]]; then
+  cat >&2 <<'EOF'
+GitEHR releases are managed by release-plz.
+
+Normal release flow:
+  1. Use conventional commits.
+  2. Push/merge to main.
+  3. Merge the release-plz Release PR.
+
+release-plz then creates the git tag and GitHub Release. Do not tag locally.
+
+Manual fallback, only when deliberately bypassing release-plz:
+  s/version++ --manual [patch|minor|major]
+
+The manual fallback bumps local version files but does not commit or tag.
+EOF
+  exit 1
+fi
+
+shift
 bump="patch"
 if [[ -n "${1-}" ]]; then
   case "$1" in
@@ -24,10 +44,23 @@ fi
 cargo set-version --bump "$bump"
 
 version="$(awk -F\" '/^version =/ {print $2; exit}' Cargo.toml)"
-tag="v$version"
-if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
-  echo "Tag $tag already exists." >&2
+if [[ -z "$version" ]]; then
+  echo "Could not read workspace version from Cargo.toml." >&2
   exit 1
 fi
 
-git tag "$tag"
+cargo set-version --manifest-path gui/src-tauri/Cargo.toml "$version"
+
+(
+  cd gui
+  npm version "$version" --no-git-tag-version >/dev/null
+  node -e '
+    const fs = require("fs");
+    const path = "src-tauri/tauri.conf.json";
+    const config = JSON.parse(fs.readFileSync(path, "utf8"));
+    config.version = process.argv[1];
+    fs.writeFileSync(path, `${JSON.stringify(config, null, 2)}\n`);
+  ' "$version"
+)
+
+echo "Bumped local versions to $version. No commit or tag was created."
