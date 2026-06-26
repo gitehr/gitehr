@@ -42,7 +42,8 @@ The Tauri app exposes these commands to the frontend:
 ### Repository Management
 - `get_current_dir()` - Get current working directory
 - `is_gitehr_repo(path)` - Check if path is a GitEHR repo
-- `init_repo(path)` - Initialize new GitEHR repo
+- `init_store_root(path, name?)` - Initialize a Store root and first subject repo
+- `add_store_subject(path, name?)` - Add a further subject repo to a Store
 
 ### MPI (Main Patient Index)
 - `has_mpi(path)` - Check if MPI exists
@@ -55,7 +56,6 @@ The Tauri app exposes these commands to the frontend:
 ### Journal Operations
 - `get_journal_entries(repo_path, limit, offset, reverse)` - List journal entries
 - `add_journal_entry(repo_path, content)` - Create new entry
-- `verify_journal(repo_path)` - Verify journal integrity
 
 ### State Management
 - `get_state_files(repo_path)` - List all state files

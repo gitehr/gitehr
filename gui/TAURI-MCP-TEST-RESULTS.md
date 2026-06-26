@@ -79,11 +79,12 @@
 ✅ get_state_file(repo_path, filename)
 ✅ update_state_file(repo_path, filename, content)
 ✅ add_journal_entry(repo_path, content)
-✅ verify_journal(repo_path)
+✅ add_journal_entry(repo_path, content)
 ✅ get_contributors(repo_path)
 ✅ get_current_contributor(repo_path)
 ✅ activate_contributor(repo_path, contributor_id)
-✅ init_repo(path)
+✅ init_store_root(path, name?)
+✅ add_store_subject(path, name?)
 ```
 
 **GitEHR CLI Integration**: ✅ Linked correctly via path dependency
@@ -161,8 +162,9 @@ await invoke('get_current_dir');
 // Test is_gitehr_repo
 await invoke('is_gitehr_repo', { path: '/some/path' });
 
-// Test init_repo
-await invoke('init_repo', { path: '/tmp/test-repo' });
+// Test Store creation
+await invoke('init_store_root', { path: '/tmp/test-store', name: 'rex' });
+await invoke('add_store_subject', { path: '/tmp/test-store', name: 'fluffy' });
 ```
 
 ### Frontend Testing (UI Verification)

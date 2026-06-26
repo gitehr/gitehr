@@ -1,13 +1,13 @@
 use serde::{Deserialize, Serialize};
 use std::io::ErrorKind;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+use std::process::Command;
 use tauri::Manager;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct JournalEntryInfo {
     pub filename: String,
     pub timestamp: String,
-    pub parent_entry: Option<String>,
     pub author: Option<String>,
     pub content_preview: String,
 }
@@ -75,6 +75,81 @@ where
     result
 }
 
+fn run_gitehr_in(path: &str, args: &[&str]) -> Result<String, String> {
+    let cli = resolve_gitehr_cli();
+    let output = Command::new(&cli)
+        .args(args)
+        .current_dir(path)
+        .output()
+        .map_err(|e| {
+            if e.kind() == ErrorKind::NotFound {
+                "GitEHR CLI not found. Install gitehr or ensure it is in PATH.".to_string()
+            } else {
+                format!("Failed to execute gitehr binary: {}", e)
+            }
+        })?;
+
+    if output.status.success() {
+        Ok(String::from_utf8_lossy(&output.stdout).to_string())
+    } else {
+        let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+        if stderr.contains("unrecognized subcommand 'store'") {
+            return Err(format!(
+                "The gitehr CLI at '{}' is too old and does not support `gitehr store`. \
+                 Rebuild this checkout (`cargo build -p gitehr`) or put a current gitehr on PATH.",
+                cli.display()
+            ));
+        }
+        if stderr.is_empty() {
+            Err(String::from_utf8_lossy(&output.stdout).trim().to_string())
+        } else {
+            Err(stderr)
+        }
+    }
+}
+
+fn resolve_gitehr_cli() -> PathBuf {
+    if let Some(path) = std::env::var_os("GITEHR_CLI").map(PathBuf::from) {
+        if path.exists() {
+            return path;
+        }
+    }
+
+    if let Ok(current_exe) = std::env::current_exe() {
+        if let Some(dir) = current_exe.parent() {
+            let sibling = dir.join(exe_name("gitehr"));
+            if sibling.exists() {
+                return sibling;
+            }
+        }
+    }
+
+    let repo_root = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .and_then(Path::parent);
+    if let Some(repo_root) = repo_root {
+        for profile in ["debug", "release"] {
+            let candidate = repo_root.join("target").join(profile).join(exe_name("gitehr"));
+            if candidate.exists() {
+                return candidate;
+            }
+        }
+    }
+
+    PathBuf::from(exe_name("gitehr"))
+}
+
+fn exe_name(name: &str) -> String {
+    #[cfg(windows)]
+    {
+        format!("{name}.exe")
+    }
+    #[cfg(not(windows))]
+    {
+        name.to_string()
+    }
+}
+
 #[tauri::command]
 fn get_current_dir() -> Result<String, String> {
     std::env::current_dir()
@@ -133,24 +208,8 @@ fn get_journal_entries(
     reverse: Option<bool>,
 ) -> Result<Vec<JournalEntryInfo>, String> {
     with_repo_dir(&repo_path, || {
-        let journal_dir = PathBuf::from("journal");
-        if !journal_dir.exists() {
-            return Ok(vec![]);
-        }
-
-        let mut entries: Vec<_> = std::fs::read_dir(&journal_dir)
-            .map_err(|e| e.to_string())?
-            .filter_map(|e| e.ok())
-            .map(|e| e.path())
-            .filter(|path| {
-                path.file_name()
-                    .and_then(|n| n.to_str())
-                    .map(|name| name.contains('T') && name.contains('-') && name.ends_with(".md"))
-                    .unwrap_or(false)
-            })
-            .collect();
-
-        entries.sort();
+        let mut entries =
+            gitehr::commands::journal::parsed_entries().map_err(|e| e.to_string())?;
 
         if reverse.unwrap_or(false) {
             entries.reverse();
@@ -159,41 +218,22 @@ fn get_journal_entries(
         let offset = offset.unwrap_or(0);
         let limit = limit.unwrap_or(50);
 
-        let entries_to_show: Vec<_> = entries.into_iter().skip(offset).take(limit).collect();
-
-        let mut result = Vec::new();
-        for path in entries_to_show {
-            if let Ok(content) = std::fs::read_to_string(&path) {
-                let parts: Vec<&str> = content.splitn(3, "---").collect();
-                if parts.len() >= 3 {
-                    let yaml_content = parts[1].trim();
-                    let body_content = parts[2].trim();
-
-                    if let Ok(metadata) =
-                        serde_yaml_ng::from_str::<gitehr::commands::journal::JournalEntry>(yaml_content)
-                    {
-                        let preview: String = body_content
-                            .chars()
-                            .take(200)
-                            .collect::<String>()
-                            .replace('\n', " ");
-
-                        result.push(JournalEntryInfo {
-                            filename: path
-                                .file_name()
-                                .map(|s| s.to_string_lossy().to_string())
-                                .unwrap_or_default(),
-                            timestamp: metadata.timestamp.to_rfc3339(),
-                            parent_entry: metadata.parent_entry,
-                            author: metadata.author,
-                            content_preview: preview,
-                        });
-                    }
-                }
-            }
-        }
-
-        Ok(result)
+        Ok(entries
+            .into_iter()
+            .skip(offset)
+            .take(limit)
+            .map(|entry| JournalEntryInfo {
+                filename: entry.filename,
+                timestamp: entry.metadata.timestamp.to_rfc3339(),
+                author: entry.metadata.author,
+                content_preview: entry
+                    .content
+                    .chars()
+                    .take(200)
+                    .collect::<String>()
+                    .replace('\n', " "),
+            })
+            .collect())
     })
 }
 
@@ -237,23 +277,9 @@ fn update_state_file(repo_path: String, filename: String, content: String) -> Re
 #[tauri::command]
 fn add_journal_entry(repo_path: String, content: String) -> Result<String, String> {
     with_repo_dir(&repo_path, || {
-        let latest =
-            gitehr::commands::journal::get_latest_journal_entry().map_err(|e| e.to_string())?;
-        let parent_hash = latest.map(|(_, hash)| hash);
-
-        gitehr::commands::journal::create_journal_entry(&content, parent_hash)
-            .map_err(|e| e.to_string())?;
+        gitehr::commands::journal::create_journal_entry(&content).map_err(|e| e.to_string())?;
 
         Ok("Journal entry created".to_string())
-    })
-}
-
-#[tauri::command]
-fn verify_journal(repo_path: String) -> Result<String, String> {
-    with_repo_dir(&repo_path, || {
-        gitehr::commands::verify::verify_journal()
-            .map(|_| "Journal verification successful".to_string())
-            .map_err(|e| e.to_string())
     })
 }
 
@@ -300,46 +326,25 @@ fn activate_contributor(repo_path: String, contributor_id: String) -> Result<(),
 }
 
 #[tauri::command]
-fn init_repo(path: String) -> Result<String, String> {
-    let output = std::process::Command::new("gitehr")
-        .arg("init")
-        .current_dir(&path)
-        .output()
-        .map_err(|e| {
-            if e.kind() == ErrorKind::NotFound {
-                "GitEHR CLI not found. Install gitehr or ensure it is in PATH.".to_string()
-            } else {
-                format!("Failed to execute gitehr binary: {}", e)
-            }
-        })?;
+fn init_store_root(path: String, name: Option<String>) -> Result<String, String> {
+    let trimmed = name.as_deref().map(str::trim).filter(|s| !s.is_empty());
+    let args = match trimmed {
+        Some(name) => vec!["store", "init", name],
+        None => vec!["store", "init"],
+    };
 
-    if output.status.success() {
-        Ok(String::from_utf8_lossy(&output.stdout).to_string())
-    } else {
-        Err(String::from_utf8_lossy(&output.stderr).to_string())
-    }
+    run_gitehr_in(&path, &args)
 }
 
 #[tauri::command]
-fn init_store_root(path: String) -> Result<String, String> {
-    let output = std::process::Command::new("gitehr")
-        .arg("store")
-        .arg("init")
-        .current_dir(&path)
-        .output()
-        .map_err(|e| {
-            if e.kind() == ErrorKind::NotFound {
-                "GitEHR CLI not found. Install gitehr or ensure it is in PATH.".to_string()
-            } else {
-                format!("Failed to execute gitehr binary: {}", e)
-            }
-        })?;
+fn add_store_subject(path: String, name: Option<String>) -> Result<String, String> {
+    let trimmed = name.as_deref().map(str::trim).filter(|s| !s.is_empty());
+    let args = match trimmed {
+        Some(name) => vec!["store", "add", name],
+        None => vec!["store", "add"],
+    };
 
-    if output.status.success() {
-        Ok(String::from_utf8_lossy(&output.stdout).to_string())
-    } else {
-        Err(String::from_utf8_lossy(&output.stderr).to_string())
-    }
+    run_gitehr_in(&path, &args)
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -367,12 +372,11 @@ pub fn run() {
             get_state_file,
             update_state_file,
             add_journal_entry,
-            verify_journal,
             get_contributors,
             get_current_contributor,
             activate_contributor,
-            init_repo,
             init_store_root,
+            add_store_subject,
         ])
         .setup(|app| {
             if let Some(window) = app.get_webview_window("main") {

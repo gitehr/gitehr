@@ -8,6 +8,7 @@ const __dirname = fileURLToPath(new URL('.', import.meta.url));
 
 let tauriDriver;
 let exit = false;
+let testStorePath = null;
 let testRepoPath = null;
 
 const isWithRepo = process.env.E2E_WITH_REPO === 'true';
@@ -24,7 +25,7 @@ export const config = {
     {
       maxInstances: 1,
       'tauri:options': {
-        application: path.resolve(__dirname, '../src-tauri/target/debug/guigitehr-gui'),
+        application: path.resolve(__dirname, '../src-tauri/target/debug/gitehr-gui'),
       },
     },
   ],
@@ -54,10 +55,12 @@ export const config = {
         });
       }
 
-      testRepoPath = mkdtempSync(path.join(os.tmpdir(), 'gitehr-e2e-'));
-      console.log(`Creating test repo at: ${testRepoPath}`);
+      testStorePath = mkdtempSync(path.join(os.tmpdir(), 'gitehr-e2e-'));
+      console.log(`Creating test store at: ${testStorePath}`);
       
-      execSync(`"${cliBinary}" init`, { cwd: testRepoPath, stdio: 'inherit', shell: true });
+      execSync(`"${cliBinary}" store init e2e`, { cwd: testStorePath, stdio: 'inherit', shell: true });
+      testRepoPath = path.join(testStorePath, 'e2e');
+      execSync('git config commit.gpgsign false', { cwd: testRepoPath, stdio: 'inherit', shell: true });
       execSync(`"${cliBinary}" journal add "Initial test entry for E2E testing"`, { cwd: testRepoPath, stdio: 'inherit', shell: true });
       execSync(`"${cliBinary}" state set allergies "Penicillin, Sulfa drugs"`, { cwd: testRepoPath, stdio: 'inherit', shell: true });
       execSync(`"${cliBinary}" state set medications "Aspirin 81mg daily"`, { cwd: testRepoPath, stdio: 'inherit', shell: true });
@@ -93,9 +96,9 @@ export const config = {
   },
 
   onComplete: () => {
-    if (testRepoPath && existsSync(testRepoPath)) {
-      console.log(`Cleaning up test repo: ${testRepoPath}`);
-      rmSync(testRepoPath, { recursive: true, force: true });
+    if (testStorePath && existsSync(testStorePath)) {
+      console.log(`Cleaning up test store: ${testStorePath}`);
+      rmSync(testStorePath, { recursive: true, force: true });
     }
   },
 };
@@ -123,7 +126,7 @@ function onShutdown(fn) {
 
 onShutdown(() => {
   closeTauriDriver();
-  if (testRepoPath && existsSync(testRepoPath)) {
-    rmSync(testRepoPath, { recursive: true, force: true });
+  if (testStorePath && existsSync(testStorePath)) {
+    rmSync(testStorePath, { recursive: true, force: true });
   }
 });

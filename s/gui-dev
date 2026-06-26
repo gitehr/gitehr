@@ -9,6 +9,9 @@ set -e  # Exit on error
 # chmod +x s/<filename> is the command to do this on unixy systems
 
 repo_root="$(cd "$(dirname "$0")/.." && pwd)"
+
+cargo build -p gitehr
+
 cd "$repo_root/gui"
 
 WEBKIT_DISABLE_DMABUF_RENDERER=1 npm run tauri dev

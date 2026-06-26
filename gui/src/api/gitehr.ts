@@ -4,7 +4,6 @@ import { open } from "@tauri-apps/plugin-dialog";
 export interface JournalEntryInfo {
   filename: string;
   timestamp: string;
-  parent_entry: string | null;
   author: string | null;
   content_preview: string;
 }
@@ -126,10 +125,6 @@ export async function addJournalEntry(
   return invoke<string>("add_journal_entry", { repoPath, content });
 }
 
-export async function verifyJournal(repoPath: string): Promise<string> {
-  return invoke<string>("verify_journal", { repoPath });
-}
-
 export async function getContributors(
   repoPath: string
 ): Promise<ContributorInfo[]> {
@@ -149,10 +144,16 @@ export async function activateContributor(
   return invoke<void>("activate_contributor", { repoPath, contributorId });
 }
 
-export async function initRepo(path: string): Promise<string> {
-  return invoke<string>("init_repo", { path });
+export async function initStoreRoot(
+  path: string,
+  name?: string
+): Promise<string> {
+  return invoke<string>("init_store_root", { path, name });
 }
 
-export async function initStoreRoot(path: string): Promise<string> {
-  return invoke<string>("init_store_root", { path });
+export async function addStoreSubject(
+  path: string,
+  name?: string
+): Promise<string> {
+  return invoke<string>("add_store_subject", { path, name });
 }

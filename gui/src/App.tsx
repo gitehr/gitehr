@@ -31,7 +31,7 @@ import {
   IconPlus,
 } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
-import gitehrLogo from "./assets/gitehr-logo.svg";
+import gitehrLogo from "../../assets/images/gitehr-logo-1000px-black-trans.png";
 import "./App.css";
 import {
   addJournalEntry,
@@ -43,8 +43,8 @@ import {
   hasMpi,
   getMpi,
   pickFolder,
-  initRepo,
   initStoreRoot,
+  addStoreSubject,
   type JournalEntryInfo,
   type RepoStatusInfo,
   type StateFileInfo,
@@ -65,6 +65,8 @@ function App() {
   const [patientSearch, setPatientSearch] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  const [firstSubjectName, setFirstSubjectName] = useState("");
+  const [newSubjectName, setNewSubjectName] = useState("");
 
   const [newEntryContent, setNewEntryContent] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -87,7 +89,7 @@ function App() {
 
   const selectLatestPatientRepo = (mpiData: MpiInfo) => {
     if (mpiData.patients.length === 0) {
-      setError("MPI contains no patients.");
+      setError("Store contains no subjects.");
       return;
     }
     const latest = mpiData.patients[mpiData.patients.length - 1];
@@ -142,19 +144,19 @@ function App() {
     }
   };
 
-  const handleInitRepo = async () => {
+  const handleCreateStore = async () => {
     try {
       const folder = await pickFolder();
       if (folder) {
         setCreating(true);
         setError(null);
         try {
-          await initStoreRoot(folder);
+          await initStoreRoot(folder, firstSubjectName);
           const mpiData = await getMpi(folder);
           setMpi(mpiData);
           setStoreRoot(mpiData.store_root);
-          // Don't auto-select a patient since store is empty
-          // selectLatestPatientRepo(mpiData);
+          setFirstSubjectName("");
+          selectLatestPatientRepo(mpiData);
         } catch (err) {
           console.error("Failed to init store root:", err);
           const message = typeof err === "string" ? err : String(err);
@@ -170,6 +172,26 @@ function App() {
     } catch (err) {
       console.error("Failed to pick folder:", err);
       setError("Failed to open folder picker.");
+    }
+  };
+
+  const handleAddSubject = async () => {
+    if (!storeRoot) return;
+    setCreating(true);
+    setError(null);
+    try {
+      await addStoreSubject(storeRoot, newSubjectName);
+      const mpiData = await getMpi(storeRoot);
+      setMpi(mpiData);
+      setStoreRoot(mpiData.store_root);
+      setNewSubjectName("");
+      selectLatestPatientRepo(mpiData);
+    } catch (err) {
+      console.error("Failed to add store subject:", err);
+      const message = typeof err === "string" ? err : String(err);
+      setError("Failed to add subject: " + message);
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -211,7 +233,7 @@ function App() {
       fetchData();
     } catch (err) {
       console.error("Failed to add entry:", err);
-      alert("Failed to add entry: " + err);
+      setError("Failed to add journal entry: " + err);
     } finally {
       setSubmitting(false);
     }
@@ -229,6 +251,7 @@ function App() {
         if (!patientSearch.trim()) return true;
         const needle = patientSearch.toLowerCase();
         if (patient.patient_id.toLowerCase().includes(needle)) return true;
+        if (patient.repo_path.toLowerCase().includes(needle)) return true;
         return patient.identifiers.some(
           (id) =>
             id.type.toLowerCase().includes(needle) ||
@@ -236,6 +259,12 @@ function App() {
         );
       })
     : [];
+
+  const selectedPatient = mpi?.patients.find((patient) => patient.repo_path === repoPath);
+  const selectedSubjectName =
+    selectedPatient?.repo_path.split(/[\\/]/).filter(Boolean).pop() ||
+    repoPath?.split(/[\\/]/).filter(Boolean).pop() ||
+    "Open record";
 
   // Loading state while checking initial repo
   if (!repoChecked) {
@@ -253,7 +282,7 @@ function App() {
   if (!repoPath && !storeRoot) {
     return (
       <Center h="100vh" bg="gray.0">
-        <Card radius="lg" shadow="md" p="xl" w={400}>
+        <Card radius="md" shadow="sm" p="xl" w={400}>
           <Stack align="center" gap="lg">
             <Box className="brand-mark" style={{ width: 80, height: 80 }}>
               <img src={gitehrLogo} alt="GitEHR logo" style={{ width: "100%", height: "100%" }} />
@@ -261,7 +290,7 @@ function App() {
             <Stack align="center" gap="xs">
               <Title order={3}>No GitEHR Repository Detected</Title>
               <Text size="sm" c="dimmed" ta="center">
-                Select a GitEHR repository or store root to get started.
+                Select a folder containing a GitEHR subject repository, or a Store root with gitehr-mpi.json.
               </Text>
             </Stack>
             {error && (
@@ -283,15 +312,22 @@ function App() {
             >
               Open Repository
             </Button>
+            <TextInput
+              label="First subject name"
+              placeholder="A person, family member, or pet"
+              value={firstSubjectName}
+              onChange={(e) => setFirstSubjectName(e.currentTarget.value)}
+              w="100%"
+            />
             <Button
               size="md"
               variant="light"
               leftSection={<IconPlus size={18} />}
-              onClick={handleInitRepo}
+              onClick={handleCreateStore}
               loading={creating}
               fullWidth
             >
-              Create New Repository (Store Root)
+              Create New Store
             </Button>
           </Stack>
         </Card>
@@ -322,21 +358,27 @@ function App() {
               </Box>
             </Group>
             <Group gap="sm">
-              <TextInput
-                placeholder="Search by ID, NHS, MRN..."
+                <TextInput
+                placeholder="Search by subject, ID, NHS, MRN..."
                 leftSection={<IconSearch size={16} />}
                 size="sm"
                 className="search-input"
                 value={patientSearch}
                 onChange={(e) => setPatientSearch(e.currentTarget.value)}
               />
+              <TextInput
+                placeholder="New subject name"
+                size="sm"
+                value={newSubjectName}
+                onChange={(e) => setNewSubjectName(e.currentTarget.value)}
+              />
               <Button
                 variant="light"
                 leftSection={<IconPlus size={18} />}
-                onClick={handleInitRepo}
+                onClick={handleAddSubject}
                 loading={creating}
               >
-                New Patient
+                Add Subject
               </Button>
             </Group>
           </Group>
@@ -359,22 +401,22 @@ function App() {
                 <Box>
                   <Title order={2}>Patient Index</Title>
                   <Text size="sm" c="dimmed">
-                    Search and select a patient from the MPI.
+                    Search and select a subject from this Store.
                   </Text>
                 </Box>
                 <Badge variant="light" color="teal">
-                  {mpi ? mpi.patients.length : 0} patients
+                  {mpi ? mpi.patients.length : 0} subjects
                 </Badge>
               </Group>
 
-              <Card radius="lg" className="panel-card">
+              <Card radius="md" className="panel-card">
                 {mpiLoading ? (
                   <Center py="md">
                     <Loader size="sm" />
                   </Center>
                 ) : filteredPatients.length === 0 ? (
                   <Text size="sm" c="dimmed" ta="center" py="md">
-                    No patients found. Create a new patient to get started.
+                    No subjects found. Add a subject to get started.
                   </Text>
                 ) : (
                   <Stack gap="sm">
@@ -382,9 +424,11 @@ function App() {
                       <Card key={patient.patient_id} withBorder padding="md" radius="md">
                         <Group justify="space-between" align="flex-start">
                           <Box>
-                            <Text fw={600}>{patient.patient_id}</Text>
+                            <Text fw={600}>
+                              {patient.repo_path.split(/[\\/]/).filter(Boolean).pop()}
+                            </Text>
                             <Text size="xs" c="dimmed">
-                              Updated {new Date(patient.updated_at).toLocaleString()}
+                              {patient.patient_id} · Updated {new Date(patient.updated_at).toLocaleString()}
                             </Text>
                             <Group gap="xs" mt="xs">
                               {patient.identifiers.slice(0, 4).map((id, i) => (
@@ -439,7 +483,7 @@ function App() {
                 GitEHR Reference GUI
               </Text>
               <Title order={4} className="brand-title">
-                St. Aria Health
+                {selectedSubjectName}
               </Title>
             </Box>
           </Group>
@@ -461,13 +505,13 @@ function App() {
           </Text>
           {storeRoot && (
             <NavLink
-              label="Patient Index"
+            label="Patient Index"
               leftSection={<IconUser size={18} />}
               onClick={() => setRepoPath(null)}
             />
           )}
           <NavLink
-            label="Patients"
+            label="Overview"
             leftSection={<IconUser size={18} />}
             active
           />
@@ -477,7 +521,7 @@ function App() {
           <NavLink label="Vitals" leftSection={<IconActivity size={18} />} />
           <Divider />
           <NavLink label="Settings" leftSection={<IconSettings size={18} />} />
-          <Card className="sidebar-card" radius="lg" mt="md">
+          <Card className="sidebar-card" radius="md" mt="md">
             <Stack gap={6}>
               <Text size="xs" tt="uppercase" fw={600} c="dimmed">
                 Repo Status
@@ -530,20 +574,20 @@ function App() {
             <Box>
               <Title order={2}>Patient Overview</Title>
               <Text size="sm" c="dimmed">
-                Timeline and summaries from the linked GitEHR repository.
+                Timeline and summaries from {selectedSubjectName}.
               </Text>
             </Box>
             <Group gap="xs">
               <Badge size="lg" variant="light" color="teal">
-                In clinic
+                Active
               </Badge>
               <Badge size="lg" variant="light" color="gray">
-                MRN 231-889
+                {selectedPatient?.patient_id.slice(0, 12) || ".gitehr"}
               </Badge>
             </Group>
           </Group>
 
-          <Card radius="lg" className="panel-card">
+          <Card radius="md" className="panel-card">
               <Group justify="space-between" mb="md">
                 <Group gap="xs">
                   <ThemeIcon variant="light" color="teal">
@@ -603,26 +647,26 @@ function App() {
 
       <AppShell.Aside className="app-aside">
         <Stack gap="md" p="md">
-          <Card radius="lg" className="panel-card">
+          <Card radius="md" className="panel-card">
             <Group>
               <Avatar radius="xl" size="lg" color="teal">
-                JP
+                {selectedSubjectName.slice(0, 2).toUpperCase()}
               </Avatar>
               <Box>
-                <Text fw={600}>Jamie Porter</Text>
+                <Text fw={600}>{selectedSubjectName}</Text>
                 <Text size="sm" c="dimmed">
-                  DOB 1986-05-14
+                  {repoPath}
                 </Text>
               </Box>
             </Group>
             <Group gap="xs" mt="md">
-              <Badge variant="light">Cardiology</Badge>
-              <Badge variant="light">Post-op</Badge>
-              <Badge variant="light">Remote care</Badge>
+              <Badge variant="light">Store-first</Badge>
+              <Badge variant="light">Plain files</Badge>
+              <Badge variant="light">Git-backed</Badge>
             </Group>
           </Card>
 
-          <Card radius="lg" className="panel-card">
+          <Card radius="md" className="panel-card">
             <Text size="xs" tt="uppercase" fw={600} c="dimmed" mb="xs">
               Stateful summary
             </Text>
@@ -660,7 +704,7 @@ function App() {
             </Stack>
           </Card>
 
-            <Card radius="lg" className="panel-card">
+            <Card radius="md" className="panel-card">
               <Text size="xs" tt="uppercase" fw={600} c="dimmed" mb="xs">
                 Activity feed
               </Text>

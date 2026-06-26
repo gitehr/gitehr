@@ -56,10 +56,10 @@ describe('GitEHR Sidebar', () => {
       expect(await journalLink.isDisplayed()).toBe(true);
     });
 
-    it('should show Patients link as active', async () => {
-      const patientsLink = await $('a*=Patients');
-      await patientsLink.waitForDisplayed({ timeout: 5000 });
-      expect(await patientsLink.isDisplayed()).toBe(true);
+    it('should show Overview link as active', async () => {
+      const overviewLink = await $('a*=Overview');
+      await overviewLink.waitForDisplayed({ timeout: 5000 });
+      expect(await overviewLink.isDisplayed()).toBe(true);
     });
   });
 });
