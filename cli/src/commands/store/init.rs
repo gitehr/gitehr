@@ -20,6 +20,13 @@ pub fn run(name: Option<&str>) -> Result<()> {
         );
     }
 
+    let prompted = if name.is_none() {
+        prompt_first_subject_name()?
+    } else {
+        None
+    };
+    let name = name.or(prompted.as_deref());
+
     let (dir, id) = scaffold::create_subject_repo(Path::new("."), name)?;
 
     let now = chrono::Utc::now().to_rfc3339();
@@ -39,4 +46,19 @@ pub fn run(name: Option<&str>) -> Result<()> {
 
     println!("Initialised GitEHR Store with first subject '{dir}' ({id}).");
     Ok(())
+}
+
+/// On a terminal, ask for the first subject's name; blank or non-interactive
+/// yields `None`, so the subject gets an auto-generated id.
+fn prompt_first_subject_name() -> Result<Option<String>> {
+    use std::io::{self, IsTerminal, Write};
+    if !io::stdin().is_terminal() {
+        return Ok(None);
+    }
+    print!("Name for the first subject (a person or pet; blank for an auto-generated id): ");
+    io::stdout().flush()?;
+    let mut line = String::new();
+    io::stdin().read_line(&mut line)?;
+    let trimmed = line.trim();
+    Ok((!trimmed.is_empty()).then(|| trimmed.to_string()))
 }

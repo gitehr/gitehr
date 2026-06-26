@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 pub mod completions;
+pub mod context;
 pub mod contributor;
 pub mod decrypt;
 pub mod document;

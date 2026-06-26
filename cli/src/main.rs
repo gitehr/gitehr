@@ -3,6 +3,7 @@
 
 use anyhow::Result;
 use clap::{CommandFactory, FromArgMatches, Parser, Subcommand};
+use std::path::{Path, PathBuf};
 
 mod commands;
 mod utils;
@@ -134,10 +135,13 @@ fn main() -> Result<()> {
         return Ok(());
     }
 
-    let cli = match Cli::from_arg_matches(&cmd.get_matches()) {
+    let mut cli = match Cli::from_arg_matches(&cmd.get_matches()) {
         Ok(cli) => cli,
         Err(e) => e.exit(),
     };
+
+    // Resolve the Store/repo working context before dispatch (ADR-0005).
+    apply_context(&mut cli.command)?;
 
     match cli.command {
         Commands::Init => commands::init::run()?,
@@ -166,5 +170,85 @@ fn main() -> Result<()> {
         Commands::External(args) => commands::plugin::run(args)?,
     }
 
+    Ok(())
+}
+
+/// Make external (user-cwd-relative) path arguments absolute before context
+/// resolution changes the working directory. Repo-relative paths (journal
+/// drafts, Document paths to verify) are intentionally left alone.
+fn absolutize_external_paths(command: &mut Commands, base: &Path) {
+    fn fix_pb(p: &mut PathBuf, base: &Path) {
+        if p.is_relative() {
+            *p = base.join(&*p);
+        }
+    }
+    fn fix_str(s: &mut String, base: &Path) {
+        if Path::new(s.as_str()).is_relative() {
+            *s = base.join(&*s).to_string_lossy().into_owned();
+        }
+    }
+    match command {
+        Commands::Import { path, .. } => fix_pb(path, base),
+        Commands::Document {
+            command: DocumentCommands::Add { path, .. },
+        } => fix_pb(path, base),
+        Commands::Transport {
+            command: Some(transport),
+        } => match transport {
+            TransportCommands::Create { output, .. } => {
+                if let Some(o) = output {
+                    fix_str(o, base);
+                }
+            }
+            TransportCommands::Extract { archive, output } => {
+                fix_str(archive, base);
+                if let Some(o) = output {
+                    fix_str(o, base);
+                }
+            }
+        },
+        _ => {}
+    }
+}
+
+/// Resolve the Store/repo working context for the command and change into it
+/// (ADR-0005). Repo-level commands resolve a subject repo (with single-subject
+/// auto-target); store commands resolve the Store root. Global commands - and
+/// `store init`, which creates a Store - return without ever reading the cwd,
+/// which may be invalid (e.g. a deleted directory inherited from a parent).
+fn apply_context(command: &mut Commands) -> Result<()> {
+    enum Ctx {
+        None,
+        Store,
+        Repo,
+    }
+    let ctx = match command {
+        Commands::Store {
+            command: StoreCommands::Init { .. },
+        } => Ctx::None,
+        Commands::Store { .. } => Ctx::Store,
+        Commands::Journal { .. }
+        | Commands::State { .. }
+        | Commands::Remote { .. }
+        | Commands::Encrypt { .. }
+        | Commands::Decrypt { .. }
+        | Commands::Status
+        | Commands::Transport { .. }
+        | Commands::Document { .. }
+        | Commands::Import { .. }
+        | Commands::User { .. } => Ctx::Repo,
+        _ => Ctx::None,
+    };
+    let target = match ctx {
+        Ctx::None => return Ok(()),
+        Ctx::Store => commands::context::resolve_store_root()?,
+        Ctx::Repo => {
+            // External path args are made absolute against the cwd before the cd.
+            let cwd = std::env::current_dir()?;
+            absolutize_external_paths(command, &cwd);
+            commands::context::resolve_repo_root()?
+        }
+    };
+    std::env::set_current_dir(target)?;
     Ok(())
 }
