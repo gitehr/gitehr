@@ -11,10 +11,10 @@ use commands::document::DocumentCommands;
 use commands::journal::JournalCommands;
 use commands::mcp::McpCommands;
 use commands::remote::RemoteCommands;
-#[cfg(feature = "server")]
-use commands::server::ServerCommands;
 use commands::state::StateCommands;
+use commands::store::StoreCommands;
 use commands::transport::TransportCommands;
+use commands::user::UserCommands;
 
 #[derive(Parser)]
 #[command(name = "gitehr")]
@@ -27,6 +27,11 @@ struct Cli {
 #[derive(Subcommand)]
 enum Commands {
     Init,
+    /// Manage contributors and the active author
+    User {
+        #[command(subcommand)]
+        command: Option<UserCommands>,
+    },
     /// Import journal entries or documents from a file or directory
     Import {
         #[arg(long, value_enum, help = "What kind of data to import")]
@@ -60,13 +65,12 @@ enum Commands {
         #[command(subcommand)]
         command: Option<TransportCommands>,
     },
-    #[command(visible_alias = "contributor")]
-    Gui,
-    #[cfg(feature = "server")]
-    Server {
+    /// Manage a multi-patient store and its Main Patient Index (MPI)
+    Store {
         #[command(subcommand)]
-        command: ServerCommands,
+        command: StoreCommands,
     },
+    Gui,
     #[command(alias = "attach")]
     Document {
         #[command(subcommand)]
@@ -136,6 +140,7 @@ fn main() -> Result<()> {
 
     match cli.command {
         Commands::Init => commands::init::run()?,
+        Commands::User { command } => commands::user::run(command)?,
         Commands::Import { mode, path } => commands::import::run(mode, &path)?,
         Commands::Journal { command } => commands::journal::run(command)?,
         Commands::State { command } => commands::state::run(command)?,
@@ -144,9 +149,8 @@ fn main() -> Result<()> {
         Commands::Decrypt { key } => commands::decrypt::run(key.as_deref())?,
         Commands::Status => commands::status::run()?,
         Commands::Transport { command } => commands::transport::run(command)?,
+        Commands::Store { command } => commands::store::run(command)?,
         Commands::Gui => commands::gui::run()?,
-        #[cfg(feature = "server")]
-        Commands::Server { command } => commands::server::run(command)?,
         Commands::Document { command } => commands::document::run(command)?,
         Commands::Mcp { command } => commands::mcp::run(command)?,
         Commands::Calc(command) => calc_cli::run(command)?,

@@ -1,11 +1,6 @@
 // SPDX-FileCopyrightText: 2026 Marcus Baw and Baw Medical Ltd
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-// The user-management functions here are only invoked by `gitehr server user`,
-// which is gated behind the off-by-default `server` feature. In a default build
-// only `get_current_contributor` is used, so silence dead-code there.
-#![cfg_attr(not(feature = "server"), allow(dead_code))]
-
 use anyhow::Result;
 use rand::RngExt;
 use serde::{Deserialize, Serialize};

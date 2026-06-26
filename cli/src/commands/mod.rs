@@ -14,11 +14,11 @@ pub mod journal;
 pub mod mcp;
 pub mod plugin;
 pub mod remote;
-#[cfg(feature = "server")]
-pub mod server;
 pub mod state;
 pub mod status;
+pub mod store;
 pub mod transport;
 pub mod upgrade;
 pub mod upgrade_binary;
+pub mod user;
 pub mod version;
