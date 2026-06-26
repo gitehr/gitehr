@@ -3,17 +3,17 @@ author: Dr Marcus Baw
 reviewers: Dr Anchit Chandran
 ---
 
-### By [Dr Marcus Baw](./contributors.md#dr-marcus-baw)
+### By [Dr Marcus Baw](./contributors.md#contributors)
 
 As a clinician starting to become interested in health tech around 2011 - as the [National Programme for IT (NPfIT)](https://en.wikipedia.org/wiki/National_Programme_for_Information_Technology) was collapsing - I found it difficult to find a 'way in' to the world of General Practice IT. Clinicians were not wanted in a world dominated by large companies delivering unusable and 'legacy' software from day one.
 
-Eventually, I found two ways in: _[NHS Hack Day](https://nhshackday.com/)_, and the _[RCGP](https://www.rcgp.org.uk/) Health Informatics Group_. These were my starting points, but since then, I've been almost full-time in health informatics in various roles, from the unorthodox: freelance General [Hacktitioner](../glossary.md#hacktitioner) to the very much orthodox: Chair of the RCGP Health Informatics Group (HIG).
+Eventually, I found two ways in: _[NHS Hack Day](https://nhshackday.com/)_, and the _[RCGP](https://www.rcgp.org.uk/) Health Informatics Group_. These were my starting points, but since then, I've been almost full-time in health informatics in various roles, from the unorthodox: freelance General [Hacktitioner](../glossary.md#gitehr-specific-concepts) to the very much orthodox: Chair of the RCGP Health Informatics Group (HIG).
 
 I've had a somewhat unusual Clinical Informatics career in that I've also learned a lot about the **technical** underpinnings of the software. Unlike many clinical informaticians and NHS 'digerati', I learned to write code and become deeply technical, giving me a different view of the proffered health tech solutions.
 
 I couldn't understand that **every single** current health tech solution is **database-backed**, and thereby inherently Organisation-Centric.
 
-Even proposed fixes such as [FHIR](https://hl7.org/fhir/) and [OpenEHR](https://openehr.org/), designed to improve interoperability, are imperfect as they are still centralised and [organisation-centric](../glossary.md#organisation-centric), database-backed solutions which fall into the same trap as all the others.
+Even proposed fixes such as [FHIR](https://hl7.org/fhir/) and [OpenEHR](https://openehr.org/), designed to improve interoperability, are imperfect as they are still centralised and [organisation-centric](../glossary.md#gitehr-specific-concepts), database-backed solutions which fall into the same trap as all the others.
 
 Size doesn't matter: eventually, all organisations have their 'edges'. The edges are where the absolute and unresolvable problems of interoperability exist.
 

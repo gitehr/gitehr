@@ -2,7 +2,7 @@
 
 # Files vs databases: reference notes
 
-Reading notes on two reference documents kept in [`docs/assets/pdf/`](../docs/assets/pdf/) (PDFs plus machine-extracted markdown). They bear directly on GitEHR's "files, not databases" thesis - one supports it, one is the strongest mainstream argument against it. This note records what is useful from each and how GitEHR positions relative to them. It is internal design context; the public-facing version of the argument lives in `docs/design/files-not-databases.md`.
+Reading notes on two reference documents - the source PDFs are in [`docs/assets/pdf/`](../docs/assets/pdf/), their machine-extracted markdown in [`spec/research/`](research/). They bear directly on GitEHR's "files, not databases" thesis - one supports it, one is the strongest mainstream argument against it. This note records what is useful from each and how GitEHR positions relative to them. It is internal design context; the public-facing version of the argument lives in `docs/design/files-not-databases.md`.
 
 ## 1. "Traditional Databases vs Flat Text Files for Long-Term Medical Records" (the supportive essay)
 
