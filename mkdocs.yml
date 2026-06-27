@@ -49,7 +49,6 @@ nav:
       - encrypt: cli/encrypt.md
       - decrypt: cli/decrypt.md
       - transport: cli/transport.md
-      - calc: cli/calc.md
       - gui: cli/gui.md
       - upgrade: cli/upgrade.md
       - version: cli/version.md

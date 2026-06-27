@@ -127,26 +127,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8ae3f5d315924270530207e2a68396c3cc547f6dca3fbdca317cfb1a51edb593"
 
 [[package]]
-name = "calc-cli"
-version = "0.1.0"
-source = "git+https://github.com/pacharanero/calc?rev=c45a06dc1304530073531a69756977f67b5c185b#c45a06dc1304530073531a69756977f67b5c185b"
-dependencies = [
- "anyhow",
- "calc-core",
- "clap",
- "serde_json",
-]
-
-[[package]]
-name = "calc-core"
-version = "0.1.0"
-source = "git+https://github.com/pacharanero/calc?rev=c45a06dc1304530073531a69756977f67b5c185b#c45a06dc1304530073531a69756977f67b5c185b"
-dependencies = [
- "serde",
- "serde_json",
-]
-
-[[package]]
 name = "cc"
 version = "1.2.65"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -451,13 +431,11 @@ name = "gitehr"
 version = "0.2.1"
 dependencies = [
  "anyhow",
- "calc-cli",
  "chrono",
  "clap",
  "clap_complete",
  "flate2",
  "fs_extra",
- "gitehr-mcp",
  "rand",
  "regex",
  "serde",
@@ -467,8 +445,6 @@ dependencies = [
  "sha2",
  "tar",
  "tempfile",
- "tokio",
- "tracing",
  "uuid",
  "walkdir",
  "which",
@@ -480,7 +456,6 @@ version = "0.2.1"
 dependencies = [
  "anyhow",
  "async-trait",
- "calc-core",
  "chrono",
  "futures",
  "serde",

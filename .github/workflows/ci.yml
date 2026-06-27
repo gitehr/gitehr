@@ -4,9 +4,9 @@
 # The three checks every contributor runs locally (s/lint + s/test) and that
 # must pass before merge: formatting, clippy as errors, and the test suite.
 #
-# gitehr depends on the clinical-calculator crates in the public
-# pacharanero/calc repo via a git dependency (see cli/Cargo.toml and
-# mcp/Cargo.toml); cargo fetches it over HTTPS, so no credentials are needed.
+# Clinical calculator crates from pacharanero/calc are temporarily dormant in
+# GitEHR while they are prepared for crates.io; this keeps Cargo packaging and
+# release-plz working without git-only dependencies.
 
 name: CI
 

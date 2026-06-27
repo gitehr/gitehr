@@ -30,16 +30,17 @@ walkdir = "2.5"
 tar = "0.4"
 flate2 = "1.0"
 
-# MCP integration
-gitehr-mcp = { path = "../mcp" }
-tokio.workspace = true
-tracing = "0.1"
+# MCP server integration is temporarily dormant so the CLI can be packaged by
+# release-plz while gitehr-mcp is not published to crates.io. Restore these once
+# gitehr-mcp is published, or split MCP into a separately installed binary.
+# gitehr-mcp = { path = "../mcp", version = "0.2.1" }
+# tokio.workspace = true
+# tracing = "0.1"
 
-# Clinical calculators: `gitehr calc` reuses the calc-cli library verbatim.
-# Lives in the public pacharanero/calc repo; pinned to a rev for reproducible builds
-# (this crate does not commit Cargo.lock). Switch to crates.io once calc
-# has a published distribution pipeline.
-calc-cli = { git = "https://github.com/pacharanero/calc", rev = "c45a06dc1304530073531a69756977f67b5c185b" }
+# Clinical calculators are temporarily dormant here so GitEHR can be packaged
+# by release-plz while pacharanero/calc is still pre-crates.io. Restore this
+# dependency and the `gitehr calc` command once calc-cli is published.
+# calc-cli = { version = "0.1.0", git = "https://github.com/pacharanero/calc", rev = "c45a06dc1304530073531a69756977f67b5c185b" }
 
 [dev-dependencies]
 tempfile.workspace = true

@@ -81,8 +81,10 @@ enum Commands {
         #[command(subcommand)]
         command: McpCommands,
     },
-    /// Clinical calculators (scores, screeners, risk tools)
-    Calc(calc_cli::CalcCommand),
+    // Clinical calculators are temporarily dormant while pacharanero/calc is
+    // pre-crates.io; release-plz package verification cannot package git-only
+    // dependencies. Restore `Calc(calc_cli::CalcCommand)` once calc-cli is
+    // published.
     Upgrade,
     #[command(
         name = "upgrade-binary",
@@ -156,7 +158,6 @@ fn main() -> Result<()> {
         Commands::Gui => commands::gui::run()?,
         Commands::Document { command } => commands::document::run(command)?,
         Commands::Mcp { command } => commands::mcp::run(command)?,
-        Commands::Calc(command) => calc_cli::run(command)?,
         Commands::Upgrade => commands::upgrade::run()?,
         Commands::UpgradeBinary => commands::upgrade_binary::run()?,
         Commands::Version => commands::version::run(),
