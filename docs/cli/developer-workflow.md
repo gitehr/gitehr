@@ -139,6 +139,8 @@ GitEHR follows semantic versioning (`MAJOR.MINOR.PATCH`) and keeps the canonical
 
 GitEHR uses `release-plz` for normal releases. Because GitEHR is currently released as binaries rather than published to crates.io, `release-plz.toml` sets `publish = false` and `git_only = true`; the existing `vX.Y.Z` tags are the release source of truth.
 
+The repo has multiple Rust crates, but one product release. `release-plz.toml` treats `gitehr` as the release package, includes `gitehr-mcp` changes in the root `CHANGELOG.md`, and keeps plain `vX.Y.Z` tags rather than package-prefixed tags.
+
 On every push to `main`, `.github/workflows/release-plz.yml` opens or refreshes a Release PR. That PR bumps the Cargo workspace version, rewrites `CHANGELOG.md` from conventional commits, and is the only version-bump PR maintainers should normally merge. When the Release PR is merged, release-plz creates the `vX.Y.Z` tag and GitHub Release.
 
 The workflow uses the `RELEASE_PLZ_TOKEN` repository secret rather than the default `GITHUB_TOKEN`, so Release PRs trigger the normal CI checks. Until that secret exists, the workflow skips cleanly.

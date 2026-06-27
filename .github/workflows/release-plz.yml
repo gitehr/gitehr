@@ -7,8 +7,8 @@
 # release and creates the GitHub Release.
 #
 # gitehr is released as binaries and is not currently published to crates.io;
-# release-plz.toml disables cargo publish and uses git tags as the release
-# source of truth.
+# release-plz.toml disables cargo publish, uses git tags as the release source
+# of truth, and keeps one repo-level release rather than per-crate releases.
 #
 # ACTIVATION: the gitehr org blocks the default GITHUB_TOKEN from creating PRs,
 # so this workflow uses a PAT in the RELEASE_PLZ_TOKEN secret (a fine-grained

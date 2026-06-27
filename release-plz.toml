@@ -5,5 +5,15 @@
 # Use git tags as the release source of truth; release-plz still manages the
 # Cargo workspace version, CHANGELOG.md, the git tag, and the GitHub Release.
 [workspace]
+release = false
 publish = false
 git_only = true
+release_always = false
+git_tag_name = "v{{ version }}"
+git_release_name = "v{{ version }}"
+
+[[package]]
+name = "gitehr"
+release = true
+changelog_path = "CHANGELOG.md"
+changelog_include = ["gitehr-mcp"]

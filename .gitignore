@@ -82,7 +82,7 @@ ipython_config.py
 ### GITEHR
 
 # GitEHR specific files
-.gitehr
+/.gitehr/
 
 # Journal drafts (tmp/journal/ lives next to journal/ in each repo instance)
 tmp/
