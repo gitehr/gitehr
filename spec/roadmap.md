@@ -102,14 +102,14 @@ The calculators live in their own repository, **[pacharanero/calc](https://githu
 
 ## Model Context Protocol (MCP) Server
 
-- [ ] Create `gitehr-mcp` crate for MCP server implementation.
+- [x] Fold the MCP server into the `gitehr` binary as `gitehr mcp serve`.
 - [ ] Implement MCP JSON-RPC 2.0 protocol with stdio/HTTP/SSE transports.
 - [ ] Add MCP resource handlers (journal, state, imaging, documents, status).
 - [ ] Add MCP tool handlers (add_journal_entry, update_state, verify_journal, search; restore calculate_clinical after calc crates are published).
 - [ ] Add MCP prompt templates (SOAP note, discharge summary, referral, medication review).
 - [ ] Implement token-based authentication with `.gitehr/mcp-tokens.json`.
 - [ ] Add MCP audit logging to journal entries.
-- [ ] Create `gitehr mcp serve` CLI command (stdio, HTTP, config-based).
+- [x] Create `gitehr mcp serve` CLI command for stdio.
 - [ ] Implement encryption awareness (respect `.gitehr/ENCRYPTED` marker).
 - [ ] Add MCP configuration system (`.gitehr/mcp.json`).
 - [ ] Restore MCP calculator tools: each `calc-core` calculator should be exposed as a `calc_<name>` MCP tool whose `inputSchema` is the calculator's own JSON Schema; `tools/call` should run the shared engine and return the `CalculationResponse`.

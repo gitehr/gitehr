@@ -58,11 +58,11 @@ Each builds a parser, registers `cmark` + `medical_markdown` (with the active re
 
 ### MCP: structured access for agents
 
-The MCP server already plans an `extract_structured_data` tool ([`spec/mcp.md`](mcp.md)) and currently returns journal entries as raw `text/markdown` ([`mcp/src/resources.rs`](../mcp/src/resources.rs)). Medical Markdown backs both:
+The MCP server already plans an `extract_structured_data` tool ([`spec/mcp.md`](mcp.md)) and currently returns journal entries as raw `text/markdown` ([`cli/src/commands/mcp/server_impl/resources.rs`](../cli/src/commands/mcp/server_impl/resources.rs)). Medical Markdown backs both:
 
 - Implement the `extract_structured_data` tool over `medmd::extract`, so an agent can ask for any entry (or arbitrary Medical Markdown text) as structured JSON.
 - Offer a structured variant of the journal-entry resource (e.g. a `format=structured` parameter) that returns the extracted JSON with its `_source_map`, letting agents reason over coded sections while keeping the default `text/markdown` view for humans.
-- The `add_journal_entry` tool (currently a placeholder, [`mcp/src/tools.rs`](../mcp/src/tools.rs)) can echo the extracted structure back as confirmation of what was understood, which is exactly the feedback loop an LLM authoring entries wants.
+- The `add_journal_entry` tool (currently a placeholder, [`cli/src/commands/mcp/server_impl/tools.rs`](../cli/src/commands/mcp/server_impl/tools.rs)) can echo the extracted structure back as confirmation of what was understood, which is exactly the feedback loop an LLM authoring entries wants.
 
 ### Repo-level code registry
 

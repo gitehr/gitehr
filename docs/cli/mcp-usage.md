@@ -1,8 +1,5 @@
 # GitEHR MCP Server Usage
 
-!!! warning "Temporarily dormant"
-    `gitehr mcp serve` is temporarily unavailable in the CLI while `gitehr-mcp` is prepared for release. This keeps the CLI packageable by release-plz until the MCP crate is published to crates.io or split into a separately installed binary.
-
 ## Overview
 
 GitEHR now includes a Model Context Protocol (MCP) server that exposes repository data and operations to LLM applications. This enables AI-assisted clinical workflows while maintaining GitEHR's security and audit trail.
@@ -43,7 +40,7 @@ Expected response:
       "prompts": {}
     },
     "serverInfo": {
-      "name": "gitehr-mcp",
+      "name": "gitehr",
       "version": "0.1.7"
     }
   }

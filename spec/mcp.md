@@ -61,7 +61,7 @@ gitehr status
 # MCP server mode (new)
 gitehr mcp serve --port 3000
 gitehr mcp serve --stdio  # For local LLM clients
-gitehr mcp serve --config ~/.gitehr-mcp.json
+gitehr mcp serve --config ~/.config/gitehr/mcp.json
 ```
 
 ### Workspace Structure
@@ -73,26 +73,23 @@ gitehr/
 ├── Cargo.toml                    # Workspace root
 ├── cli/                          # Main CLI binary
 ├── gitehr-calculators/           # Clinical calculators
-├── mcp/                          # MCP server crate
-│   ├── Cargo.toml
-│   ├── src/
-│   │   ├── main.rs               # MCP server binary entrypoint
-│   │   ├── lib.rs                # MCP library for CLI integration
-│   │   ├── server.rs             # MCP protocol implementation
-│   │   ├── resources.rs          # Resource handlers
-│   │   ├── tools.rs              # Tool handlers
-│   │   ├── prompts.rs            # Prompt templates
-│   │   ├── security.rs           # Auth, encryption checks
-│   │   └── audit.rs              # MCP audit logging
-│   └── tests/
-│       └── integration.rs
+├── cli/src/commands/mcp/          # MCP command and internal server modules
+│   ├── mod.rs
+│   ├── serve.rs
+│   └── server_impl/
+│       ├── server.rs             # MCP protocol implementation
+│       ├── resources.rs          # Resource handlers
+│       ├── tools.rs              # Tool handlers
+│       ├── prompts.rs            # Prompt templates
+│       ├── security.rs           # Auth, encryption checks
+│       └── audit.rs              # MCP audit logging
 └── gui/
 ```
 
 ### MCP Protocol Implementation
 
 ```rust
-// mcp/src/server.rs
+// cli/src/commands/mcp/server_impl/server.rs
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -504,7 +501,7 @@ gitehr mcp serve --stdio
 gitehr mcp serve --port 3000
 
 # Start with custom config
-gitehr mcp serve --config ~/.gitehr-mcp.json
+gitehr mcp serve --config ~/.config/gitehr/mcp.json
 
 # Generate MCP token
 gitehr mcp token create --name "Claude Desktop" --permissions read,write
@@ -555,7 +552,7 @@ gitehr mcp token revoke mcp_abc123xyz
 
 ## Implementation Steps
 
-1. **Create `gitehr-mcp` crate** - Workspace member with MCP protocol implementation
+1. **Embed MCP in `gitehr`** - MCP protocol implementation lives under the CLI command modules
 2. **Implement MCP server core** - JSON-RPC 2.0 handler, transport abstraction
 3. **Add resource handlers** - Read-only access to journal, state, imaging, documents
 4. **Add tool handlers** - Write operations (journal, state, calculators)
@@ -570,7 +567,7 @@ gitehr mcp token revoke mcp_abc123xyz
 
 ## Dependencies
 
-Add to `mcp/Cargo.toml`:
+Add MCP dependencies to `cli/Cargo.toml`:
 
 ```toml
 [dependencies]
@@ -657,9 +654,7 @@ gitehr journal add "Note"
 gitehr mcp serve --stdio
 ```
 
-Alternatively, provide both binaries in the same package:
-- `gitehr` - CLI tool
-- `gitehr-mcp` - MCP server (symlink or separate binary)
+MCP is intentionally not a separate binary or release line at this stage; it is a server mode of the main `gitehr` binary.
 
 ## Integration with GUI
 
