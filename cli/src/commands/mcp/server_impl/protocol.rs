@@ -46,9 +46,6 @@ impl fmt::Display for McpError {
 
 impl std::error::Error for McpError {}
 
-/// MCP Result type
-pub type McpResult<T> = Result<T, McpError>;
-
 /// Standard JSON-RPC error codes
 pub mod error_codes {
     pub const PARSE_ERROR: i32 = -32700;
@@ -156,19 +153,6 @@ impl McpMethod {
             "prompts/list" => McpMethod::PromptsList,
             "prompts/get" => McpMethod::PromptsGet,
             _ => McpMethod::Unknown(s.to_string()),
-        }
-    }
-
-    pub fn as_str(&self) -> &str {
-        match self {
-            McpMethod::Initialize => "initialize",
-            McpMethod::ResourcesList => "resources/list",
-            McpMethod::ResourcesRead => "resources/read",
-            McpMethod::ToolsList => "tools/list",
-            McpMethod::ToolsCall => "tools/call",
-            McpMethod::PromptsList => "prompts/list",
-            McpMethod::PromptsGet => "prompts/get",
-            McpMethod::Unknown(s) => s,
         }
     }
 }

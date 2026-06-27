@@ -5,6 +5,7 @@ pub mod contributor;
 pub mod document;
 pub mod encrypt;
 pub mod journal;
+pub mod mcp;
 #[cfg(unix)]
 pub mod plugin;
 pub mod remote;

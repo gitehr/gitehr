@@ -1,7 +1,6 @@
 [workspace]
 members = [
     "cli",
-    "mcp",
 ]
 exclude = [
     "gui/src-tauri",

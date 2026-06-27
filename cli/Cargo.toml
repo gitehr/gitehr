@@ -30,12 +30,11 @@ walkdir = "2.5"
 tar = "0.4"
 flate2 = "1.0"
 
-# MCP server integration is temporarily dormant so the CLI can be packaged by
-# release-plz while gitehr-mcp is not published to crates.io. Restore these once
-# gitehr-mcp is published, or split MCP into a separately installed binary.
-# gitehr-mcp = { path = "../mcp", version = "0.2.1" }
-# tokio.workspace = true
-# tracing = "0.1"
+# Internal MCP server for `gitehr mcp serve`. It is part of the gitehr binary,
+# not a separately released workspace package.
+tokio.workspace = true
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 # Clinical calculators are temporarily dormant here so GitEHR can be packaged
 # by release-plz while pacharanero/calc is still pre-crates.io. Restore this

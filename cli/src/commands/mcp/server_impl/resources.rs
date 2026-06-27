@@ -55,6 +55,8 @@ pub struct ResourceHandler {
     repo_path: PathBuf,
 }
 
+const REPO_URI_PREFIX: &str = "gitehr://repo/";
+
 impl ResourceHandler {
     pub fn new(repo_path: PathBuf) -> Self {
         Self { repo_path }
@@ -62,48 +64,49 @@ impl ResourceHandler {
 
     /// List all available resources
     pub fn list_resources(&self) -> anyhow::Result<ResourcesList> {
-        let mut resources = vec![];
-
-        // Journal resource
-        resources.push(Resource {
-            uri: format!("gitehr://repo/{}/journal", self.repo_path.display()),
-            name: "Journal Entries".to_string(),
-            description: Some("Chronological clinical notes and entries".to_string()),
-            mime_type: Some("application/json".to_string()),
-        });
-
-        // State resource
-        resources.push(Resource {
-            uri: format!("gitehr://repo/{}/state", self.repo_path.display()),
-            name: "Current Clinical State".to_string(),
-            description: Some("Active problems, medications, allergies".to_string()),
-            mime_type: Some("application/json".to_string()),
-        });
-
-        // Status resource
-        resources.push(Resource {
-            uri: format!("gitehr://repo/{}/status", self.repo_path.display()),
-            name: "Repository Status".to_string(),
-            description: Some("Repository metadata and status".to_string()),
-            mime_type: Some("application/json".to_string()),
-        });
+        let resources = vec![
+            Resource {
+                uri: "gitehr://repo/journal".to_string(),
+                name: "Journal Entries".to_string(),
+                description: Some("Chronological clinical notes and entries".to_string()),
+                mime_type: Some("application/json".to_string()),
+            },
+            Resource {
+                uri: "gitehr://repo/state".to_string(),
+                name: "Current Clinical State".to_string(),
+                description: Some("Active problems, medications, allergies".to_string()),
+                mime_type: Some("application/json".to_string()),
+            },
+            Resource {
+                uri: "gitehr://repo/status".to_string(),
+                name: "Repository Status".to_string(),
+                description: Some("Repository metadata and status".to_string()),
+                mime_type: Some("application/json".to_string()),
+            },
+        ];
 
         Ok(ResourcesList { resources })
     }
 
     /// Read a specific resource by URI
     pub fn read_resource(&self, uri: &str) -> anyhow::Result<ResourcesRead> {
-        let parts: Vec<&str> = uri.split('/').collect();
+        let rest = uri
+            .strip_prefix(REPO_URI_PREFIX)
+            .ok_or_else(|| anyhow::anyhow!("Unknown resource URI: {}", uri))?;
 
-        match parts.as_slice() {
-            ["gitehr:", "", "repo", _repo, "journal"] => self.read_journal(),
-            ["gitehr:", "", "repo", _repo, "journal", entry_id] => {
-                self.read_journal_entry(entry_id)
+        match rest {
+            "journal" => self.read_journal(),
+            "state" => self.read_state(),
+            "status" => self.read_status(),
+            _ => {
+                if let Some(entry_id) = rest.strip_prefix("journal/") {
+                    self.read_journal_entry(entry_id)
+                } else if let Some(filename) = rest.strip_prefix("state/") {
+                    self.read_state_file(filename)
+                } else {
+                    Err(anyhow::anyhow!("Unknown resource URI: {}", uri))
+                }
             }
-            ["gitehr:", "", "repo", _repo, "state"] => self.read_state(),
-            ["gitehr:", "", "repo", _repo, "state", filename] => self.read_state_file(filename),
-            ["gitehr:", "", "repo", _repo, "status"] => self.read_status(),
-            _ => Err(anyhow::anyhow!("Unknown resource URI: {}", uri)),
         }
     }
 
@@ -131,7 +134,7 @@ impl ResourceHandler {
 
         Ok(ResourcesRead {
             contents: vec![ResourceReadContent {
-                uri: format!("gitehr://repo/{}/journal", self.repo_path.display()),
+                uri: "gitehr://repo/journal".to_string(),
                 mime_type: Some("application/json".to_string()),
                 content,
             }],
@@ -150,11 +153,7 @@ impl ResourceHandler {
 
         Ok(ResourcesRead {
             contents: vec![ResourceReadContent {
-                uri: format!(
-                    "gitehr://repo/{}/journal/{}",
-                    self.repo_path.display(),
-                    entry_id
-                ),
+                uri: format!("gitehr://repo/journal/{}", entry_id),
                 mime_type: Some("text/markdown".to_string()),
                 content,
             }],
@@ -186,7 +185,7 @@ impl ResourceHandler {
 
         Ok(ResourcesRead {
             contents: vec![ResourceReadContent {
-                uri: format!("gitehr://repo/{}/state", self.repo_path.display()),
+                uri: "gitehr://repo/state".to_string(),
                 mime_type: Some("application/json".to_string()),
                 content,
             }],
@@ -205,11 +204,7 @@ impl ResourceHandler {
 
         Ok(ResourcesRead {
             contents: vec![ResourceReadContent {
-                uri: format!(
-                    "gitehr://repo/{}/state/{}",
-                    self.repo_path.display(),
-                    filename
-                ),
+                uri: format!("gitehr://repo/state/{}", filename),
                 mime_type: Some("text/plain".to_string()),
                 content,
             }],
@@ -224,7 +219,7 @@ impl ResourceHandler {
 
         Ok(ResourcesRead {
             contents: vec![ResourceReadContent {
-                uri: format!("gitehr://repo/{}/status", self.repo_path.display()),
+                uri: "gitehr://repo/status".to_string(),
                 mime_type: Some("application/json".to_string()),
                 content,
             }],

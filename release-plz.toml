@@ -16,4 +16,3 @@ git_release_name = "v{{ version }}"
 name = "gitehr"
 release = true
 changelog_path = "CHANGELOG.md"
-changelog_include = ["gitehr-mcp"]

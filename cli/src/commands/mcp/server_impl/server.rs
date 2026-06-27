@@ -3,9 +3,9 @@
 
 //! MCP Server Implementation
 
-use crate::protocol::{McpError, McpMethod, McpRequest, McpResponse};
-use crate::resources::ResourceHandler;
-use crate::tools::ToolHandler;
+use super::protocol::{McpError, McpMethod, McpRequest, McpResponse};
+use super::resources::ResourceHandler;
+use super::tools::ToolHandler;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use tracing::{debug, error, info};
@@ -22,7 +22,7 @@ impl Default for ServerConfig {
     fn default() -> Self {
         Self {
             repo_path: PathBuf::from("."),
-            server_name: "gitehr-mcp".to_string(),
+            server_name: "gitehr".to_string(),
             server_version: env!("CARGO_PKG_VERSION").to_string(),
         }
     }
@@ -87,7 +87,7 @@ impl McpServer {
         self.initialized = true;
 
         Ok(serde_json::json!({
-            "protocolVersion": crate::MCP_VERSION,
+            "protocolVersion": super::super::MCP_VERSION,
             "capabilities": {
                 "resources": {},
                 "tools": {},

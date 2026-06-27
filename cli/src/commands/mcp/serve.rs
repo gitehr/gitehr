@@ -4,9 +4,20 @@
 use anyhow::Result;
 use std::path::PathBuf;
 
-pub fn run(_repo_path: Option<PathBuf>) -> Result<()> {
-    anyhow::bail!(
-        "gitehr mcp serve is temporarily unavailable while the gitehr-mcp crate is prepared for release.\n\
-         This keeps the CLI packageable by release-plz until gitehr-mcp is published to crates.io."
-    )
+use super::server_impl::{McpServer, ServerConfig};
+
+pub fn run(repo_path: Option<PathBuf>) -> Result<()> {
+    super::init_tracing();
+
+    let config = ServerConfig {
+        repo_path: repo_path.unwrap_or_else(|| PathBuf::from(".")),
+        server_name: "gitehr".to_string(),
+        server_version: env!("CARGO_PKG_VERSION").to_string(),
+    };
+
+    let runtime = tokio::runtime::Runtime::new()?;
+    runtime.block_on(async {
+        let mut server = McpServer::new(config);
+        server.run_stdio().await
+    })
 }
