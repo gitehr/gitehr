@@ -39,6 +39,7 @@ nav:
   - CLI:
       - Overview: cli/cli.md
       - store: cli/store.md
+      - config: cli/config.md
       - journal: cli/journal.md
       - document: cli/document.md
       - import: cli/import.md

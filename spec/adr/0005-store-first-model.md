@@ -17,11 +17,11 @@ One model serves all three, and a family or pet-owner self-hoster grows into a c
 | Level | What it is | Marker | Found by |
 |---|---|---|---|
 | **Repo** | one subject's complete record | `.gitehr/` | walk up from cwd, exactly as git finds `.git/` |
-| **Store** | a directory of repos + the MPI index | `gitehr-mpi.json` at the root | walk up from cwd |
+| **Store** | a directory of repos + the MPI index | `gitehr-mpi.json` at the root | walk up from cwd, then configured Store |
 
 - **Repo-level** commands (`journal`, `document`, `import`, `state`, `status`, `encrypt`, `decrypt`, `transport`) run from inside a repo - you `cd` into the subject you want, the git way.
 - **Store-level** commands (`store …`) run at the Store root.
-- Outside both → `Not a GitEHR repository or Store`.
+- Outside both → use the configured Store if set; otherwise `Not a GitEHR repository or Store`.
 - A repo command at a bare Store root → a helpful "you are at a Store root; cd into a subject repo" rather than a confusing failure.
 - **Single-subject ergonomics:** when a Store holds exactly one repo, repo-level commands auto-target it, so a lone self-hoster (one person, or one pet) runs `gitehr journal add "…"` from the Store root with no cd and no subject name. As soon as a second subject exists, you `cd` (or `-C <repo>`) like git.
 
@@ -43,7 +43,7 @@ One model serves all three, and a family or pet-owner self-hoster grows into a c
 ## Consequences
 
 - `store init` grows from "write an empty MPI" to a real bootstrap (Store + MPI + first repo), reusing the repo-scaffolding logic that currently lives in `gitehr store init`; `add` changes from "register an existing repo" to "create and register a new repo"; the top-level `init` command is removed. One shared repo-scaffolding implementation.
-- Commands gain Store/repo **context detection** (walk up for `.gitehr/` and `gitehr-mpi.json`) plus the single-subject auto-target, replacing today's bare `.gitehr`-in-cwd checks.
+- Commands gain Store/repo **context detection** (walk up for `.gitehr/` and `gitehr-mpi.json`, then fall back to `GITEHR_STORE_PATH`/`store_path` config) plus the single-subject auto-target, replacing today's bare `.gitehr`-in-cwd checks.
 - **Contributor scoping is deliberately left open** (per-repo `.gitehr/contributors.json` today vs a Store-level staff directory): parked until multi-subject workflows are fleshed out.
 - Docs gain a first-class self-hoster story - **families and pets** - alongside clinics, on the homepage and audience pages.
 - No data migration: there are no existing users.

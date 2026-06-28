@@ -69,3 +69,13 @@ When a Store has exactly one subject, repo commands **auto-target** it, so a lon
 gitehr store init me      # a Store of one
 gitehr journal add "..."  # runs inside "me" automatically
 ```
+
+## Default Store config
+
+For a local machine, set a default Store so the CLI and GUI can find it even when launched from elsewhere:
+
+```bash
+gitehr config set-store ~/gitehr-store
+```
+
+The current directory still wins when you are already inside a subject repo or Store. Outside those directories, GitEHR falls back to `GITEHR_STORE_PATH`, then `store_path` in the config file. See [`gitehr config`](config.md).

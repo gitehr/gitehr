@@ -168,6 +168,13 @@ fn has_mpi(path: String) -> bool {
 }
 
 #[tauri::command]
+fn get_configured_store() -> Result<Option<String>, String> {
+    gitehr::config::configured_store_path()
+        .map(|path| path.map(|p| p.to_string_lossy().to_string()))
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 fn get_mpi(path: String) -> Result<MpiInfo, String> {
     let mpi_path = PathBuf::from(&path).join("gitehr-mpi.json");
     if !mpi_path.exists() {
@@ -365,6 +372,7 @@ pub fn run() {
             get_current_dir,
             is_gitehr_repo,
             has_mpi,
+            get_configured_store,
             get_mpi,
             get_status,
             get_journal_entries,

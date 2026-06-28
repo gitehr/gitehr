@@ -75,6 +75,10 @@ The CLI currently provides the following commands.
 
 Initializes a new GitEHR repository **from the store root**, creating a new repo directory named with a Crockford Base32 UUIDv7, recording it in the MPI, and then creating the necessary folder structure and bundled binary within that new repo.
 
+### [`gitehr config`](commands/config.md)
+
+Manages local machine configuration, including the default Store path used by the CLI and GUI when they are launched outside a GitEHR repo or Store.
+
 ### [`gitehr journal`](commands/journal.md)
 
 Adds a new clinical document to the GitEHR repository.

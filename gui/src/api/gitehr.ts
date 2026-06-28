@@ -64,6 +64,10 @@ export async function hasMpi(path: string): Promise<boolean> {
   return invoke<boolean>("has_mpi", { path });
 }
 
+export async function getConfiguredStore(): Promise<string | null> {
+  return invoke<string | null>("get_configured_store");
+}
+
 export async function getMpi(path: string): Promise<MpiInfo> {
   return invoke<MpiInfo>("get_mpi", { path });
 }

@@ -28,6 +28,19 @@ body {
   border-bottom: 1px solid rgba(12, 27, 30, 0.08);
 }
 
+.record-header-inner {
+  display: grid;
+  grid-template-columns: minmax(220px, 260px) minmax(0, 1fr);
+  gap: 16px;
+  align-items: center;
+  height: 100%;
+  padding: 10px 16px;
+}
+
+.record-header-brand {
+  min-width: 0;
+}
+
 .brand-title {
   letter-spacing: 0.02em;
 }
@@ -77,6 +90,49 @@ body {
   border: 1px solid rgba(12, 27, 30, 0.08);
 }
 
+.patient-info-bar {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 0.5fr) minmax(0, 0.7fr) minmax(0, 1.2fr) minmax(0, 1.4fr);
+  gap: 12px;
+  align-items: stretch;
+  background: #f8faf9;
+  border: 1px solid rgba(12, 27, 30, 0.08);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.patient-info-primary,
+.patient-info-field {
+  min-width: 0;
+}
+
+.patient-info-field {
+  border-left: 1px solid rgba(12, 27, 30, 0.08);
+  padding-left: 12px;
+}
+
+.patient-info-identifiers {
+  overflow: hidden;
+}
+
+.patient-info-bar-header {
+  background: transparent;
+  border: 0;
+  border-left: 1px solid rgba(12, 27, 30, 0.08);
+  border-radius: 0;
+  padding: 2px 0 2px 16px;
+}
+
+@media (max-width: 1200px) {
+  .patient-info-bar-header {
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 0.6fr) minmax(0, 0.8fr) minmax(0, 1.4fr);
+  }
+
+  .patient-info-bar-header .patient-info-address {
+    display: none;
+  }
+}
+
 .sidebar-card {
   background: #edf7f5;
   border: 1px solid rgba(12, 107, 104, 0.18);
@@ -102,10 +158,74 @@ body {
     padding: 12px;
     border-radius: 8px;
   }
+
+  .patient-info-bar {
+    grid-template-columns: 1fr;
+  }
+
+  .record-header-inner {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  .record-header-brand {
+    display: none;
+  }
+
+  .patient-info-field {
+    border-left: 0;
+    border-top: 1px solid rgba(12, 27, 30, 0.08);
+    padding-left: 0;
+    padding-top: 10px;
+  }
+
+  .patient-info-bar-header {
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr) minmax(0, 1fr);
+    border-left: 0;
+    padding-left: 0;
+  }
+
+  .patient-info-bar-header .patient-info-field {
+    border-top: 0;
+    border-left: 1px solid rgba(12, 27, 30, 0.08);
+    padding-top: 0;
+    padding-left: 10px;
+  }
+
+  .patient-info-bar-header .patient-info-identifiers {
+    display: none;
+  }
 }
 
-@media (max-width: 992px) {
+@media (min-width: 769px) and (max-width: 992px) {
   .search-input input {
     min-width: 180px;
+  }
+
+  .patient-info-bar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .record-header-inner {
+    grid-template-columns: minmax(180px, 220px) minmax(0, 1fr);
+  }
+
+  .patient-info-primary,
+  .patient-info-address,
+  .patient-info-identifiers {
+    grid-column: 1 / -1;
+  }
+
+  .patient-info-bar-header {
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 0.6fr) minmax(0, 0.8fr) minmax(0, 1.4fr);
+  }
+
+  .patient-info-bar-header .patient-info-primary,
+  .patient-info-bar-header .patient-info-identifiers {
+    grid-column: auto;
+  }
+
+  .patient-info-bar-header .patient-info-address {
+    display: none;
   }
 }

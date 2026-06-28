@@ -1,6 +1,5 @@
 import {
   AppShell,
-  Avatar,
   Badge,
   Box,
   Button,
@@ -9,7 +8,6 @@ import {
   Divider,
   Group,
   Loader,
-  NavLink,
   Stack,
   Text,
   Textarea,
@@ -19,26 +17,21 @@ import {
   Alert,
 } from "@mantine/core";
 import {
-  IconActivity,
   IconAlertCircle,
-  IconCalendar,
-  IconChartBar,
   IconFileText,
   IconFolderOpen,
   IconSearch,
-  IconSettings,
-  IconUser,
   IconPlus,
 } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
-import gitehrLogo from "../../assets/images/gitehr-logo-1000px-black-trans.png";
+import gitehrLogo from "./assets/gitehr-logo.svg";
 import "./App.css";
 import {
   addJournalEntry,
+  getConfiguredStore,
   getCurrentDir,
   getJournalEntries,
-  getStateFiles,
-  getStatus,
+  getStateFile,
   isGitehrRepo,
   hasMpi,
   getMpi,
@@ -46,19 +39,119 @@ import {
   initStoreRoot,
   addStoreSubject,
   type JournalEntryInfo,
-  type RepoStatusInfo,
-  type StateFileInfo,
   type MpiInfo,
   type MpiPatientInfo,
 } from "./api/gitehr";
+
+interface PatientDemographics {
+  title?: string;
+  fullName?: string;
+  preferredName?: string;
+  address?: string;
+  dateOfBirth?: string;
+  nhsNumber?: string;
+}
+
+const DEMOGRAPHICS_FILES = ["patient.md", "demographics.md", "patient.json", "demographics.json"];
+
+function parsePatientDemographics(filename: string, content: string): PatientDemographics {
+  const data = filename.endsWith(".json")
+    ? parseJsonObject(content)
+    : parseYamlLikeObject(extractFrontMatter(content));
+
+  const fullName =
+    readField(data, ["patient_name", "full_name", "name"]) ||
+    [readField(data, ["given_name", "first_name"]), readField(data, ["family_name", "surname"])]
+      .filter(Boolean)
+      .join(" ");
+
+  return {
+    title: readField(data, ["title", "honorific", "prefix"]),
+    fullName: fullName || undefined,
+    preferredName: readField(data, ["preferred_name", "known_as"]),
+    address: readField(data, ["address", "home_address"]),
+    dateOfBirth: readField(data, ["date_of_birth", "dob", "birth_date"]),
+    nhsNumber: readField(data, ["nhs_number", "nhs"]),
+  };
+}
+
+function parseJsonObject(content: string): Record<string, unknown> {
+  try {
+    const parsed = JSON.parse(content);
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function extractFrontMatter(content: string): string {
+  const match = content.match(/^---\s*\n([\s\S]*?)\n---/);
+  return match ? match[1] : content;
+}
+
+function parseYamlLikeObject(content: string): Record<string, string> {
+  const result: Record<string, string> = {};
+  const lines = content.split(/\r?\n/);
+
+  for (let i = 0; i < lines.length; i += 1) {
+    const line = lines[i];
+    const match = line.match(/^([A-Za-z0-9_-]+):\s*(.*)$/);
+    if (!match) continue;
+
+    const key = match[1];
+    const value = match[2].trim();
+    if (value) {
+      result[key] = unquote(value);
+      continue;
+    }
+
+    const block: string[] = [];
+    while (i + 1 < lines.length && /^\s+/.test(lines[i + 1])) {
+      i += 1;
+      const item = lines[i].trim().replace(/^-\s*/, "");
+      if (item) block.push(unquote(item));
+    }
+    if (block.length > 0) {
+      result[key] = block.join(", ");
+    }
+  }
+
+  return result;
+}
+
+function unquote(value: string): string {
+  return value.replace(/^["']|["']$/g, "");
+}
+
+function readField(data: Record<string, unknown>, keys: string[]): string | undefined {
+  for (const key of keys) {
+    const value = data[key];
+    if (typeof value === "string" && value.trim()) return value.trim();
+    if (Array.isArray(value)) {
+      const text = value.filter((item) => typeof item === "string" && item.trim()).join(", ");
+      if (text) return text;
+    }
+  }
+  return undefined;
+}
+
+function formatDate(value?: string): string | undefined {
+  if (!value) return undefined;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString(undefined, {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
 
 function App() {
   const [repoPath, setRepoPath] = useState<string | null>(null);
   const [storeRoot, setStoreRoot] = useState<string | null>(null);
   const [repoChecked, setRepoChecked] = useState(false);
-  const [status, setStatus] = useState<RepoStatusInfo | null>(null);
   const [entries, setEntries] = useState<JournalEntryInfo[]>([]);
-  const [stateFiles, setStateFiles] = useState<StateFileInfo[]>([]);
+  const [demographics, setDemographics] = useState<PatientDemographics | null>(null);
   const [loading, setLoading] = useState(true);
   const [mpiLoading, setMpiLoading] = useState(false);
   const [mpi, setMpi] = useState<MpiInfo | null>(null);
@@ -108,9 +201,23 @@ function App() {
         const hasIndex = await hasMpi(cwd);
         if (hasIndex) {
           await loadMpi(cwd);
+          return;
+        }
+
+        const configuredStore = await getConfiguredStore();
+        if (configuredStore) {
+          const configuredHasIndex = await hasMpi(configuredStore);
+          if (configuredHasIndex) {
+            await loadMpi(configuredStore);
+            return;
+          }
+          setError(
+            `Configured Store path does not contain gitehr-mpi.json: ${configuredStore}`
+          );
         }
       } catch (err) {
         console.error("Failed to check initial repo:", err);
+        setError(typeof err === "string" ? err : String(err));
       } finally {
         setRepoChecked(true);
       }
@@ -195,19 +302,30 @@ function App() {
     }
   };
 
+  const fetchDemographics = async (path: string): Promise<PatientDemographics | null> => {
+    for (const filename of DEMOGRAPHICS_FILES) {
+      try {
+        const file = await getStateFile(path, filename);
+        return parsePatientDemographics(file.name, file.content);
+      } catch {
+        // Demographics are optional today; try the next conventional filename.
+      }
+    }
+    return null;
+  };
+
   const fetchData = async () => {
     if (!repoPath) return;
     setLoading(true);
     setError(null);
+    setDemographics(null);
     try {
-      const [statusData, entriesData, stateFilesData] = await Promise.all([
-        getStatus(repoPath),
+      const [entriesData, demographicsData] = await Promise.all([
         getJournalEntries(repoPath, { limit: 10, reverse: true }),
-        getStateFiles(repoPath),
+        fetchDemographics(repoPath),
       ]);
-      setStatus(statusData);
       setEntries(entriesData);
-      setStateFiles(stateFilesData);
+      setDemographics(demographicsData);
     } catch (err) {
       console.error("Failed to fetch data:", err);
       setError(
@@ -239,13 +357,6 @@ function App() {
     }
   };
 
-  const getStateContent = (filename: string) => {
-    const file = stateFiles.find((f) => f.name === filename || f.name === filename + ".md");
-    if (!file) return "Not documented";
-    // Strip markdown headers if present (simple heuristic)
-    return file.content.replace(/^#+\s+/gm, "").trim();
-  };
-
   const filteredPatients: MpiPatientInfo[] = mpi
     ? mpi.patients.filter((patient) => {
         if (!patientSearch.trim()) return true;
@@ -265,6 +376,19 @@ function App() {
     selectedPatient?.repo_path.split(/[\\/]/).filter(Boolean).pop() ||
     repoPath?.split(/[\\/]/).filter(Boolean).pop() ||
     "Open record";
+  const displayName =
+    demographics?.preferredName || demographics?.fullName || selectedSubjectName;
+  const identifiers = [...(selectedPatient?.identifiers || [])];
+  if (
+    demographics?.nhsNumber &&
+    !identifiers.some(
+      (id) =>
+        id.value === demographics.nhsNumber ||
+        id.type.toLowerCase() === "nhs"
+    )
+  ) {
+    identifiers.unshift({ type: "NHS", value: demographics.nhsNumber });
+  }
 
   // Loading state while checking initial repo
   if (!repoChecked) {
@@ -467,14 +591,14 @@ function App() {
   return (
     <AppShell
       className="app-shell"
-      header={{ height: 64, offset: true }}
+      header={{ height: 104, offset: true }}
       navbar={{ width: 260, breakpoint: "sm" }}
       aside={{ width: 320, breakpoint: "md" }}
       padding="md"
     >
-      <AppShell.Header className="app-header">
-        <Group h="100%" px="md" justify="space-between">
-          <Group gap="sm">
+      <AppShell.Header className="app-header record-header">
+        <Box className="record-header-inner">
+          <Group gap="sm" className="record-header-brand" wrap="nowrap">
             <Box className="brand-mark">
               <img src={gitehrLogo} alt="GitEHR logo" />
             </Box>
@@ -483,78 +607,60 @@ function App() {
                 GitEHR Reference GUI
               </Text>
               <Title order={4} className="brand-title">
-                {selectedSubjectName}
+                {displayName}
               </Title>
             </Box>
           </Group>
-          <Group gap="sm">
-            <TextInput
-              placeholder="Search patients, visits, or tags"
-              leftSection={<IconSearch size={16} />}
-              size="sm"
-              className="search-input"
-            />
-          </Group>
-        </Group>
+          <Box className="patient-info-bar patient-info-bar-header">
+            <Box className="patient-info-primary">
+              <Text size="xs" c="dimmed" fw={600} tt="uppercase">
+                Patient
+              </Text>
+              <Text fw={700} size="lg">
+                {displayName}
+              </Text>
+            </Box>
+            <Box className="patient-info-field">
+              <Text size="xs" c="dimmed" fw={600} tt="uppercase">
+                Title
+              </Text>
+              <Text size="sm">{demographics?.title || "Not recorded"}</Text>
+            </Box>
+            <Box className="patient-info-field">
+              <Text size="xs" c="dimmed" fw={600} tt="uppercase">
+                DOB
+              </Text>
+              <Text size="sm">{formatDate(demographics?.dateOfBirth) || "Not recorded"}</Text>
+            </Box>
+            <Box className="patient-info-field patient-info-address">
+              <Text size="xs" c="dimmed" fw={600} tt="uppercase">
+                Address
+              </Text>
+              <Text size="sm" lineClamp={2}>
+                {demographics?.address || "Not recorded"}
+              </Text>
+            </Box>
+            <Box className="patient-info-field patient-info-identifiers">
+              <Text size="xs" c="dimmed" fw={600} tt="uppercase">
+                Identifiers
+              </Text>
+              <Group gap={6}>
+                {identifiers.length > 0 ? (
+                  identifiers.slice(0, 4).map((id, i) => (
+                    <Badge key={`${id.type}-${id.value}-${i}`} variant="light" color="gray">
+                      {id.type}: {id.value}
+                    </Badge>
+                  ))
+                ) : (
+                  <Text size="sm">Not recorded</Text>
+                )}
+              </Group>
+            </Box>
+          </Box>
+        </Box>
       </AppShell.Header>
 
-      <AppShell.Navbar className="app-sidebar">
-        <Stack gap="md" p="md">
-          <Text size="xs" tt="uppercase" fw={600} c="dimmed">
-            Navigation
-          </Text>
-          {storeRoot && (
-            <NavLink
-            label="Patient Index"
-              leftSection={<IconUser size={18} />}
-              onClick={() => setRepoPath(null)}
-            />
-          )}
-          <NavLink
-            label="Overview"
-            leftSection={<IconUser size={18} />}
-            active
-          />
-          <NavLink label="Appointments" leftSection={<IconCalendar size={18} />} />
-          <NavLink label="Reports" leftSection={<IconChartBar size={18} />} />
-          <NavLink label="Journal" leftSection={<IconFileText size={18} />} />
-          <NavLink label="Vitals" leftSection={<IconActivity size={18} />} />
-          <Divider />
-          <NavLink label="Settings" leftSection={<IconSettings size={18} />} />
-          <Card className="sidebar-card" radius="md" mt="md">
-            <Stack gap={6}>
-              <Text size="xs" tt="uppercase" fw={600} c="dimmed">
-                Repo Status
-              </Text>
-              {status && (
-                <>
-                  <Group justify="space-between">
-                    <Text size="sm">Entries</Text>
-                    <Badge variant="light" color="teal">
-                      {status.journal_entry_count}
-                    </Badge>
-                  </Group>
-                  <Group justify="space-between">
-                    <Text size="sm">Encrypted</Text>
-                    <Badge
-                      variant="light"
-                      color={status.is_encrypted ? "green" : "gray"}
-                    >
-                      {status.is_encrypted ? "Yes" : "No"}
-                    </Badge>
-                  </Group>
-                  <Group justify="space-between">
-                    <Text size="sm">Version</Text>
-                    <Text size="sm" c="dimmed">
-                      {status.gitehr_version || "N/A"}
-                    </Text>
-                  </Group>
-                </>
-              )}
-            </Stack>
-          </Card>
-        </Stack>
-      </AppShell.Navbar>
+      <AppShell.Navbar className="app-sidebar" />
 
       <AppShell.Main className="app-main">
         <Box className="main-surface">
@@ -571,23 +677,18 @@ function App() {
               </Alert>
             )}
             <Group justify="space-between" align="flex-end">
-            <Box>
-              <Title order={2}>Patient Overview</Title>
-              <Text size="sm" c="dimmed">
-                Timeline and summaries from {selectedSubjectName}.
-              </Text>
-            </Box>
-            <Group gap="xs">
-              <Badge size="lg" variant="light" color="teal">
-                Active
-              </Badge>
+              <Box>
+                <Title order={2}>Journal</Title>
+                <Text size="sm" c="dimmed">
+                  Add and review journal entries for {displayName}.
+                </Text>
+              </Box>
               <Badge size="lg" variant="light" color="gray">
                 {selectedPatient?.patient_id.slice(0, 12) || ".gitehr"}
               </Badge>
             </Group>
-          </Group>
 
-          <Card radius="md" className="panel-card">
+            <Card radius="md" className="panel-card">
               <Group justify="space-between" mb="md">
                 <Group gap="xs">
                   <ThemeIcon variant="light" color="teal">
@@ -645,96 +746,7 @@ function App() {
         </Box>
       </AppShell.Main>
 
-      <AppShell.Aside className="app-aside">
-        <Stack gap="md" p="md">
-          <Card radius="md" className="panel-card">
-            <Group>
-              <Avatar radius="xl" size="lg" color="teal">
-                {selectedSubjectName.slice(0, 2).toUpperCase()}
-              </Avatar>
-              <Box>
-                <Text fw={600}>{selectedSubjectName}</Text>
-                <Text size="sm" c="dimmed">
-                  {repoPath}
-                </Text>
-              </Box>
-            </Group>
-            <Group gap="xs" mt="md">
-              <Badge variant="light">Store-first</Badge>
-              <Badge variant="light">Plain files</Badge>
-              <Badge variant="light">Git-backed</Badge>
-            </Group>
-          </Card>
-
-          <Card radius="md" className="panel-card">
-            <Text size="xs" tt="uppercase" fw={600} c="dimmed" mb="xs">
-              Stateful summary
-            </Text>
-            <Stack gap="sm">
-              {loading ? (
-                <Loader size="sm" />
-              ) : (
-                <>
-                  <Box>
-                    <Text size="sm" fw={600}>
-                      Allergies
-                    </Text>
-                    <Text size="sm" c="dimmed">
-                      {getStateContent("allergies")}
-                    </Text>
-                  </Box>
-                  <Box>
-                    <Text size="sm" fw={600}>
-                      Current medications
-                    </Text>
-                    <Text size="sm" c="dimmed">
-                      {getStateContent("medications")}
-                    </Text>
-                  </Box>
-                  <Box>
-                    <Text size="sm" fw={600}>
-                      Demographics
-                    </Text>
-                    <Text size="sm" c="dimmed">
-                      {getStateContent("demographics")}
-                    </Text>
-                  </Box>
-                </>
-              )}
-            </Stack>
-          </Card>
-
-            <Card radius="md" className="panel-card">
-              <Text size="xs" tt="uppercase" fw={600} c="dimmed" mb="xs">
-                Activity feed
-              </Text>
-              <Stack gap="sm">
-                {loading ? (
-                  <Loader size="sm" />
-                ) : (
-                  entries.slice(0, 3).map((entry, i) => (
-                    <Group align="flex-start" key={i}>
-                      <ThemeIcon variant="light" color="teal">
-                        <IconFileText size={16} />
-                      </ThemeIcon>
-                      <Box>
-                        <Text size="sm">
-                          Journal entry by {entry.author || "Unknown"}
-                        </Text>
-                        <Text size="xs" c="dimmed">
-                          {new Date(entry.timestamp).toLocaleTimeString([], {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        </Text>
-                      </Box>
-                    </Group>
-                  ))
-                )}
-              </Stack>
-            </Card>
-        </Stack>
-      </AppShell.Aside>
+      <AppShell.Aside className="app-aside" />
     </AppShell>
   );
 }

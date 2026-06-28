@@ -16,7 +16,7 @@ Bootstrap a new Store in the current (empty) directory. Behaviour:
 
 ## `gitehr store add [name] [--identifier type:value]...`
 
-Create and register a further subject. Requires a Store (walks up to `gitehr-mpi.json`). Same id/directory/scaffold logic as `init` step 2-4, then appends the subject to the MPI with any `--identifier` values.
+Create and register a further subject. Requires a Store (walks up to `gitehr-mpi.json`, then falls back to the configured Store). Same id/directory/scaffold logic as `init` step 2-4, then appends the subject to the MPI with any `--identifier` values.
 
 ## `gitehr store remove <id-or-name>`
 

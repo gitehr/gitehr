@@ -6,8 +6,10 @@ use clap::{CommandFactory, FromArgMatches, Parser, Subcommand};
 use std::path::{Path, PathBuf};
 
 mod commands;
+mod config;
 mod utils;
 
+use commands::config::ConfigCommands;
 use commands::document::DocumentCommands;
 use commands::journal::JournalCommands;
 use commands::mcp::McpCommands;
@@ -70,6 +72,11 @@ enum Commands {
     Store {
         #[command(subcommand)]
         command: StoreCommands,
+    },
+    /// Manage local GitEHR configuration
+    Config {
+        #[command(subcommand)]
+        command: ConfigCommands,
     },
     Gui,
     #[command(alias = "attach")]
@@ -155,6 +162,7 @@ fn main() -> Result<()> {
         Commands::Status => commands::status::run()?,
         Commands::Transport { command } => commands::transport::run(command)?,
         Commands::Store { command } => commands::store::run(command)?,
+        Commands::Config { command } => commands::config::run(command)?,
         Commands::Gui => commands::gui::run()?,
         Commands::Document { command } => commands::document::run(command)?,
         Commands::Mcp { command } => commands::mcp::run(command)?,
@@ -228,6 +236,7 @@ fn apply_context(command: &mut Commands) -> Result<()> {
         Commands::Store {
             command: StoreCommands::Init { .. },
         } => Ctx::None,
+        Commands::Config { .. } => Ctx::None,
         Commands::Store { .. } => Ctx::Store,
         Commands::Journal { .. }
         | Commands::State { .. }

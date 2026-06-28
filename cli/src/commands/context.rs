@@ -32,9 +32,11 @@ fn find_up(marker: &str) -> Result<Option<PathBuf>> {
 pub fn resolve_store_root() -> Result<PathBuf> {
     match find_up(STORE_MARKER)? {
         Some(root) => Ok(root),
-        None => bail!(
-            "Not inside a GitEHR Store (no {STORE_MARKER} found). Run `gitehr store init` to create one."
-        ),
+        None => configured_store_root()?.ok_or_else(|| {
+            anyhow::anyhow!(
+                "Not inside a GitEHR Store (no {STORE_MARKER} found). Run `gitehr store init` to create one, or set one with `gitehr config set-store <path>`."
+            )
+        }),
     }
 }
 
@@ -44,7 +46,12 @@ pub fn resolve_repo_root() -> Result<PathBuf> {
     if let Some(repo) = find_up(REPO_MARKER)? {
         return Ok(repo);
     }
-    if let Some(store) = find_up(STORE_MARKER)? {
+    let store = match find_up(STORE_MARKER)? {
+        Some(store) => Some(store),
+        None => configured_store_root()?,
+    };
+
+    if let Some(store) = store {
         let subjects = subjects(&store)?;
         return match subjects.as_slice() {
             [(_, path)] => Ok(path.clone()),
@@ -56,7 +63,25 @@ pub fn resolve_repo_root() -> Result<PathBuf> {
             ),
         };
     }
-    bail!("Not a GitEHR repository or Store. Run `gitehr store init` to create one.")
+    bail!(
+        "Not a GitEHR repository or Store. Run `gitehr store init` to create one, or set one with `gitehr config set-store <path>`."
+    )
+}
+
+fn configured_store_root() -> Result<Option<PathBuf>> {
+    let Some(store) = crate::config::configured_store_path()? else {
+        return Ok(None);
+    };
+
+    if store.join(STORE_MARKER).exists() {
+        Ok(Some(store))
+    } else {
+        bail!(
+            "Configured GitEHR Store path {} does not contain {STORE_MARKER}. Update it with `gitehr config set-store <path>` or override it with {}.",
+            store.display(),
+            crate::config::STORE_PATH_ENV
+        )
+    }
 }
 
 /// `(name, absolute path)` for each subject in the Store's MPI (parsed loosely so

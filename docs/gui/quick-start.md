@@ -12,17 +12,25 @@ To use this guide, you should already have a GitEHR record folder on your comput
 
 ## 1. Open the GitEHR Application
 
-Launch the GitEHR app on your computer. When it starts, it will look for a health record to display.
+Launch the GitEHR app on your computer. When it starts, it will look for a Store or health record to display.
+
+If you have a regular local Store, set it once:
+
+```bash
+gitehr config set-store ~/gitehr-store
+```
+
+After that, the GUI can open the configured Store automatically.
 
 ## 2. Select a Record Folder
 
-If the app doesn't automatically load a record, it will ask you to choose one:
+If the app doesn't automatically load a Store or record, it will ask you to choose one:
 
 1. Click the **Open** or **Select Folder** button.
 2. Navigate to the folder on your computer that contains the health record.
 3. Select the folder and confirm. 
 
-*Note: The app specifically looks for a folder that contains a hidden .gitehr marker. If you select a folder without this, the app will let you know.*
+*Note: The app looks for either a Store root containing `gitehr-mpi.json` or a subject repo containing `.gitehr`. If you select a folder without either marker, the app will let you know.*
 
 ## 3. Verify the Patient Record
 
