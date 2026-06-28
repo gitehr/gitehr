@@ -112,7 +112,7 @@ fn expand_tilde(path: &Path) -> Result<PathBuf> {
     };
 
     if text == "~" {
-        return Ok(home_dir()?);
+        return home_dir();
     }
     if let Some(rest) = text.strip_prefix("~/") {
         return Ok(home_dir()?.join(rest));

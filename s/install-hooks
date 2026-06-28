@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# SPDX-FileCopyrightText: 2026 Marcus Baw and Baw Medical Ltd
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# Install the tracked Git hooks for this checkout.
+
+set -euo pipefail
+cd "$(git rev-parse --show-toplevel)"
+
+git config core.hooksPath .githooks
+echo "Git hooks installed: core.hooksPath=.githooks"

@@ -21,6 +21,16 @@ Run the formatting and clippy checks CI enforces (`cargo fmt --all --check`, the
 
 To auto-apply fixes: `cargo fmt --all && cargo clippy --fix --all-targets --allow-dirty`.
 
+## `s/install-hooks`
+
+Install the tracked Git hooks for this checkout:
+
+```
+s/install-hooks
+```
+
+This sets `core.hooksPath=.githooks`. The current pre-commit hook runs `s/lint`, so formatting and clippy failures are caught before the commit is created. Hooks stay local to the checkout; they are not forced on contributors until they opt in.
+
 ## `s/version++`
 
 GitEHR releases are managed by release-plz. Running `s/version++` without arguments explains the Release PR flow and exits without changing files. Use the explicit manual fallback only when deliberately bypassing release-plz:
