@@ -1,11 +1,13 @@
 // SPDX-FileCopyrightText: 2026 Marcus Baw and Baw Medical Ltd
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+pub mod allergies;
 pub mod completions;
 pub mod config;
 pub mod context;
 pub mod contributor;
 pub mod decrypt;
+pub mod demographics;
 pub mod document;
 pub mod encrypt;
 mod git;
@@ -20,6 +22,7 @@ pub mod state;
 pub mod status;
 pub mod store;
 pub mod transport;
+pub mod typed_state;
 pub mod upgrade;
 pub mod upgrade_binary;
 pub mod user;

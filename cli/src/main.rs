@@ -9,7 +9,9 @@ mod commands;
 mod config;
 mod utils;
 
+use commands::allergies::AllergyCommands;
 use commands::config::ConfigCommands;
+use commands::demographics::DemographicsCommands;
 use commands::document::DocumentCommands;
 use commands::journal::JournalCommands;
 use commands::mcp::McpCommands;
@@ -49,6 +51,16 @@ enum Commands {
     State {
         #[command(subcommand)]
         command: Option<StateCommands>,
+    },
+    /// Manage typed patient demographics state
+    Demographics {
+        #[command(subcommand)]
+        command: DemographicsCommands,
+    },
+    /// Manage typed allergy and adverse-reaction state
+    Allergies {
+        #[command(subcommand)]
+        command: AllergyCommands,
     },
     Remote {
         #[command(subcommand)]
@@ -159,6 +171,8 @@ fn main() -> Result<()> {
         Commands::Import { mode, path } => commands::import::run(mode, &path)?,
         Commands::Journal { command } => commands::journal::run(command)?,
         Commands::State { command } => commands::state::run(command)?,
+        Commands::Demographics { command } => commands::demographics::run(command)?,
+        Commands::Allergies { command } => commands::allergies::run(command)?,
         Commands::Remote { command } => commands::remote::run(command)?,
         Commands::Encrypt { key } => commands::encrypt::run(key.as_deref())?,
         Commands::Decrypt { key } => commands::decrypt::run(key.as_deref())?,
@@ -251,6 +265,8 @@ fn apply_context(command: &mut Commands) -> Result<()> {
         Commands::Store { .. } => Ctx::Store,
         Commands::Journal { .. }
         | Commands::State { .. }
+        | Commands::Demographics { .. }
+        | Commands::Allergies { .. }
         | Commands::Remote { .. }
         | Commands::Encrypt { .. }
         | Commands::Decrypt { .. }

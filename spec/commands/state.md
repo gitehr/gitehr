@@ -6,6 +6,12 @@ Manages the mutable clinical state files within the GitEHR repository.
 
 All subcommands require the current directory to be a GitEHR repository.
 
+`gitehr state` is the raw file-level interface. GUI-facing and automation-facing
+clinical state should prefer typed commands such as
+[`gitehr demographics`](demographics.md) and [`gitehr allergies`](allergies.md),
+which validate their fields, emit stable JSON, and create companion journal
+entries for mutations.
+
 ### `gitehr state list`
 
 Lists state files under the `state/` directory (excluding `README.md`).
@@ -31,5 +37,4 @@ Behavior:
 ### `gitehr state`
 
 If run without a subcommand, defaults to `list`.
-
 

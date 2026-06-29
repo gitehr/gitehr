@@ -2,6 +2,10 @@
 
 Manage the mutable clinical state files under `state/`. State holds current information that changes over time: medications, allergies, problems, vitals, demographics. Compare with [`gitehr journal`](journal.md), which is append-only.
 
+`gitehr state` is the raw file-level interface. Prefer typed commands such as
+[`gitehr demographics`](demographics.md) and [`gitehr allergies`](allergies.md)
+for GUI-facing or automation-facing clinical state.
+
 All subcommands require the current directory to be a GitEHR repository.
 
 ## gitehr state list
@@ -32,3 +36,5 @@ Writes content to the named state file, creating `state/` if needed. Overwrites 
 
 !!! warning "Audit trail"
     State mutations are tracked by Git history alone. For high-significance changes, also write a [`gitehr journal add`](journal.md#gitehr-journal-add) entry that explains the change. The journal is the canonical audit trail; state is the current snapshot.
+
+Typed state commands write that companion journal entry automatically.

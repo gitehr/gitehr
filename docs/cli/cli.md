@@ -21,6 +21,8 @@ Each command has its own page. Subcommands are sections within the parent comman
 | [`gitehr document`](document.md) | Attach immutable source documents - PDFs, scans, imaging - referenced from journal entries |
 | [`gitehr import`](import.md) | Import journal entries or documents from a file or directory |
 | [`gitehr state`](state.md) | Mutable current state files (`list`, `get`, `set`) |
+| [`gitehr demographics`](demographics.md) | Typed patient demographics state for headers and automation |
+| [`gitehr allergies`](allergies.md) | Typed allergy/adverse-reaction state for clinical warning displays |
 | [`gitehr user`](user.md) | Manage contributors and the active author |
 | [`gitehr remote`](remote.md) | Named remote repositories for sync |
 | [`gitehr status`](status.md) | Summarise the repository |
