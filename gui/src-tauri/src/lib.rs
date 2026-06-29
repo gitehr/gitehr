@@ -9,7 +9,18 @@ pub struct JournalEntryInfo {
     pub filename: String,
     pub timestamp: String,
     pub author: Option<String>,
+    pub content: String,
     pub content_preview: String,
+    pub documents: Vec<JournalDocumentInfo>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct JournalDocumentInfo {
+    pub path: String,
+    pub sha256: String,
+    pub original_filename: Option<String>,
+    pub absolute_path: Option<String>,
+    pub media_type: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -150,6 +161,57 @@ fn exe_name(name: &str) -> String {
     }
 }
 
+fn media_type_for_path(path: &str) -> String {
+    let ext = Path::new(path)
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or_default()
+        .to_ascii_lowercase();
+
+    match ext.as_str() {
+        "jpg" | "jpeg" => "image/jpeg",
+        "png" => "image/png",
+        "gif" => "image/gif",
+        "webp" => "image/webp",
+        "bmp" => "image/bmp",
+        "svg" => "image/svg+xml",
+        "pdf" => "application/pdf",
+        _ => "application/octet-stream",
+    }
+    .to_string()
+}
+
+fn is_image_path(path: &Path) -> bool {
+    path.extension()
+        .and_then(|e| e.to_str())
+        .map(|ext| {
+            matches!(
+                ext.to_ascii_lowercase().as_str(),
+                "jpg" | "jpeg" | "png" | "gif" | "webp" | "bmp" | "svg"
+            )
+        })
+        .unwrap_or(false)
+}
+
+fn document_absolute_path(repo_path: &str, document_path: &str) -> Option<String> {
+    let rel = Path::new(document_path);
+    if rel.is_absolute()
+        || rel
+            .components()
+            .any(|component| matches!(component, std::path::Component::ParentDir))
+    {
+        return None;
+    }
+
+    let repo = Path::new(repo_path).canonicalize().ok()?;
+    let candidate = repo.join(rel).canonicalize().ok()?;
+    if !candidate.starts_with(&repo) {
+        return None;
+    }
+
+    Some(candidate.to_string_lossy().to_string())
+}
+
 #[tauri::command]
 fn get_current_dir() -> Result<String, String> {
     std::env::current_dir()
@@ -233,12 +295,26 @@ fn get_journal_entries(
                 filename: entry.filename,
                 timestamp: entry.metadata.timestamp.to_rfc3339(),
                 author: entry.metadata.author,
+                content: entry.content.clone(),
                 content_preview: entry
                     .content
                     .chars()
                     .take(200)
                     .collect::<String>()
                     .replace('\n', " "),
+                documents: entry
+                    .metadata
+                    .documents
+                    .unwrap_or_default()
+                    .into_iter()
+                    .map(|doc| JournalDocumentInfo {
+                        absolute_path: document_absolute_path(&repo_path, &doc.path),
+                        media_type: media_type_for_path(&doc.path),
+                        path: doc.path,
+                        sha256: doc.sha256,
+                        original_filename: doc.original_filename,
+                    })
+                    .collect(),
             })
             .collect())
     })
@@ -282,11 +358,55 @@ fn update_state_file(repo_path: String, filename: String, content: String) -> Re
 }
 
 #[tauri::command]
+fn get_demographics(
+    repo_path: String,
+) -> Result<gitehr::commands::demographics::Demographics, String> {
+    with_repo_dir(&repo_path, || {
+        gitehr::commands::demographics::load().map_err(|e| e.to_string())
+    })
+}
+
+#[tauri::command]
+fn get_active_allergies(repo_path: String) -> Result<Vec<gitehr::commands::allergies::Allergy>, String> {
+    with_repo_dir(&repo_path, || {
+        gitehr::commands::allergies::list(false).map_err(|e| e.to_string())
+    })
+}
+
+#[tauri::command]
 fn add_journal_entry(repo_path: String, content: String) -> Result<String, String> {
     with_repo_dir(&repo_path, || {
         gitehr::commands::journal::create_journal_entry(&content).map_err(|e| e.to_string())?;
 
         Ok("Journal entry created".to_string())
+    })
+}
+
+#[tauri::command]
+fn add_documents(
+    repo_path: String,
+    source_paths: Vec<String>,
+    message: Option<String>,
+) -> Result<Vec<String>, String> {
+    if source_paths.is_empty() {
+        return Err("No document files selected.".to_string());
+    }
+
+    let sources: Vec<gitehr::commands::document::add::DocumentSource> = source_paths
+        .into_iter()
+        .map(|source_path| {
+            let source = PathBuf::from(source_path);
+            gitehr::commands::document::add::DocumentSource {
+                imaging: is_image_path(&source),
+                path: source,
+                title: None,
+            }
+        })
+        .collect();
+
+    with_repo_dir(&repo_path, || {
+        gitehr::commands::document::add::run_many_with_sources(&sources, message.as_deref())
+            .map_err(|e| e.to_string())
     })
 }
 
@@ -379,7 +499,10 @@ pub fn run() {
             get_state_files,
             get_state_file,
             update_state_file,
+            get_demographics,
+            get_active_allergies,
             add_journal_entry,
+            add_documents,
             get_contributors,
             get_current_contributor,
             activate_contributor,

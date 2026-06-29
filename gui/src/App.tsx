@@ -1,3 +1,5 @@
+import { convertFileSrc } from "@tauri-apps/api/core";
+import { openPath } from "@tauri-apps/plugin-opener";
 import {
   AppShell,
   Badge,
@@ -18,8 +20,11 @@ import {
 } from "@mantine/core";
 import {
   IconAlertCircle,
+  IconArrowLeft,
+  IconExternalLink,
   IconFileText,
   IconFolderOpen,
+  IconPaperclip,
   IconSearch,
   IconPlus,
 } from "@tabler/icons-react";
@@ -27,20 +32,27 @@ import { useEffect, useState } from "react";
 import gitehrLogo from "./assets/gitehr-logo.svg";
 import "./App.css";
 import {
+  addDocuments,
   addJournalEntry,
   getConfiguredStore,
   getCurrentDir,
+  getActiveAllergies,
+  getDemographics,
   getJournalEntries,
-  getStateFile,
   isGitehrRepo,
   hasMpi,
   getMpi,
+  pickDocumentFiles,
   pickFolder,
   initStoreRoot,
   addStoreSubject,
   type JournalEntryInfo,
+  type JournalDocumentInfo,
   type MpiInfo,
+  type MpiIdentifier,
   type MpiPatientInfo,
+  type PatientDemographicsInfo,
+  type AllergyInfo,
 } from "./api/gitehr";
 
 interface PatientDemographics {
@@ -50,89 +62,19 @@ interface PatientDemographics {
   address?: string;
   dateOfBirth?: string;
   nhsNumber?: string;
+  identifiers: MpiIdentifier[];
 }
 
-const DEMOGRAPHICS_FILES = ["patient.md", "demographics.md", "patient.json", "demographics.json"];
-
-function parsePatientDemographics(filename: string, content: string): PatientDemographics {
-  const data = filename.endsWith(".json")
-    ? parseJsonObject(content)
-    : parseYamlLikeObject(extractFrontMatter(content));
-
-  const fullName =
-    readField(data, ["patient_name", "full_name", "name"]) ||
-    [readField(data, ["given_name", "first_name"]), readField(data, ["family_name", "surname"])]
-      .filter(Boolean)
-      .join(" ");
-
+function mapDemographics(info: PatientDemographicsInfo): PatientDemographics {
   return {
-    title: readField(data, ["title", "honorific", "prefix"]),
-    fullName: fullName || undefined,
-    preferredName: readField(data, ["preferred_name", "known_as"]),
-    address: readField(data, ["address", "home_address"]),
-    dateOfBirth: readField(data, ["date_of_birth", "dob", "birth_date"]),
-    nhsNumber: readField(data, ["nhs_number", "nhs"]),
+    title: info.title || undefined,
+    fullName: info.full_name || undefined,
+    preferredName: info.preferred_name || undefined,
+    address: info.address || undefined,
+    dateOfBirth: info.date_of_birth || undefined,
+    nhsNumber: info.nhs_number || undefined,
+    identifiers: info.identifiers || [],
   };
-}
-
-function parseJsonObject(content: string): Record<string, unknown> {
-  try {
-    const parsed = JSON.parse(content);
-    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
-  } catch {
-    return {};
-  }
-}
-
-function extractFrontMatter(content: string): string {
-  const match = content.match(/^---\s*\n([\s\S]*?)\n---/);
-  return match ? match[1] : content;
-}
-
-function parseYamlLikeObject(content: string): Record<string, string> {
-  const result: Record<string, string> = {};
-  const lines = content.split(/\r?\n/);
-
-  for (let i = 0; i < lines.length; i += 1) {
-    const line = lines[i];
-    const match = line.match(/^([A-Za-z0-9_-]+):\s*(.*)$/);
-    if (!match) continue;
-
-    const key = match[1];
-    const value = match[2].trim();
-    if (value) {
-      result[key] = unquote(value);
-      continue;
-    }
-
-    const block: string[] = [];
-    while (i + 1 < lines.length && /^\s+/.test(lines[i + 1])) {
-      i += 1;
-      const item = lines[i].trim().replace(/^-\s*/, "");
-      if (item) block.push(unquote(item));
-    }
-    if (block.length > 0) {
-      result[key] = block.join(", ");
-    }
-  }
-
-  return result;
-}
-
-function unquote(value: string): string {
-  return value.replace(/^["']|["']$/g, "");
-}
-
-function readField(data: Record<string, unknown>, keys: string[]): string | undefined {
-  for (const key of keys) {
-    const value = data[key];
-    if (typeof value === "string" && value.trim()) return value.trim();
-    if (Array.isArray(value)) {
-      const text = value.filter((item) => typeof item === "string" && item.trim()).join(", ");
-      if (text) return text;
-    }
-  }
-  return undefined;
 }
 
 function formatDate(value?: string): string | undefined {
@@ -146,12 +88,74 @@ function formatDate(value?: string): string | undefined {
   });
 }
 
+function allergyColor(severity: AllergyInfo["severity"]): string {
+  switch (severity) {
+    case "critical":
+      return "red";
+    case "high":
+      return "orange";
+    case "moderate":
+      return "yellow";
+    case "low":
+      return "green";
+  }
+}
+
+function isDocumentOnlyEntry(entry: JournalEntryInfo): boolean {
+  return entry.documents.length > 0 && entry.content.trim().length === 0;
+}
+
+function DocumentPreview({ document }: { document: JournalDocumentInfo }) {
+  const assetUrl = document.absolute_path ? convertFileSrc(document.absolute_path) : null;
+  const label = document.original_filename || document.path.split(/[\\/]/).pop() || document.path;
+  const isImage = document.media_type.startsWith("image/");
+  const isPdf = document.media_type === "application/pdf";
+
+  return (
+    <Box className="document-preview">
+      <Group justify="space-between" gap="sm" className="document-preview-header">
+        <Box>
+          <Text fw={600} size="sm">
+            {label}
+          </Text>
+          <Text size="xs" c="dimmed">
+            {document.path}
+          </Text>
+        </Box>
+        {document.absolute_path && (
+          <Button
+            size="xs"
+            variant="subtle"
+            leftSection={<IconExternalLink size={14} />}
+            onClick={() => openPath(document.absolute_path!)}
+          >
+            Open
+          </Button>
+        )}
+      </Group>
+      {assetUrl && isImage && (
+        <img className="document-preview-image" src={assetUrl} alt={label} />
+      )}
+      {assetUrl && isPdf && (
+        <iframe className="document-preview-pdf" src={assetUrl} title={label} />
+      )}
+      {(!assetUrl || (!isImage && !isPdf)) && (
+        <Box className="document-preview-fallback">
+          <IconFileText size={28} />
+          <Text size="sm">{label}</Text>
+        </Box>
+      )}
+    </Box>
+  );
+}
+
 function App() {
   const [repoPath, setRepoPath] = useState<string | null>(null);
   const [storeRoot, setStoreRoot] = useState<string | null>(null);
   const [repoChecked, setRepoChecked] = useState(false);
   const [entries, setEntries] = useState<JournalEntryInfo[]>([]);
   const [demographics, setDemographics] = useState<PatientDemographics | null>(null);
+  const [allergies, setAllergies] = useState<AllergyInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [mpiLoading, setMpiLoading] = useState(false);
   const [mpi, setMpi] = useState<MpiInfo | null>(null);
@@ -163,6 +167,7 @@ function App() {
 
   const [newEntryContent, setNewEntryContent] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [attachingDocument, setAttachingDocument] = useState(false);
 
   const loadMpi = async (path: string) => {
     setMpiLoading(true);
@@ -302,30 +307,21 @@ function App() {
     }
   };
 
-  const fetchDemographics = async (path: string): Promise<PatientDemographics | null> => {
-    for (const filename of DEMOGRAPHICS_FILES) {
-      try {
-        const file = await getStateFile(path, filename);
-        return parsePatientDemographics(file.name, file.content);
-      } catch {
-        // Demographics are optional today; try the next conventional filename.
-      }
-    }
-    return null;
-  };
-
   const fetchData = async () => {
     if (!repoPath) return;
     setLoading(true);
     setError(null);
     setDemographics(null);
+    setAllergies([]);
     try {
-      const [entriesData, demographicsData] = await Promise.all([
+      const [entriesData, demographicsData, allergiesData] = await Promise.all([
         getJournalEntries(repoPath, { limit: 10, reverse: true }),
-        fetchDemographics(repoPath),
+        getDemographics(repoPath),
+        getActiveAllergies(repoPath),
       ]);
       setEntries(entriesData);
-      setDemographics(demographicsData);
+      setDemographics(mapDemographics(demographicsData));
+      setAllergies(allergiesData);
     } catch (err) {
       console.error("Failed to fetch data:", err);
       setError(
@@ -357,6 +353,24 @@ function App() {
     }
   };
 
+  const handleAddDocument = async () => {
+    if (!repoPath) return;
+    try {
+      const files = await pickDocumentFiles();
+      if (files.length === 0) return;
+      setAttachingDocument(true);
+      setError(null);
+      await addDocuments(repoPath, files, newEntryContent.trim());
+      setNewEntryContent("");
+      await fetchData();
+    } catch (err) {
+      console.error("Failed to add document:", err);
+      setError("Failed to add document: " + err);
+    } finally {
+      setAttachingDocument(false);
+    }
+  };
+
   const filteredPatients: MpiPatientInfo[] = mpi
     ? mpi.patients.filter((patient) => {
         if (!patientSearch.trim()) return true;
@@ -378,17 +392,23 @@ function App() {
     "Open record";
   const displayName =
     demographics?.preferredName || demographics?.fullName || selectedSubjectName;
-  const identifiers = [...(selectedPatient?.identifiers || [])];
-  if (
-    demographics?.nhsNumber &&
-    !identifiers.some(
-      (id) =>
-        id.value === demographics.nhsNumber ||
-        id.type.toLowerCase() === "nhs"
-    )
-  ) {
-    identifiers.unshift({ type: "NHS", value: demographics.nhsNumber });
+  const identifiers: MpiIdentifier[] = [];
+  const addIdentifier = (identifier: MpiIdentifier) => {
+    if (
+      !identifiers.some(
+        (existing) =>
+          existing.type.toLowerCase() === identifier.type.toLowerCase() &&
+          existing.value === identifier.value
+      )
+    ) {
+      identifiers.push(identifier);
+    }
+  };
+  if (demographics?.nhsNumber) {
+    addIdentifier({ type: "NHS", value: demographics.nhsNumber });
   }
+  demographics?.identifiers.forEach(addIdentifier);
+  selectedPatient?.identifiers.forEach(addIdentifier);
 
   // Loading state while checking initial repo
   if (!repoChecked) {
@@ -640,6 +660,26 @@ function App() {
                 {demographics?.address || "Not recorded"}
               </Text>
             </Box>
+            <Box className="patient-info-field patient-info-allergies">
+              <Text size="xs" c="dimmed" fw={600} tt="uppercase">
+                Allergies
+              </Text>
+              <Group gap={6}>
+                {allergies.length > 0 ? (
+                  allergies.slice(0, 3).map((allergy) => (
+                    <Badge
+                      key={allergy.id}
+                      variant="light"
+                      color={allergyColor(allergy.severity)}
+                    >
+                      {allergy.agent}
+                    </Badge>
+                  ))
+                ) : (
+                  <Text size="sm">None recorded</Text>
+                )}
+              </Group>
+            </Box>
             <Box className="patient-info-field patient-info-identifiers">
               <Text size="xs" c="dimmed" fw={600} tt="uppercase">
                 Identifiers
@@ -660,7 +700,22 @@ function App() {
         </Box>
       </AppShell.Header>
 
-      <AppShell.Navbar className="app-sidebar" />
+      <AppShell.Navbar className="app-sidebar">
+        {storeRoot && mpi && (
+          <Stack p="md" gap="sm">
+            <Button
+              variant="subtle"
+              color="gray"
+              leftSection={<IconArrowLeft size={18} />}
+              justify="flex-start"
+              onClick={() => setRepoPath(null)}
+              fullWidth
+            >
+              Patient list
+            </Button>
+          </Stack>
+        )}
+      </AppShell.Navbar>
 
       <AppShell.Main className="app-main">
         <Box className="main-surface">
@@ -717,6 +772,14 @@ function App() {
                 >
                   Add
                 </Button>
+                <Button
+                  variant="light"
+                  leftSection={<IconPaperclip size={18} />}
+                  onClick={handleAddDocument}
+                  loading={attachingDocument}
+                >
+                  Document
+                </Button>
               </Group>
 
               <Divider mb="md" />
@@ -731,9 +794,33 @@ function App() {
                 </Text>
               ) : (
                 <Stack gap="sm">
-                  {entries.map((entry, i) => (
-                    <Card key={i} withBorder padding="sm" radius="md">
-                      <Text size="sm">{entry.content_preview}</Text>
+                  {entries.map((entry) => (
+                    <Card
+                      key={entry.filename}
+                      withBorder
+                      padding="sm"
+                      radius="md"
+                      className={
+                        isDocumentOnlyEntry(entry)
+                          ? "journal-entry-card document-entry-card"
+                          : "journal-entry-card"
+                      }
+                    >
+                      {!isDocumentOnlyEntry(entry) && (
+                        <Text size="sm" className="journal-entry-content">
+                          {entry.content || entry.content_preview}
+                        </Text>
+                      )}
+                      {entry.documents.length > 0 && (
+                        <Stack gap="sm" className="document-preview-stack">
+                          {entry.documents.map((document) => (
+                            <DocumentPreview
+                              key={`${entry.filename}-${document.path}`}
+                              document={document}
+                            />
+                          ))}
+                        </Stack>
+                      )}
                       <Text size="xs" c="dimmed" mt="xs">
                         {new Date(entry.timestamp).toLocaleString()} · {entry.author || "Unknown"}
                       </Text>

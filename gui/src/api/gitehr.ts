@@ -1,11 +1,21 @@
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 
+export interface JournalDocumentInfo {
+  path: string;
+  sha256: string;
+  original_filename: string | null;
+  absolute_path: string | null;
+  media_type: string;
+}
+
 export interface JournalEntryInfo {
   filename: string;
   timestamp: string;
   author: string | null;
+  content: string;
   content_preview: string;
+  documents: JournalDocumentInfo[];
 }
 
 export interface StateFileInfo {
@@ -34,6 +44,29 @@ export interface ContributorInfo {
 export interface MpiIdentifier {
   type: string;
   value: string;
+}
+
+export interface PatientDemographicsInfo {
+  title: string | null;
+  full_name: string | null;
+  preferred_name: string | null;
+  address: string | null;
+  date_of_birth: string | null;
+  nhs_number: string | null;
+  identifiers: MpiIdentifier[];
+}
+
+export interface AllergyInfo {
+  id: string;
+  agent: string;
+  reaction: string;
+  severity: "low" | "moderate" | "high" | "critical";
+  status: "active" | "inactive";
+  recorded_at: string;
+  recorded_by: string | null;
+  inactive_at: string | null;
+  inactive_reason: string | null;
+  note: string | null;
 }
 
 export interface MpiPatientInfo {
@@ -81,6 +114,16 @@ export async function pickFolder(): Promise<string | null> {
   return result as string | null;
 }
 
+export async function pickDocumentFiles(): Promise<string[]> {
+  const result = await open({
+    directory: false,
+    multiple: true,
+    title: "Add Documents",
+  });
+  if (!result) return [];
+  return Array.isArray(result) ? result : [result];
+}
+
 export async function getStatus(repoPath: string): Promise<RepoStatusInfo> {
   return invoke<RepoStatusInfo>("get_status", { repoPath });
 }
@@ -114,6 +157,16 @@ export async function getStateFile(
   return invoke<StateFileInfo>("get_state_file", { repoPath, filename });
 }
 
+export async function getDemographics(
+  repoPath: string
+): Promise<PatientDemographicsInfo> {
+  return invoke<PatientDemographicsInfo>("get_demographics", { repoPath });
+}
+
+export async function getActiveAllergies(repoPath: string): Promise<AllergyInfo[]> {
+  return invoke<AllergyInfo[]>("get_active_allergies", { repoPath });
+}
+
 export async function updateStateFile(
   repoPath: string,
   filename: string,
@@ -127,6 +180,14 @@ export async function addJournalEntry(
   content: string
 ): Promise<string> {
   return invoke<string>("add_journal_entry", { repoPath, content });
+}
+
+export async function addDocuments(
+  repoPath: string,
+  sourcePaths: string[],
+  message?: string
+): Promise<string[]> {
+  return invoke<string[]>("add_documents", { repoPath, sourcePaths, message });
 }
 
 export async function getContributors(

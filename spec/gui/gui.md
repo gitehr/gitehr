@@ -16,6 +16,10 @@ The GUI cannot implement a feature that is not supported by the GitEHR CLI. It s
 * Wraps the GitEHR CLI commands in a user-friendly graphical interface.
 * Provides visualizations of the patient's clinical data, including timelines, charts, and summaries.
 * Enables easy navigation and searching of the medical record.
+* Allows users to attach one or more local Documents to the record through the existing `gitehr document add` workflow.
+* Allows narrative journal text and attached Documents to be recorded together in one journal entry.
+* Previews supported attachments inline where possible: large image previews for common raster formats and an embedded scrollable PDF frame for PDFs.
+* Reads typed demographics and active allergy state through CLI-backed Tauri commands for the record header.
 
 ## Initial Load
 
@@ -26,6 +30,8 @@ Upon launching the GUI, users will be prompted to select an existing GitEHR repo
 * **Left Sidebar**: Navigation menu for accessing different sections (e.g., Journal, State, Imaging, Documents).
 * **Main Content Area**: Displays clinical data, forms, and visualizations.
 * **New Entry Button**: Quick access to add new journal entries.
+* **Document Button**: Opens a file picker and records the selected file(s) as Documents linked from a new journal entry, using the current journal text as the narrative when present.
+* **Record Header**: Displays typed demographics and active allergy state from `gitehr demographics show --json` / `gitehr allergies list --json`.
 * **Stateful Area**: Displays information from the `state/` directory, such as allergies, current medications, and demographic information.
 
 ## Launch Behavior
