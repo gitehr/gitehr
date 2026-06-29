@@ -105,16 +105,19 @@ enum Commands {
         long_about = r#"Generate shell completions for gitehr.
 
 Examples:
+  gitehr completions install
+  gitehr completions zsh --dir ~/.zfunc
   gitehr completions bash > ~/.local/share/bash-completion/completions/gitehr
-  gitehr completions zsh > "${fpath[1]}/_gitehr"
-  gitehr completions fish > ~/.config/fish/completions/gitehr.fish
-  gitehr completions powershell | Out-File -Append $PROFILE
 
 Restart your shell after installing completions."#
     )]
     Completions {
+        #[command(subcommand)]
+        command: Option<commands::completions::CompletionCommand>,
         #[arg(help = "Shell type (bash, zsh, fish, powershell)")]
-        shell: clap_complete::Shell,
+        shell: Option<clap_complete::Shell>,
+        #[arg(long, short = 'd', help = "Output directory")]
+        dir: Option<PathBuf>,
     },
     /// List installed plugins (gitehr-<command> executables on PATH)
     Plugins,
@@ -169,9 +172,13 @@ fn main() -> Result<()> {
         Commands::Upgrade => commands::upgrade::run()?,
         Commands::UpgradeBinary => commands::upgrade_binary::run()?,
         Commands::Version => commands::version::run(),
-        Commands::Completions { shell } => {
+        Commands::Completions {
+            command,
+            shell,
+            dir,
+        } => {
             let mut cmd = Cli::command();
-            commands::completions::run(shell, &mut cmd);
+            commands::completions::run(command, shell, dir.as_deref(), &mut cmd)?;
         }
         Commands::Plugins => commands::plugin::list(&builtins)?,
         Commands::External(args) => commands::plugin::run(args)?,

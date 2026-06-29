@@ -1,0 +1,35 @@
+// SPDX-FileCopyrightText: 2026 Marcus Baw and Baw Medical Ltd
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
+use std::process::Command;
+
+#[test]
+fn completions_generate_and_install() {
+    let bin = env!("CARGO_BIN_EXE_gitehr");
+    let out_dir =
+        std::env::temp_dir().join(format!("gitehr-completions-test-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&out_dir);
+
+    let output = Command::new(bin)
+        .args(["completions", "bash"])
+        .output()
+        .expect("run gitehr completions bash");
+    assert!(output.status.success());
+    let bash = String::from_utf8(output.stdout).expect("bash completions are utf8");
+    assert!(bash.contains("complete"));
+    assert!(bash.contains("completions"));
+
+    let output = Command::new(bin)
+        .args([
+            "completions",
+            "install",
+            "--shell",
+            "zsh",
+            "--dir",
+            out_dir.to_str().expect("temp path"),
+        ])
+        .output()
+        .expect("run gitehr completions install");
+    assert!(output.status.success());
+    assert!(out_dir.join("_gitehr").exists());
+}
