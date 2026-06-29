@@ -54,16 +54,13 @@ You should see a short usage summary and the current GitEHR version.
 
 ## Shell completions
 
-Generate a completion script and save it to your shell's completion directory.
+Install completion scripts for your current shell:
 
 ```sh
-gitehr completions bash > ~/.local/share/bash-completion/completions/gitehr
-gitehr completions zsh > "${fpath[1]}/_gitehr"
-gitehr completions fish > ~/.config/fish/completions/gitehr.fish
-gitehr completions powershell | Out-File -Append $PROFILE
+gitehr completions install
 ```
 
-Restart your shell after installation.
+The installer detects your shell, writes the correctly named completion file, and prints any one-time shell setup still needed. Re-run it after upgrading GitEHR if your package manager or installer did not refresh completions for you.
 
 ## What's next
 
