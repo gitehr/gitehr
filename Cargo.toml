@@ -12,6 +12,8 @@ version = "0.3.1"
 edition = "2024"
 authors = ["Marcus Baw"]
 license = "AGPL-3.0-or-later"
+repository = "https://github.com/gitehr/gitehr"
+homepage = "https://gitehr.org"
 
 [workspace.dependencies]
 # Shared dependencies across workspace
@@ -30,3 +32,30 @@ tokio = { version = "1", features = ["full"] }
 
 # Testing
 tempfile = "3"
+
+# Config for 'dist'
+[workspace.metadata.dist]
+# The preferred dist version to use in CI (Cargo.toml SemVer syntax)
+cargo-dist-version = "0.31.0"
+# CI backends to support
+ci = "github"
+# The installers to generate for each app
+installers = ["shell", "powershell", "homebrew", "msi"]
+# Target platforms to build apps for (Rust target-triple syntax)
+targets = ["aarch64-apple-darwin", "aarch64-unknown-linux-gnu", "x86_64-apple-darwin", "x86_64-unknown-linux-gnu", "x86_64-pc-windows-msvc"]
+# Path that installers should place binaries in
+install-path = "CARGO_HOME"
+# Whether to install an updater program
+install-updater = false
+# A GitHub repo to push Homebrew formulas to
+tap = "pacharanero/homebrew-tap"
+# Publish jobs to run in CI
+publish-jobs = ["homebrew"]
+# Whether to publish prereleases to package managers
+publish-prereleases = false
+# Skip checking whether the specified configuration files are up to date
+allow-dirty = ["ci"]
+
+[profile.dist]
+inherits = "release"
+lto = "thin"

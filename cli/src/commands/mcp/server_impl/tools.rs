@@ -108,9 +108,9 @@ impl ToolHandler {
         ];
 
         // Clinical calculator tools are temporarily dormant while
-        // pacharanero/calc is pre-crates.io; release-plz package verification
-        // cannot package git-only dependencies. Restore the calc_core-backed
-        // `calc_*` tools once calc-core is published.
+        // pacharanero/calc is pre-crates.io; keep GitEHR's release pipeline
+        // free of git-only dependencies. Restore the calc_core-backed `calc_*`
+        // tools once calc-core is published.
 
         Ok(ToolsList { tools })
     }

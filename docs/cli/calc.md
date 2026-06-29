@@ -1,7 +1,7 @@
 # gitehr calc
 
 !!! warning "Temporarily dormant"
-    `gitehr calc` is temporarily disabled while the shared calculator crates in `pacharanero/calc` are prepared for crates.io. This lets GitEHR use release-plz, which runs Cargo package verification and cannot package GitEHR while it has git-only calculator dependencies. The command and MCP calculator tools should return once `calc-cli` and `calc-core` are published.
+    `gitehr calc` is temporarily disabled while the shared calculator crates in `pacharanero/calc` are prepared for crates.io. This keeps GitEHR's release pipeline free of git-only calculator dependencies. The command and MCP calculator tools should return once `calc-cli` and `calc-core` are published.
 
 Clinical calculators: scores, screeners, and risk tools. The same scoring engine drives the command line, the MCP server (for LLM use), the GUI, and the standalone web tools, so a result is identical wherever it is produced.
 

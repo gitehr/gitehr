@@ -5,8 +5,8 @@
 # must pass before merge: formatting, clippy as errors, and the test suite.
 #
 # Clinical calculator crates from pacharanero/calc are temporarily dormant in
-# GitEHR while they are prepared for crates.io; this keeps Cargo packaging and
-# release-plz working without git-only dependencies.
+# GitEHR while they are prepared for crates.io; this keeps the release pipeline
+# free of git-only dependencies.
 
 name: CI
 

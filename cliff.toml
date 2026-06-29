@@ -1,0 +1,61 @@
+# git-cliff configuration for GitEHR
+# See https://git-cliff.org/docs/configuration
+
+[changelog]
+header = """
+# Changelog
+
+All notable changes to GitEHR are documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
+Releases are grouped from conventional-commit messages by [git-cliff](https://git-cliff.org).
+
+"""
+body = """
+{% if version %}\
+## [{{ version | trim_start_matches(pat="v") }}] - {{ timestamp | date(format="%Y-%m-%d") }}
+{% else %}\
+## [unreleased]
+{% endif %}\
+{% for group, commits in commits | group_by(attribute="group") %}
+### {{ group | upper_first }}
+{% for commit in commits %}
+- {% if commit.scope %}**{{ commit.scope }}**: {% endif %}{{ commit.message | upper_first }}\
+    {% if commit.breaking %} **[breaking]**{% endif %}\
+    {% if commit.id %} ([{{ commit.id | truncate(length=7, end="") }}](https://github.com/gitehr/gitehr/commit/{{ commit.id }})){% endif %}
+{% endfor %}\
+{% endfor %}\n
+"""
+footer = ""
+trim = true
+
+[git]
+conventional_commits = true
+filter_unconventional = true
+split_commits = false
+commit_preprocessors = [
+    { pattern = '\(#([0-9]+)\)', replace = "([#${1}](https://github.com/gitehr/gitehr/issues/${1}))" },
+]
+commit_parsers = [
+    { message = "^feat", group = "Features" },
+    { message = "^fix", group = "Bug fixes" },
+    { message = "^perf", group = "Performance" },
+    { message = "^docs", group = "Documentation" },
+    { message = "^refactor", group = "Refactor" },
+    { message = "^test", group = "Tests" },
+    { message = "^style", group = "Styling" },
+    { message = "^ci\\(deps\\)", group = "CI / dependencies" },
+    { message = "^chore\\(deps\\)", group = "CI / dependencies" },
+    { message = "^ci", group = "CI" },
+    { message = "^chore\\(release\\)", skip = true },
+    { message = "^chore", group = "Chores" },
+    { message = "^build", group = "Build" },
+    { body = ".*security", group = "Security" },
+]
+protect_breaking_commits = false
+filter_commits = false
+tag_pattern = "v[0-9]+\\.[0-9]+\\.[0-9]+"
+skip_tags = ""
+ignore_tags = ""
+topo_order = false
+sort_commits = "newest"

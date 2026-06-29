@@ -33,13 +33,18 @@ This sets `core.hooksPath=.githooks`. The current pre-commit hook runs `s/lint`,
 
 ## `s/version++`
 
-GitEHR releases are managed by release-plz. Running `s/version++` without arguments explains the Release PR flow and exits without changing files. Use the explicit manual fallback only when deliberately bypassing release-plz:
+Ship a release from a clean `main` checkout:
 
 ```
-s/version++ --manual patch   # or: minor, major
+s/version++          # patch
+s/version++ minor
+s/version++ major
 ```
 
-The fallback bumps local version files and does not commit or tag.
+The script bumps the Rust workspace, GUI, and Tauri versions; regenerates lockfiles
+and `CHANGELOG.md`; commits; and pushes to `main`. It never tags locally. The
+`auto-tag.yml` workflow creates the `vX.Y.Z` tag after the bump commit lands and
+then invokes the cargo-dist release workflow.
 
 ## `s/size`
 

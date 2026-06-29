@@ -1,66 +1,90 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # SPDX-FileCopyrightText: 2026 Marcus Baw and Baw Medical Ltd
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
-# set -v  # Enable verbose mode
-set -euo pipefail  # Exit on error
+set -euo pipefail
+cd "$(git rev-parse --show-toplevel)"
 
-# scripts may need to be made executable on some platforms before they can be run
-# chmod +x s/<filename> is the command to do this on unixy systems
+usage() {
+  echo "Usage: s/version++ [patch|minor|major]" >&2
+}
 
-if [[ "${1-}" != "--manual" ]]; then
-  cat >&2 <<'EOF'
-GitEHR releases are managed by release-plz.
+if [[ $# -gt 1 ]]; then
+  usage
+  exit 2
+fi
 
-Normal release flow:
-  1. Use conventional commits.
-  2. Push/merge to main.
-  3. Merge the release-plz Release PR.
+bump="${1:-patch}"
+case "$bump" in
+  patch|minor|major) ;;
+  *)
+    usage
+    echo "Invalid bump: $bump" >&2
+    exit 2
+    ;;
+esac
 
-release-plz then creates the git tag and GitHub Release. Do not tag locally.
-
-Manual fallback, only when deliberately bypassing release-plz:
-  s/version++ --manual [patch|minor|major]
-
-The manual fallback bumps local version files but does not commit or tag.
-EOF
+if [[ "$(git branch --show-current)" != "main" ]]; then
+  echo "s/version++ must be run on main." >&2
   exit 1
 fi
 
-shift
-bump="patch"
-if [[ -n "${1-}" ]]; then
-  case "$1" in
-    patch|minor|major)
-      bump="$1"
-      ;;
-    *)
-      echo "Usage: s/version++ [patch|minor|major]" >&2
-      exit 1
-      ;;
-  esac
+if [[ -n "$(git status --porcelain)" ]]; then
+  echo "Working tree is not clean; commit or stash changes before releasing." >&2
+  exit 1
 fi
 
-cargo set-version --bump "$bump"
+command -v cargo-set-version >/dev/null 2>&1 || command -v cargo >/dev/null 2>&1
+if ! cargo set-version --help >/dev/null 2>&1; then
+  echo "cargo-edit is required: cargo install cargo-edit" >&2
+  exit 1
+fi
+if ! command -v git-cliff >/dev/null 2>&1; then
+  echo "git-cliff is required: cargo install git-cliff" >&2
+  exit 1
+fi
 
-version="$(awk -F\" '/^version =/ {print $2; exit}' Cargo.toml)"
-if [[ -z "$version" ]]; then
+current="$(awk -F\" '/^version =/ {print $2; exit}' Cargo.toml)"
+if [[ -z "$current" ]]; then
   echo "Could not read workspace version from Cargo.toml." >&2
   exit 1
 fi
 
-cargo set-version --manifest-path gui/src-tauri/Cargo.toml "$version"
+echo "Current version: $current"
+cargo set-version --bump "$bump"
+
+next="$(awk -F\" '/^version =/ {print $2; exit}' Cargo.toml)"
+if [[ -z "$next" || "$next" == "$current" ]]; then
+  echo "Version did not change." >&2
+  exit 1
+fi
+echo "Bumped $bump: $current -> $next"
+
+cargo set-version --manifest-path gui/src-tauri/Cargo.toml "$next"
 
 (
   cd gui
-  npm version "$version" --no-git-tag-version >/dev/null
-  node -e '
-    const fs = require("fs");
-    const path = "src-tauri/tauri.conf.json";
-    const config = JSON.parse(fs.readFileSync(path, "utf8"));
-    config.version = process.argv[1];
-    fs.writeFileSync(path, `${JSON.stringify(config, null, 2)}\n`);
-  ' "$version"
+  npm version "$next" --no-git-tag-version >/dev/null
 )
 
-echo "Bumped local versions to $version. No commit or tag was created."
+node -e '
+  const fs = require("fs");
+  const path = "gui/src-tauri/tauri.conf.json";
+  const config = JSON.parse(fs.readFileSync(path, "utf8"));
+  config.version = process.argv[1];
+  fs.writeFileSync(path, `${JSON.stringify(config, null, 2)}\n`);
+' "$next"
+
+cargo generate-lockfile
+cargo generate-lockfile --manifest-path gui/src-tauri/Cargo.toml
+git-cliff --output CHANGELOG.md --tag "v$next"
+
+git add Cargo.toml Cargo.lock CHANGELOG.md cli/Cargo.toml \
+  gui/package.json gui/package-lock.json \
+  gui/src-tauri/Cargo.toml gui/src-tauri/Cargo.lock \
+  gui/src-tauri/tauri.conf.json
+
+git commit -m "chore(release): v${next}"
+git push
+
+echo "Pushed version bump to v${next}. CI will create the tag and release."

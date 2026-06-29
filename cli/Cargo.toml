@@ -4,7 +4,13 @@ version.workspace = true
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
+repository.workspace = true
+homepage.workspace = true
 description = "A Git-based Electronic Health Record system - CLI tool"
+
+[package.metadata.wix]
+upgrade-guid = "749AB1CB-4DC7-4A17-B0AE-3E69D9C592AD"
+path-guid = "18EE1A2E-4026-47A9-8608-CC6564CF7FAD"
 
 [[bin]]
 name = "gitehr"
@@ -37,9 +43,9 @@ tokio.workspace = true
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
-# Clinical calculators are temporarily dormant here so GitEHR can be packaged
-# by release-plz while pacharanero/calc is still pre-crates.io. Restore this
-# dependency and the `gitehr calc` command once calc-cli is published.
+# Clinical calculators are temporarily dormant here while pacharanero/calc is
+# prepared for crates.io. Restore this dependency and the `gitehr calc` command
+# once calc-cli is published.
 # calc-cli = { version = "0.1.0", git = "https://github.com/pacharanero/calc", rev = "c45a06dc1304530073531a69756977f67b5c185b" }
 
 [dev-dependencies]

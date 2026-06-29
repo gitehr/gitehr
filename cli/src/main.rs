@@ -89,7 +89,7 @@ enum Commands {
         command: McpCommands,
     },
     // Clinical calculators are temporarily dormant while pacharanero/calc is
-    // pre-crates.io; release-plz package verification cannot package git-only
+    // pre-crates.io; keep GitEHR's release pipeline free of git-only
     // dependencies. Restore `Calc(calc_cli::CalcCommand)` once calc-cli is
     // published.
     Upgrade,
