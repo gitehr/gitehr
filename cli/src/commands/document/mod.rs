@@ -21,8 +21,12 @@ pub mod verify;
 pub enum DocumentCommands {
     #[command(about = "Add a Document to the record and link it from a new journal entry")]
     Add {
-        #[arg(help = "Path to the file (or directory, e.g. a DICOM study) to add")]
-        path: PathBuf,
+        #[arg(
+            required = true,
+            num_args = 1..,
+            help = "Path(s) to the file(s) or directories, e.g. a DICOM study, to add"
+        )]
+        paths: Vec<PathBuf>,
         #[arg(long, help = "Store under imaging/ instead of documents/")]
         imaging: bool,
         #[arg(
@@ -51,17 +55,12 @@ pub enum DocumentCommands {
 pub fn run(command: DocumentCommands) -> Result<()> {
     match command {
         DocumentCommands::Add {
-            path,
+            paths,
             imaging,
             title,
             message,
         } => {
-            add::run(
-                path.as_path(),
-                title.as_deref(),
-                imaging,
-                message.as_deref(),
-            )?;
+            add::run_many(&paths, title.as_deref(), imaging, message.as_deref())?;
             Ok(())
         }
         DocumentCommands::List => list::run(),

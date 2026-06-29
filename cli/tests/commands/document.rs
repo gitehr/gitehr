@@ -4,10 +4,11 @@
 use anyhow::Result;
 use serial_test::serial;
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use gitehr::commands::document::MANIFEST_FILENAME;
 use gitehr::commands::document::add::run as add_document;
+use gitehr::commands::document::add::run_many as add_documents;
 use gitehr::commands::document::verify::run as verify_documents;
 use gitehr::commands::journal::parsed_entries;
 
@@ -81,6 +82,51 @@ fn test_add_file_with_title_and_imaging() -> Result<()> {
     let entries = parsed_entries()?;
     assert_eq!(entries[0].content, "Clinical photo taken in clinic");
 
+    Ok(())
+}
+
+#[test]
+#[serial]
+fn test_add_multiple_documents_to_one_journal_entry() -> Result<()> {
+    let _temp_dir = setup_with_git()?;
+
+    fs::write("clinic-photo.jpg", b"\xFF\xD8 fake jpeg")?;
+    fs::write("referral.pdf", b"%PDF-1.4 fake content")?;
+
+    let stored = add_documents(
+        &[
+            PathBuf::from("clinic-photo.jpg"),
+            PathBuf::from("referral.pdf"),
+        ],
+        None,
+        false,
+        Some("Consultation note with attached photo and referral."),
+    )?;
+
+    assert_eq!(stored.len(), 2);
+    assert!(stored.iter().all(|path| path.starts_with("documents/")));
+
+    let entries = parsed_entries()?;
+    assert_eq!(entries.len(), 1);
+    assert_eq!(
+        entries[0].content,
+        "Consultation note with attached photo and referral."
+    );
+    let docs = entries[0]
+        .metadata
+        .documents
+        .as_ref()
+        .expect("documents front matter");
+    assert_eq!(docs.len(), 2);
+    assert_eq!(
+        docs[0].original_filename.as_deref(),
+        Some("clinic-photo.jpg")
+    );
+    assert_eq!(docs[1].original_filename.as_deref(), Some("referral.pdf"));
+    assert_eq!(docs[0].path, stored[0]);
+    assert_eq!(docs[1].path, stored[1]);
+
+    assert!(verify_documents(None)?);
     Ok(())
 }
 

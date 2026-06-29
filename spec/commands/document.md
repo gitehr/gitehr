@@ -8,31 +8,31 @@ Alias: `gitehr attach` is a hidden alias for `gitehr document` retained during t
 
 All subcommands require the current directory to be a GitEHR repository (presence of `.gitehr`).
 
-### `gitehr document add <path> [OPTIONS]`
+### `gitehr document add <path>... [OPTIONS]`
 
-Adds a file or directory to the record as a Document and creates a new journal entry that references it.
+Adds one or more files or directories to the record as Documents and creates a single new journal entry that references them.
 
 **Arguments:**
 
 | Argument | Description |
 |----------|-------------|
-| `path` | Path to the file (or directory, e.g. a DICOM study) to add |
+| `path` | One or more paths to files or directories (e.g. a DICOM study) to add |
 
 **Options:**
 
 | Option | Short | Description |
 |--------|-------|-------------|
 | `--imaging` | | Store under `imaging/` instead of `documents/` |
-| `--title <title>` | `-t` | Title used to build the stored filename slug (defaults to the original filename) |
-| `--message <text>` | `-m` | Journal entry text describing the Document (defaults to `Added Document: <original filename>`) |
+| `--title <title>` | `-t` | Title used to build the stored filename slug (defaults to the original filename). Only valid when adding one Document. |
+| `--message <text>` | `-m` | Journal entry text describing the Document(s) (defaults to `Added Document: <original filename>` or `Added Documents: <filenames>`) |
 
 **Behavior:**
 
-- Computes the SHA-256 of the source. For a single file this hashes the file bytes; for a directory it builds a `manifest.json` listing the SHA-256 of every file within, and hashes the manifest bytes (a shallow Merkle anchor).
-- Copies the source into `documents/` (or `imaging/` with `--imaging`) under the name `YYYY-MM-DD-<slug>-<first-8-hex-of-sha256>.<ext>`. The date is UTC; the slug is derived from `--title` or the original filename. Directory Documents use the same naming scheme without an extension and gain a `manifest.json`.
+- Computes the SHA-256 of each source. For a single file this hashes the file bytes; for a directory it builds a `manifest.json` listing the SHA-256 of every file within, and hashes the manifest bytes (a shallow Merkle anchor).
+- Copies each source into `documents/` (or `imaging/` with `--imaging`) under the name `YYYY-MM-DD-<slug>-<first-8-hex-of-sha256>.<ext>`. The date is UTC; the slug is derived from `--title` or the original filename. Directory Documents use the same naming scheme without an extension and gain a `manifest.json`.
 - The hash suffix makes name collisions between offline contributors cryptographically impossible. Adding identical content on the same day yields the same name and is rejected (Documents are write-once).
-- Stages the stored Document with `git add`, then creates a journal entry whose front matter records the reference under `documents:` (`path`, `sha256`, `original_filename`).
-- Prints the stored path and SHA-256.
+- Stages the stored Document(s) with `git add`, then creates one journal entry whose front matter records every reference under `documents:` (`path`, `sha256`, `original_filename`).
+- Prints each stored path and SHA-256.
 
 **Examples:**
 
@@ -43,6 +43,9 @@ gitehr document add ~/Downloads/Scan0001.pdf --title "CT head report"
 
 # Add a clinical photograph under imaging/
 gitehr document add ./knee.jpg --imaging -t "Left knee" -m "Photo taken in clinic"
+
+# Add narrative text with two attached Documents in one journal entry
+gitehr document add ./letter.pdf ./clinic-photo.jpg -m "Reviewed letter and attached clinical photo."
 
 # Add a multi-file DICOM study (becomes a directory Document with a manifest)
 gitehr document add ./ct-study/ --imaging -t "CT head"

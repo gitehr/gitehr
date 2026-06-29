@@ -41,6 +41,6 @@ gitehr import --mode documents ./discharge-summary.pdf
 
 ## When to use this vs `gitehr document add`
 
-[`gitehr document add`](document.md) is the careful, single-document path: it content-hashes the file, deduplicates, and records a structured `documents:` reference (`path`, `sha256`, `original_filename`) in the journal entry's front matter. Reach for it when provenance and integrity verification matter.
+[`gitehr document add`](document.md) is the careful Document path: it content-hashes each file, deduplicates, and records structured `documents:` references (`path`, `sha256`, `original_filename`) in the journal entry's front matter. Reach for it when provenance and integrity verification matter.
 
 `gitehr import --mode documents` is the **bulk, low-friction** path: point it at a folder and every file lands as a document with a simple linking entry. It is built for getting a pile of records in quickly, not for per-document curation.
