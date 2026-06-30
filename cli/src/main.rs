@@ -20,6 +20,7 @@ use commands::state::StateCommands;
 use commands::store::StoreCommands;
 use commands::transport::TransportCommands;
 use commands::user::UserCommands;
+use commands::vaccinations::VaccinationCommands;
 
 #[derive(Parser)]
 #[command(name = "gitehr")]
@@ -31,87 +32,11 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    /// Manage contributors and the active author
-    #[command(visible_alias = "contributor")]
-    User {
-        #[command(subcommand)]
-        command: Option<UserCommands>,
-    },
-    /// Import journal entries or documents from a file or directory
-    Import {
-        #[arg(long, value_enum, help = "What kind of data to import")]
-        mode: commands::import::ImportMode,
-        #[arg(help = "File or directory to import")]
-        path: std::path::PathBuf,
-    },
-    Journal {
-        #[command(subcommand)]
-        command: JournalCommands,
-    },
-    State {
-        #[command(subcommand)]
-        command: Option<StateCommands>,
-    },
-    /// Manage typed patient demographics state
-    Demographics {
-        #[command(subcommand)]
-        command: DemographicsCommands,
-    },
     /// Manage typed allergy and adverse-reaction state
     Allergies {
         #[command(subcommand)]
         command: AllergyCommands,
     },
-    Remote {
-        #[command(subcommand)]
-        command: Option<RemoteCommands>,
-    },
-    Encrypt {
-        #[arg(long, help = "Key source (local or remote URL)")]
-        key: Option<String>,
-    },
-    Decrypt {
-        #[arg(long, help = "Key source (local or remote URL)")]
-        key: Option<String>,
-    },
-    #[command(visible_alias = "st")]
-    Status,
-    Transport {
-        #[command(subcommand)]
-        command: Option<TransportCommands>,
-    },
-    /// Manage a multi-patient store and its Main Patient Index (MPI)
-    Store {
-        #[command(subcommand)]
-        command: StoreCommands,
-    },
-    /// Manage local GitEHR configuration
-    Config {
-        #[command(subcommand)]
-        command: ConfigCommands,
-    },
-    Gui,
-    #[command(alias = "attach")]
-    Document {
-        #[command(subcommand)]
-        command: DocumentCommands,
-    },
-    Mcp {
-        #[command(subcommand)]
-        command: McpCommands,
-    },
-    // Clinical calculators are temporarily dormant while pacharanero/calc is
-    // pre-crates.io; keep GitEHR's release pipeline free of git-only
-    // dependencies. Restore `Calc(calc_cli::CalcCommand)` once calc-cli is
-    // published.
-    Upgrade,
-    #[command(
-        name = "upgrade-binary",
-        about = "Update the bundled binary to the current CLI version"
-    )]
-    UpgradeBinary,
-    #[command(visible_alias = "v")]
-    Version,
     #[command(
         about = "Generate shell completions",
         long_about = r#"Generate shell completions for gitehr.
@@ -131,8 +56,90 @@ Restart your shell after installing completions."#
         #[arg(long, short = 'd', help = "Output directory")]
         dir: Option<PathBuf>,
     },
+    /// Manage local GitEHR configuration
+    Config {
+        #[command(subcommand)]
+        command: ConfigCommands,
+    },
+    Decrypt {
+        #[arg(long, help = "Key source (local or remote URL)")]
+        key: Option<String>,
+    },
+    /// Manage typed patient demographics state
+    Demographics {
+        #[command(subcommand)]
+        command: DemographicsCommands,
+    },
+    #[command(alias = "attach")]
+    Document {
+        #[command(subcommand)]
+        command: DocumentCommands,
+    },
+    Encrypt {
+        #[arg(long, help = "Key source (local or remote URL)")]
+        key: Option<String>,
+    },
+    Gui,
+    /// Import journal entries or documents from a file or directory
+    Import {
+        #[arg(long, value_enum, help = "What kind of data to import")]
+        mode: commands::import::ImportMode,
+        #[arg(help = "File or directory to import")]
+        path: std::path::PathBuf,
+    },
+    Journal {
+        #[command(subcommand)]
+        command: JournalCommands,
+    },
+    Mcp {
+        #[command(subcommand)]
+        command: McpCommands,
+    },
     /// List installed plugins (gitehr-<command> executables on PATH)
     Plugins,
+    Remote {
+        #[command(subcommand)]
+        command: Option<RemoteCommands>,
+    },
+    State {
+        #[command(subcommand)]
+        command: Option<StateCommands>,
+    },
+    #[command(visible_alias = "st")]
+    Status,
+    /// Manage a multi-patient store and its Main Patient Index (MPI)
+    Store {
+        #[command(subcommand)]
+        command: StoreCommands,
+    },
+    Transport {
+        #[command(subcommand)]
+        command: Option<TransportCommands>,
+    },
+    // Clinical calculators are temporarily dormant while pacharanero/calc is
+    // pre-crates.io; keep GitEHR's release pipeline free of git-only
+    // dependencies. Restore `Calc(calc_cli::CalcCommand)` once calc-cli is
+    // published.
+    Upgrade,
+    #[command(
+        name = "upgrade-binary",
+        about = "Update the bundled binary to the current CLI version"
+    )]
+    UpgradeBinary,
+    /// Manage contributors and the active author
+    #[command(visible_alias = "contributor")]
+    User {
+        #[command(subcommand)]
+        command: Option<UserCommands>,
+    },
+    /// Manage typed vaccination and immunisation state
+    #[command(visible_aliases = ["immunisations", "immunizations"])]
+    Vaccinations {
+        #[command(subcommand)]
+        command: VaccinationCommands,
+    },
+    #[command(visible_alias = "v")]
+    Version,
     /// Run an installed `gitehr-<command>` plugin from PATH. Any subcommand
     /// that is not built in is dispatched here; built-ins always take priority.
     #[command(external_subcommand)]
@@ -167,25 +174,7 @@ fn main() -> Result<()> {
     apply_context(&mut cli.command)?;
 
     match cli.command {
-        Commands::User { command } => commands::user::run(command)?,
-        Commands::Import { mode, path } => commands::import::run(mode, &path)?,
-        Commands::Journal { command } => commands::journal::run(command)?,
-        Commands::State { command } => commands::state::run(command)?,
-        Commands::Demographics { command } => commands::demographics::run(command)?,
         Commands::Allergies { command } => commands::allergies::run(command)?,
-        Commands::Remote { command } => commands::remote::run(command)?,
-        Commands::Encrypt { key } => commands::encrypt::run(key.as_deref())?,
-        Commands::Decrypt { key } => commands::decrypt::run(key.as_deref())?,
-        Commands::Status => commands::status::run()?,
-        Commands::Transport { command } => commands::transport::run(command)?,
-        Commands::Store { command } => commands::store::run(command)?,
-        Commands::Config { command } => commands::config::run(command)?,
-        Commands::Gui => commands::gui::run()?,
-        Commands::Document { command } => commands::document::run(command)?,
-        Commands::Mcp { command } => commands::mcp::run(command)?,
-        Commands::Upgrade => commands::upgrade::run()?,
-        Commands::UpgradeBinary => commands::upgrade_binary::run()?,
-        Commands::Version => commands::version::run(),
         Commands::Completions {
             command,
             shell,
@@ -194,7 +183,26 @@ fn main() -> Result<()> {
             let mut cmd = Cli::command();
             commands::completions::run(command, shell, dir.as_deref(), &mut cmd)?;
         }
+        Commands::Config { command } => commands::config::run(command)?,
+        Commands::Decrypt { key } => commands::decrypt::run(key.as_deref())?,
+        Commands::Demographics { command } => commands::demographics::run(command)?,
+        Commands::Document { command } => commands::document::run(command)?,
+        Commands::Encrypt { key } => commands::encrypt::run(key.as_deref())?,
+        Commands::Gui => commands::gui::run()?,
+        Commands::Import { mode, path } => commands::import::run(mode, &path)?,
+        Commands::Journal { command } => commands::journal::run(command)?,
+        Commands::Mcp { command } => commands::mcp::run(command)?,
         Commands::Plugins => commands::plugin::list(&builtins)?,
+        Commands::Remote { command } => commands::remote::run(command)?,
+        Commands::State { command } => commands::state::run(command)?,
+        Commands::Status => commands::status::run()?,
+        Commands::Store { command } => commands::store::run(command)?,
+        Commands::Transport { command } => commands::transport::run(command)?,
+        Commands::Upgrade => commands::upgrade::run()?,
+        Commands::UpgradeBinary => commands::upgrade_binary::run()?,
+        Commands::User { command } => commands::user::run(command)?,
+        Commands::Vaccinations { command } => commands::vaccinations::run(command)?,
+        Commands::Version => commands::version::run(),
         Commands::External(args) => commands::plugin::run(args)?,
     }
 
@@ -227,6 +235,13 @@ fn absolutize_external_paths(command: &mut Commands, base: &Path) {
                 fix_pb(path, base);
             }
         }
+        Commands::Vaccinations {
+            command:
+                VaccinationCommands::Add {
+                    fhir_json: Some(path),
+                    ..
+                },
+        } => fix_pb(path, base),
         Commands::Transport {
             command: Some(transport),
         } => match transport {
@@ -267,6 +282,7 @@ fn apply_context(command: &mut Commands) -> Result<()> {
         | Commands::State { .. }
         | Commands::Demographics { .. }
         | Commands::Allergies { .. }
+        | Commands::Vaccinations { .. }
         | Commands::Remote { .. }
         | Commands::Encrypt { .. }
         | Commands::Decrypt { .. }

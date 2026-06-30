@@ -17,3 +17,4 @@ pub mod status;
 pub mod store;
 pub mod transport;
 pub mod upgrade;
+pub mod vaccinations;

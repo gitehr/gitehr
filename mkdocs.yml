@@ -44,6 +44,9 @@ nav:
       - document: cli/document.md
       - import: cli/import.md
       - state: cli/state.md
+      - demographics: cli/demographics.md
+      - allergies: cli/allergies.md
+      - vaccinations: cli/vaccinations.md
       - user: cli/user.md
       - remote: cli/remote.md
       - status: cli/status.md

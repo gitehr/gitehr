@@ -40,6 +40,7 @@ Bringing existing records into a repository (see [`spec/commands/import.md`](com
 ## Command Coverage vs Spec
 
 - [x] Implement `gitehr state` (`list`, `get`, `set`).
+- [x] Implement typed state for `gitehr demographics`, `gitehr allergies`, and `gitehr vaccinations`.
 - [x] Implement `gitehr remote` (`add`, `remove`/`rm`, `list`).
 - [x] Implement `gitehr encrypt` placeholder marker flow.
 - [x] Implement `gitehr decrypt` placeholder marker removal flow.

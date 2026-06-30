@@ -26,4 +26,5 @@ pub mod typed_state;
 pub mod upgrade;
 pub mod upgrade_binary;
 pub mod user;
+pub mod vaccinations;
 pub mod version;

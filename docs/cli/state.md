@@ -4,7 +4,8 @@ Manage the mutable clinical state files under `state/`. State holds current info
 
 `gitehr state` is the raw file-level interface. Prefer typed commands such as
 [`gitehr demographics`](demographics.md) and [`gitehr allergies`](allergies.md)
-for GUI-facing or automation-facing clinical state.
+and [`gitehr vaccinations`](vaccinations.md) for GUI-facing or
+automation-facing clinical state.
 
 All subcommands require the current directory to be a GitEHR repository.
 
