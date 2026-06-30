@@ -9,12 +9,14 @@ pub mod extract;
 
 #[derive(Subcommand)]
 pub enum TransportCommands {
+    /// Create a transport archive from this repository
     Create {
         #[arg(short, long, help = "Output file path")]
         output: Option<String>,
         #[arg(long, help = "Apply additional encryption")]
         encrypt: bool,
     },
+    /// Extract a transport archive
     Extract {
         #[arg(help = "Path to the transport archive")]
         archive: String,

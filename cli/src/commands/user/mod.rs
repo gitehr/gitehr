@@ -16,6 +16,7 @@ pub mod list;
 pub enum UserCommands {
     #[command(about = "Create a user interactively")]
     Create,
+    /// Add a contributor directly from command-line arguments
     Add {
         #[arg(help = "Unique identifier for the user")]
         id: String,
@@ -26,19 +27,24 @@ pub enum UserCommands {
         #[arg(long, help = "Email address")]
         email: Option<String>,
     },
+    /// Enable a disabled contributor
     Enable {
         #[arg(help = "User ID")]
         id: String,
     },
+    /// Disable a contributor
     Disable {
         #[arg(help = "User ID")]
         id: String,
     },
+    /// Set the active contributor for new entries
     Activate {
         #[arg(help = "User ID to set as current author")]
         id: String,
     },
+    /// Clear the active contributor
     Deactivate,
+    /// List contributors
     List,
 }
 

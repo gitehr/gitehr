@@ -13,11 +13,14 @@ pub mod set;
 
 #[derive(Subcommand)]
 pub enum StateCommands {
+    /// List mutable state files
     List,
+    /// Print one mutable state file
     Get {
         #[arg(help = "Name of the state file")]
         filename: String,
     },
+    /// Overwrite one mutable state file
     Set {
         #[arg(help = "Name of the state file")]
         filename: String,

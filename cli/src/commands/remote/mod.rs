@@ -14,17 +14,20 @@ pub mod remove;
 
 #[derive(Subcommand)]
 pub enum RemoteCommands {
+    /// Add a named sync remote
     Add {
         #[arg(help = "Name for the remote")]
         name: String,
         #[arg(help = "URL of the remote")]
         url: String,
     },
+    /// Remove a named sync remote
     #[command(visible_alias = "rm")]
     Remove {
         #[arg(help = "Name of the remote to remove")]
         name: String,
     },
+    /// List configured sync remotes
     List,
 }
 

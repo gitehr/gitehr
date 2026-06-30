@@ -32,13 +32,17 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    /// Manage typed allergy and adverse-reaction state
+    #[command(
+        about = "Manage typed allergy and adverse-reaction state",
+        arg_required_else_help = true
+    )]
     Allergies {
         #[command(subcommand)]
         command: AllergyCommands,
     },
     #[command(
         about = "Generate shell completions",
+        arg_required_else_help = true,
         long_about = r#"Generate shell completions for gitehr.
 
 Examples:
@@ -61,57 +65,81 @@ Restart your shell after installing completions."#
         #[command(subcommand)]
         command: ConfigCommands,
     },
+    #[command(about = "Remove the repository encryption marker")]
     Decrypt {
         #[arg(long, help = "Key source (local or remote URL)")]
         key: Option<String>,
     },
-    /// Manage typed patient demographics state
+    #[command(
+        about = "Manage typed patient demographics state",
+        arg_required_else_help = true
+    )]
     Demographics {
         #[command(subcommand)]
         command: DemographicsCommands,
     },
-    #[command(alias = "attach")]
+    #[command(
+        about = "Attach and verify source Documents",
+        alias = "attach",
+        arg_required_else_help = true
+    )]
     Document {
         #[command(subcommand)]
         command: DocumentCommands,
     },
+    #[command(about = "Create the repository encryption marker")]
     Encrypt {
         #[arg(long, help = "Key source (local or remote URL)")]
         key: Option<String>,
     },
+    #[command(about = "Launch the GitEHR graphical interface")]
     Gui,
-    /// Import journal entries or documents from a file or directory
+    #[command(
+        about = "Import journal entries or documents from a file or directory",
+        arg_required_else_help = true
+    )]
     Import {
         #[arg(long, value_enum, help = "What kind of data to import")]
         mode: commands::import::ImportMode,
         #[arg(help = "File or directory to import")]
         path: std::path::PathBuf,
     },
+    #[command(
+        about = "Manage append-only journal entries",
+        arg_required_else_help = true
+    )]
     Journal {
         #[command(subcommand)]
         command: JournalCommands,
     },
+    #[command(about = "Run the built-in MCP server", arg_required_else_help = true)]
     Mcp {
         #[command(subcommand)]
         command: McpCommands,
     },
     /// List installed plugins (gitehr-<command> executables on PATH)
     Plugins,
+    #[command(about = "Manage named sync remotes")]
     Remote {
         #[command(subcommand)]
         command: Option<RemoteCommands>,
     },
+    #[command(about = "Inspect and update mutable state files")]
     State {
         #[command(subcommand)]
         command: Option<StateCommands>,
     },
-    #[command(visible_alias = "st")]
+    #[command(about = "Summarise the current repository", visible_alias = "st")]
     Status,
-    /// Manage a multi-patient store and its Main Patient Index (MPI)
+    #[command(
+        about = "Manage a multi-patient Store and Main Patient Index",
+        arg_required_else_help = true
+    )]
     Store {
         #[command(subcommand)]
         command: StoreCommands,
     },
+    #[command(about = "Package or extract a portable repository archive")]
     Transport {
         #[command(subcommand)]
         command: Option<TransportCommands>,
@@ -120,25 +148,31 @@ Restart your shell after installing completions."#
     // pre-crates.io; keep GitEHR's release pipeline free of git-only
     // dependencies. Restore `Calc(calc_cli::CalcCommand)` once calc-cli is
     // published.
+    #[command(about = "Upgrade the current repository to this CLI version")]
     Upgrade,
     #[command(
         name = "upgrade-binary",
         about = "Update the bundled binary to the current CLI version"
     )]
     UpgradeBinary,
-    /// Manage contributors and the active author
-    #[command(visible_alias = "contributor")]
+    #[command(
+        about = "Manage contributors and the active author",
+        visible_alias = "contributor"
+    )]
     User {
         #[command(subcommand)]
         command: Option<UserCommands>,
     },
-    /// Manage typed vaccination and immunisation state
-    #[command(visible_aliases = ["immunisations", "immunizations"])]
+    #[command(
+        about = "Manage typed vaccination and immunisation state",
+        visible_aliases = ["immunisations", "immunizations"],
+        arg_required_else_help = true
+    )]
     Vaccinations {
         #[command(subcommand)]
         command: VaccinationCommands,
     },
-    #[command(visible_alias = "v")]
+    #[command(about = "Print the CLI and Git versions", visible_alias = "v")]
     Version,
     /// Run an installed `gitehr-<command>` plugin from PATH. Any subcommand
     /// that is not built in is dispatched here; built-ins always take priority.
@@ -156,10 +190,24 @@ fn main() -> Result<()> {
         cmd = cmd.after_help(section);
     }
 
-    if std::env::args().len() == 1 {
+    let args = std::env::args().collect::<Vec<_>>();
+    if args.len() == 1 {
         let version = cmd.get_version().unwrap_or_default();
         println!("GitEHR {}", version);
         println!();
+        cmd.print_help()?;
+        println!();
+        return Ok(());
+    }
+    if args.len() == 2 && bare_command_help_target(&args[1]).is_some() {
+        let help_args = [args[0].as_str(), args[1].as_str(), "--help"];
+        match cmd.clone().try_get_matches_from(help_args) {
+            Err(error) if error.kind() == clap::error::ErrorKind::DisplayHelp => {
+                error.print()?;
+                return Ok(());
+            }
+            _ => {}
+        }
         cmd.print_help()?;
         println!();
         return Ok(());
@@ -207,6 +255,22 @@ fn main() -> Result<()> {
     }
 
     Ok(())
+}
+
+fn bare_command_help_target(command: &str) -> Option<&'static str> {
+    match command {
+        "allergies" => Some("allergies"),
+        "attach" | "document" => Some("document"),
+        "completions" => Some("completions"),
+        "config" => Some("config"),
+        "demographics" => Some("demographics"),
+        "import" => Some("import"),
+        "journal" => Some("journal"),
+        "mcp" => Some("mcp"),
+        "store" => Some("store"),
+        "immunisations" | "immunizations" | "vaccinations" => Some("vaccinations"),
+        _ => None,
+    }
 }
 
 /// Make external (user-cwd-relative) path arguments absolute before context
