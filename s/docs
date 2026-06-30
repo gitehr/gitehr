@@ -9,6 +9,7 @@ set -e  # Exit on error
 # run chmod +x s/<filename> to allow this
 
 # starts the Zensical docs site via docker compose
+rm -rf site
 docker compose up -d "$@"
 
 # open docs in the default browser
