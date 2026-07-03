@@ -59,4 +59,5 @@ Beyond the current name, email, and generated elliptic-curve public key, contrib
 
 - **Committer name** used for git commits, configured per repository (so journal commits carry a consistent, contributor-controlled identity).
 - **GPG keys** as an alternative to the generated EC key pair, for contributors who already hold a GPG identity and want their journal commits GPG-signed.
+- **Hardware-backed signing credentials** (for example YubiKey/PIV/smartcard, TPM-backed key, Secure Enclave, or equivalent) so contributors can keep private signing material off-device and present/unlock the credential when signing journal entries.
 - **URI namespace link** - a stable external URI identifying the contributor (and/or the repository's identity namespace), linking the local contributor record to a resolvable identity rather than a bare local ID.

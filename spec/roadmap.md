@@ -120,6 +120,7 @@ The calculators live in their own repository, **[pacharanero/calc](https://githu
 
 ## Security and Integrity (to review)
 
+- [ ] **Hardware-backed contributor signing credentials.** Design support for contributors to hold signing credentials off-device on a hardware authenticator such as a YubiKey, PIV/smartcard, TPM-backed key, Secure Enclave, or equivalent. The intended workflow is that a contributor presents/unlocks the hardware credential when signing a GitEHR journal entry or commit, so the private signing material does not live as an ordinary file on the workstation. This needs to integrate with `.gitehr/contributors.json`, contributor activation, repository signing policy, recovery/revocation, and offline use.
 - [ ] **Evaluate [gittuf](https://gittuf.dev/) for GitEHR.** gittuf applies The Update Framework (TUF) concepts to a Git repository, adding security that Git itself lacks: policy-controlled, signed access to branches/tags/refs, key management and rotation, and protection against attacks on references (unauthorised ref updates, rollback/freeze, tag tampering). This is directly relevant to GitEHR's integrity, provenance, and tamper-evidence goals (who may update which refs in a patient repository, and proving a ref's history has not been rewritten). It is still in beta - the action is to keep an eye on it and review whether and how it can fit into GitEHR's security model once it matures.
 
 ## Documentation and Operations
