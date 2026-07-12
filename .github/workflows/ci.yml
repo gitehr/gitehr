@@ -4,9 +4,8 @@
 # The three checks every contributor runs locally (s/lint + s/test) and that
 # must pass before merge: formatting, clippy as errors, and the test suite.
 #
-# Clinical calculator crates from pacharanero/calc are temporarily dormant in
-# GitEHR while they are prepared for crates.io; this keeps the release pipeline
-# free of git-only dependencies.
+# Clinical calculations are supplied through the external `gitehr-clincalc`
+# plugin, so GitEHR has no calculator dependency in its release pipeline.
 
 name: CI
 

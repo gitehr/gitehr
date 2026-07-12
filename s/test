@@ -10,7 +10,7 @@
 #   s/test journal         # only tests whose name matches "journal"
 #
 # Notes:
-# - The clinical calculators now live in the separate pacharanero/calc repo, so
+# - The clinical calculators now live in the separate clincalc repo, so
 #   here they are a dependency and are tested there, not by this command.
 # - The CLI integration tests create throwaway git repos and disable commit
 #   signing inside them, so this works regardless of your global git config.

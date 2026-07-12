@@ -50,7 +50,7 @@ hide:
     <div class="gitehr-container">
       <h2>The Health Record, Reimagined</h2>
       <p class="gitehr-lead">
-        We replaced the siloed database with a distributed ledger. The result is a system that is naturally secure, offline-first, and infinitely portable.
+        GitEHR replaces siloed databases with a distributed, version-controlled record. The result is designed to be auditable, offline-first, and portable.
       </p>
       <div class="gitehr-grid gitehr-grid--3">
         <div class="gitehr-card">

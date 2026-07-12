@@ -43,11 +43,6 @@ tokio.workspace = true
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
-# Clinical calculators are temporarily dormant here while pacharanero/calc is
-# prepared for crates.io. Restore this dependency and the `gitehr calc` command
-# once calc-cli is published.
-# calc-cli = { version = "0.1.0", git = "https://github.com/pacharanero/calc", rev = "c45a06dc1304530073531a69756977f67b5c185b" }
-
 [dev-dependencies]
 tempfile.workspace = true
 regex = "1"

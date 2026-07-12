@@ -9,7 +9,7 @@ GitEHR ships typed-state for allergies and demographics, an immutable journal, d
 That blocks three things at once:
 
 - A usable summary. The problem list is the first thing any clinician reads; without it there is no current-state clinical view.
-- The calculators. `pacharanero/calc` is built and validated, but many scores are condition-gated (current diagnoses, treated-hypertension status, etc.). No structured conditions, no automatic scores.
+- The calculators. `clincalc` is built and validated, but many scores are condition-gated (current diagnoses, treated-hypertension status, etc.). No structured conditions, no automatic scores.
 - FHIR / openEHR export. There are no `Condition` / `EVALUATION` instances to serialize.
 
 ## Condition vs Problem - a load-bearing distinction

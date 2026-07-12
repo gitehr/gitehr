@@ -107,11 +107,6 @@ impl ToolHandler {
             },
         ];
 
-        // Clinical calculator tools are temporarily dormant while
-        // pacharanero/calc is pre-crates.io; keep GitEHR's release pipeline
-        // free of git-only dependencies. Restore the calc_core-backed `calc_*`
-        // tools once calc-core is published.
-
         Ok(ToolsList { tools })
     }
 
@@ -304,7 +299,7 @@ mod tests {
     fn test_unknown_tool_is_transport_error() {
         let handler = ToolHandler::new(PathBuf::from("."));
         let err = handler
-            .call_tool("calc_nonesuch", serde_json::json!({}))
+            .call_tool("clincalc_nonesuch", serde_json::json!({}))
             .unwrap_err();
         assert!(err.to_string().contains("Unknown tool"));
     }

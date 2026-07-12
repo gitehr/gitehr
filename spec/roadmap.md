@@ -46,7 +46,7 @@ Bringing existing records into a repository (see [`spec/commands/import.md`](com
 - [x] Implement `gitehr decrypt` placeholder marker removal flow.
 - [x] Implement `gitehr status` summary output.
 - [x] Implement `gitehr transport` (`create`, `extract`) - "transport mode" bundling.
-- [ ] Restore `gitehr calc` clinical calculators once the pacharanero/calc crates are published to crates.io. The command was temporarily detached to keep GitEHR's release pipeline free of git-only dependencies.
+- [x] Delegate clinical calculations to the external `clincalc` plugin: `gitehr clincalc <command>` discovers `gitehr-clincalc` on `$PATH`, keeping GitEHR's release pipeline free of calculator dependencies.
 - [x] Implement `gitehr journal` `new-entry`/`commit`/`list`/`show`. Note: the journal is append-only - drafts (`new-entry`) can be edited or discarded before commit, but committed entries are immutable, so there is no `journal edit`/`journal delete` of committed entries by design.
 - [ ] Add `gitehr export` - generate standardised export bundles (FHIR / EHRxF / openEHR) from a repository for cross-border sharing and portability (see `spec/fhir-openehr.md` and the EHDS/EHRxF notes in `spec/long-term-ideas.md`).
 - [x] Implement `gitehr user` (`create`, `add`, `enable`, `disable`, `activate`, `deactivate`, `list`) and `contributor` alias.
@@ -92,28 +92,27 @@ Bringing existing records into a repository (see [`spec/commands/import.md`](com
 
 ## Clinical Calculators Workstream
 
-The calculators live in their own repository, **[pacharanero/calc](https://github.com/pacharanero/calc)** (`~/code/pacharanero/calc`), built and tested there. GitEHR will consume them again once `calc-cli` and `calc-core` are published to crates.io. The integration is temporarily dormant to keep GitEHR's release pipeline free of git-only calculator dependencies. The architecture, roadmap, and input-definition design specs moved with them to that repo's `spec/`.
+The calculators live in their own repository, **[clincalc](https://github.com/pacharanero/clincalc)** (`~/code/clincalc`), built and tested there. GitEHR uses its existing plugin discovery to delegate `gitehr clincalc <command>` to a `gitehr-clincalc` executable on `$PATH`, keeping the release pipeline free of calculator dependencies. The architecture, roadmap, and input-definition design specs live in that repository's `spec/`.
 
-- [x] **The full 50-tool calculator library is complete in pacharanero/calc** - 42 implemented and verified against primary sources (including QRISK3 and QFracture, ported from ClinRisk's LGPL source and validated against its C reference), plus 8 proprietary/licence-locked tools shipped as protest stubs. Single-engine design: `calc-core` (serde-only leaf) drives the `calc` CLI, MCP, GUI, and web; every calculator records a `license()` and carries machine-readable input definitions.
-- [ ] Restore the `gitehr calc` subcommand and MCP `calc_<name>` tools once `calc-cli`/`calc-core` are published to crates.io. They were temporarily detached from GitEHR so releases do not depend on pre-crates.io git dependencies.
-- [ ] Switch the `calc-cli`/`calc-core` dependencies to crates.io once pacharanero/calc has a distribution pipeline.
+- [x] **The full 50-tool calculator library is complete in clincalc** - 42 implemented and verified against primary sources (including QRISK3 and QFracture, ported from ClinRisk's LGPL source and validated against its C reference), plus 8 proprietary/licence-locked tools shipped as protest stubs. Its serde-only engine drives the `clincalc` CLI, MCP, GUI, and web; every calculator records a `license()` and carries machine-readable input definitions.
+- [x] Expose the command-line calculator interface through the external `gitehr-clincalc` plugin, invoked as `gitehr clincalc`.
 - [ ] Record calculator results in the journal (immutable entry: calculator, version, inputs, result, citation) - GitEHR-side integration.
 - [ ] Add state file storage for latest results (`state/calculations/<name>-latest.json`) - GitEHR-side.
-- [ ] Add a GUI calculator panel + Tauri `calculate_clinical` command calling `calc_core` natively.
+- [ ] Add a GUI calculator panel + Tauri `calculate_clinical` command integrating with clincalc.
 
 ## Model Context Protocol (MCP) Server
 
 - [x] Fold the MCP server into the `gitehr` binary as `gitehr mcp serve`.
 - [ ] Implement MCP JSON-RPC 2.0 protocol with stdio/HTTP/SSE transports.
 - [ ] Add MCP resource handlers (journal, state, imaging, documents, status).
-- [ ] Add MCP tool handlers (add_journal_entry, update_state, verify_journal, search; restore calculate_clinical after calc crates are published).
+- [ ] Add MCP tool handlers (add_journal_entry, update_state, verify_journal, search; integrate clinical calculation through clincalc).
 - [ ] Add MCP prompt templates (SOAP note, discharge summary, referral, medication review).
 - [ ] Implement token-based authentication with `.gitehr/mcp-tokens.json`.
 - [ ] Add MCP audit logging to journal entries.
 - [x] Create `gitehr mcp serve` CLI command for stdio.
 - [ ] Implement encryption awareness (respect `.gitehr/ENCRYPTED` marker).
 - [ ] Add MCP configuration system (`.gitehr/mcp.json`).
-- [ ] Restore MCP calculator tools: each `calc-core` calculator should be exposed as a `calc_<name>` MCP tool whose `inputSchema` is the calculator's own JSON Schema; `tools/call` should run the shared engine and return the `CalculationResponse`.
+- [ ] Integrate clincalc MCP tools so each calculator exposes its own JSON Schema and `tools/call` returns its `CalculationResponse`.
 - [ ] Add GUI MCP client panel for LLM chat interface.
 - [ ] Document MCP integration guide and API reference.
 - [ ] Add MCP client libraries (Python/TypeScript) for testing.
