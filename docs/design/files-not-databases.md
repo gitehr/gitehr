@@ -41,6 +41,10 @@ Every pair of organisations needs a bespoke integration. Every schema change bre
 
 Agreeing on a shared file format instead produces N implementations and zero pairwise integrations.
 
+![Five organisations need ten pairwise database integrations, compared with five implementations of one shared file format.](../assets/images/n-squared-interoperability.svg)
+
+The gap grows rapidly: five organisations require ten custom integrations, fifty require 1,225, and five hundred require 124,750. A shared format does not remove local implementation work, but it makes that work linear rather than combinatorial and lets every participant exchange the same durable record.
+
 ### Where DB-to-DB interop appears to work, it is files underneath
 
 Where database-to-database interoperability appears to work at scale in other industries, almost every example reduces, on inspection, to file-based exchange at the wire level:

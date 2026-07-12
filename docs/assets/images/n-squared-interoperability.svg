@@ -1,0 +1,71 @@
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 560" role="img" aria-labelledby="title description">
+  <title id="title">Pairwise database integrations compared with a shared file format</title>
+  <desc id="description">Five organisations need ten pairwise database integrations. The same five organisations each implement one shared file format.</desc>
+  <style>
+    .heading { fill: #273024; font: 700 26px sans-serif; }
+    .subheading { fill: #5c6458; font: 18px sans-serif; }
+    .label { fill: #273024; font: 600 18px sans-serif; }
+    .note { fill: #5c6458; font: 16px sans-serif; }
+    .node { fill: #f6f5f1; stroke: #5f663e; stroke-width: 3; }
+    .node-text { fill: #273024; font: 700 18px sans-serif; text-anchor: middle; dominant-baseline: middle; }
+    .pairwise-link { stroke: #a4673d; stroke-width: 3; stroke-opacity: 0.55; }
+    .shared-link { stroke: #7b8453; stroke-width: 4; stroke-opacity: 0.8; }
+  </style>
+
+  <rect width="1200" height="560" rx="24" fill="#fbfbf8" />
+  <rect x="30" y="30" width="540" height="500" rx="18" fill="#fffaf7" stroke="#e6d9cf" stroke-width="2" />
+  <rect x="630" y="30" width="540" height="500" rx="18" fill="#f7f9f4" stroke="#d9dfcf" stroke-width="2" />
+
+  <text x="300" y="76" class="heading" text-anchor="middle">Pairwise database integration</text>
+  <text x="300" y="106" class="subheading" text-anchor="middle">Every organisation maps to every other organisation</text>
+
+  <line x1="170" y1="190" x2="420" y2="190" class="pairwise-link" />
+  <line x1="170" y1="190" x2="470" y2="320" class="pairwise-link" />
+  <line x1="170" y1="190" x2="360" y2="430" class="pairwise-link" />
+  <line x1="170" y1="190" x2="110" y2="320" class="pairwise-link" />
+  <line x1="420" y1="190" x2="470" y2="320" class="pairwise-link" />
+  <line x1="420" y1="190" x2="360" y2="430" class="pairwise-link" />
+  <line x1="420" y1="190" x2="110" y2="320" class="pairwise-link" />
+  <line x1="470" y1="320" x2="360" y2="430" class="pairwise-link" />
+  <line x1="470" y1="320" x2="110" y2="320" class="pairwise-link" />
+  <line x1="360" y1="430" x2="110" y2="320" class="pairwise-link" />
+
+  <circle cx="170" cy="190" r="42" class="node" />
+  <circle cx="420" cy="190" r="42" class="node" />
+  <circle cx="470" cy="320" r="42" class="node" />
+  <circle cx="360" cy="430" r="42" class="node" />
+  <circle cx="110" cy="320" r="42" class="node" />
+  <text x="170" y="190" class="node-text">A</text>
+  <text x="420" y="190" class="node-text">B</text>
+  <text x="470" y="320" class="node-text">C</text>
+  <text x="360" y="430" class="node-text">D</text>
+  <text x="110" y="320" class="node-text">E</text>
+  <text x="300" y="500" class="label" text-anchor="middle">5 organisations = 10 integrations</text>
+
+  <text x="900" y="76" class="heading" text-anchor="middle">Shared canonical file format</text>
+  <text x="900" y="106" class="subheading" text-anchor="middle">Each organisation implements the format once</text>
+
+  <line x1="900" y1="310" x2="770" y2="190" class="shared-link" />
+  <line x1="900" y1="310" x2="1030" y2="190" class="shared-link" />
+  <line x1="900" y1="310" x2="1080" y2="330" class="shared-link" />
+  <line x1="900" y1="310" x2="990" y2="430" class="shared-link" />
+  <line x1="900" y1="310" x2="730" y2="380" class="shared-link" />
+
+  <circle cx="770" cy="190" r="42" class="node" />
+  <circle cx="1030" cy="190" r="42" class="node" />
+  <circle cx="1080" cy="330" r="42" class="node" />
+  <circle cx="990" cy="430" r="42" class="node" />
+  <circle cx="730" cy="380" r="42" class="node" />
+  <text x="770" y="190" class="node-text">A</text>
+  <text x="1030" y="190" class="node-text">B</text>
+  <text x="1080" y="330" class="node-text">C</text>
+  <text x="990" y="430" class="node-text">D</text>
+  <text x="730" y="380" class="node-text">E</text>
+
+  <path d="M860 270 h62 l18 18 v62 h-80 z" fill="#7b8453" />
+  <path d="M922 270 v18 h18" fill="none" stroke="#f7f9f4" stroke-width="3" />
+  <path d="M875 310 h50 M875 328 h50" stroke="#f7f9f4" stroke-width="4" stroke-linecap="round" />
+  <text x="900" y="375" class="note" text-anchor="middle">Open record format</text>
+  <text x="900" y="500" class="label" text-anchor="middle">5 organisations = 5 implementations</text>
+</svg>
