@@ -135,7 +135,7 @@ The calculators live in their own repository, **[clincalc](https://github.com/pa
 
 ## Site Content (gitehr.org)
 
-Source: `gitehr-site-improvement-handoff.md` at the repo root. Goal is to strengthen the "files on disk vs databases" argument that underpins GitEHR's design, by framing it as the consensus the rest of software has already reached rather than as a healthcare-specific opinion. Style: ASCII hyphen-minus only (no emdash), MkDocs-compatible admonitions (work in Zensical's classic variant), relative internal links.
+Goal: strengthen the "files on disk vs databases" argument that underpins GitEHR's design, by framing it as the consensus the rest of software has already reached rather than as a healthcare-specific opinion. Style: ASCII hyphen-minus only (no emdash), MkDocs-compatible admonitions (work in Zensical's classic variant), relative internal links.
 
 ### High priority
 
@@ -149,7 +149,7 @@ Source: `gitehr-site-improvement-handoff.md` at the repo root. Goal is to streng
 - [ ] Add a "Common objections" or FAQ page covering: cross-patient queries for research and population health (org-level derived databases built from canonical files, mirroring Iceberg-over-Parquet); concurrent edits (Git branch-and-merge with clinical conflict resolution); ACID and consistency (per-file atomicity plus cryptographic chain-of-custody); GDPR right to erasure (the hardest one - needs careful framing given Git's immutable history).
 - [ ] Cross-reference the wider movement with explicit links: Ink and Switch local-first paper (Kleppmann et al. 2019), Steph Ango's "File over app" essay, Pat Helland's "Immutability Changes Everything" (2015), Apache Iceberg, SQLite-as-archival-format. Add to a references section or inline citations.
 - [ ] Expand the N-squared integration problem into its own paragraph plus a diagram: N organisations with their own databases produces N(N-1)/2 integration pairs; N organisations agreeing on a file format produces N implementations and zero pairs.
-- [ ] Add a section (in `design/files-not-databases.md` or its own page) on the agentic coding angle: clinical LLM applications can read, diff, and answer questions over a Git history of markdown files in ways that map poorly to databases. Files give you `grep`, `diff`, `git log`, and a full audit trail in context; the structured-query advantage databases historically offered shrinks when an LLM can answer "what changed in this patient's medication list last month" without writing SQL.
+- [x] Add an agentic-tooling section to `design/files-not-databases.md`: clinical LLM applications can read, diff, and answer questions over a Git history of markdown files while preserving the evidence for human review. Derived databases remain the right surface for population-scale queries.
 
 ### Lower priority / diagrams
 

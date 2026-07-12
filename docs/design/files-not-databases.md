@@ -92,6 +92,14 @@ It does not, because that workload was never the patient record's job in the fir
 
 The current paradigm collapses these two roles into one system, which is why losing the database means losing the record. Separating them is the point.
 
+## Files make records agent-readable
+
+Files give people and software agents the same durable working surface: directory listings, `grep`, `diff`, and `git log`. An agent can inspect the record and its history directly rather than first translating a question into a database-specific schema, query language, or API.
+
+For a per-patient question such as "what changed in this patient's medication list last month?", an agent can read the relevant state file, inspect the journal, and compare the exact historical versions in context. The evidence remains visible to the person reviewing the answer.
+
+This does not replace the derived databases needed for population-scale research, reporting, or operational queries. It makes the canonical record more legible to the tools that increasingly help patients and clinicians work with it, without adding another proprietary interpretation layer between the record and its reader.
+
 ## But the relational model always wins in the end
 
 The most serious version of the objection comes from database research itself. In [*What Goes Around Comes Around... And Around...*](https://db.cs.cmu.edu/papers/2024/whatgoesaround-sigmodrec2024.pdf) (2024), Michael Stonebraker and Andrew Pavlo survey sixty years of data models and conclude that the relational model and SQL keep winning: hierarchical, network, object, XML, document and graph stores all came around, faded, and had their good ideas absorbed into SQL. By that logic, "store the record as files" is just the next doomed alternative.
