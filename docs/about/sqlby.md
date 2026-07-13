@@ -28,7 +28,7 @@ Additionally, most Regional Care Record and Single Patient Record programmes onl
 ### The Real World
 In the real world (outside healthcare tech) we take this kind of 'organisation-to-organisation letter interoperability' for granted, because we're so used to it existing and working well. It hasn't always existed and those open file formats were hard-fought-for, but now we have them, nobody is suggesting to go back.
 
-Healthcare has become a country filled with SQLby towns, unable to transfer critical data becasue it has **no medical records file format**. Worse, it doesn't even want to know that it needs one. 
+Healthcare has become a country filled with SQLby towns, unable to transfer critical data because it has **no medical records file format**. Worse, it doesn't even want to know that it needs one. 
 
 ### What GitEHR IS NOT Saying
 
