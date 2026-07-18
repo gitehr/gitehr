@@ -116,6 +116,8 @@ And the two layers have different jobs. The custody layer's unit is one patient'
 
 There is a sting in the tail of Stonebraker's own argument. His through-line is that SQL endures by *absorbing* good ideas. The one good idea mainstream databases have not absorbed is distributed, content-addressed, immutable version control - Git and Merkle DAGs - which is exactly what GitEHR brings to the custody layer. By the paper's own logic, a good idea does not lose; it gets absorbed. We would call that a win.
 
+See [Common objections](common-objections.md) for the concurrent-edit, ACID/consistency, and GDPR right-to-erasure questions this page does not cover.
+
 ## Further reading
 
 - [Local-first software](https://www.inkandswitch.com/local-first/) - Ink and Switch (Kleppmann, Wiggins, van Hardenberg, McGranaghan), 2019. The closest thing to a manifesto for this whole movement.
