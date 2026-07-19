@@ -19,7 +19,7 @@ That is the whole idea. Everything else - the cryptographic integrity, the offli
 Outside healthcare, the rest of software has been steadily abandoning databases as the substrate for portable, long-lived data:
 
 - **Source code.** Git replaced centralised version control systems (CVS, SVN, Perforce) by treating code as content-addressed files distributed across every developer's machine. Every major tech company now runs on this model. The debate is over.
-- **Analytics.** The lakehouse architecture (Apache Iceberg, Delta Lake, Apache Hudi over Parquet files on object storage) has become the default for modern data platforms. Snowflake, Databricks, DuckDB, Trino and Spark all read the same files because the files, not any single database, are the source of truth.
+- **Analytics.** The lakehouse architecture ([Apache Iceberg](https://iceberg.apache.org/), Delta Lake, Apache Hudi over Parquet files on object storage) has become the default for modern data platforms. Snowflake, Databricks, DuckDB, Trino and Spark all read the same files because the files, not any single database, are the source of truth.
 - **Knowledge work.** Obsidian, Logseq, and the wider "file over app" movement store notes as plain markdown files on disk, on the explicit principle that apps are ephemeral and files outlast them.
 - **Imaging.** [DICOM](https://en.wikipedia.org/wiki/DICOM), the one truly successful interoperability standard in healthcare, is fundamentally a file format. Hospitals still mail DICOM CDs between sites when networks fail, and it works.
 - **Email.** SMTP and IMAP federate across every provider on earth because the unit of exchange is a self-describing [RFC 5322](https://datatracker.ietf.org/doc/html/rfc5322) file, not a database row. Maildir stores one message per file.
@@ -126,3 +126,4 @@ See [Common objections](common-objections.md) for the concurrent-edit, ACID/cons
 - [What Goes Around Comes Around... And Around...](https://db.cs.cmu.edu/papers/2024/whatgoesaround-sigmodrec2024.pdf) - Stonebraker and Pavlo, SIGMOD Record 2024. The serious counter-argument that the relational model endures; addressed above.
 - [SQLite as an Application File Format](https://www.sqlite.org/affcase1.html) - Richard Hipp.
 - [What is a Lakehouse?](https://www.databricks.com/glossary/data-lakehouse) - the original framing from Databricks.
+- [Apache Iceberg](https://iceberg.apache.org/) - the dominant open table format for the lakehouse pattern described above.
