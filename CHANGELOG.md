@@ -5,6 +5,12 @@ All notable changes to GitEHR are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Releases are grouped from conventional-commit messages by [git-cliff](https://git-cliff.org).
 
+## [0.3.4] - 2026-07-20
+
+### Bug fixes
+
+- **release**: Defer Homebrew publishing ([0e0dca8](https://github.com/gitehr/gitehr/commit/0e0dca84b50498744098e499a9e38170e368a1da))
+
 ## [0.3.3] - 2026-07-20
 
 ### Bug fixes
