@@ -9,9 +9,14 @@ use anyhow::Result;
 use serial_test::serial;
 use std::fs;
 use std::path::Path;
+use std::process::Command;
 use tempfile::tempdir;
 
 use gitehr::commands::store;
+
+fn gitehr() -> Command {
+    Command::new(env!("CARGO_BIN_EXE_gitehr"))
+}
 
 #[test]
 #[serial]
@@ -65,6 +70,26 @@ fn store_init_fails_if_already_a_store() -> Result<()> {
 }
 
 #[test]
+fn store_init_requires_an_empty_store_root() {
+    let store_root = tempdir().unwrap();
+    fs::write(store_root.path().join("existing-file.txt"), "not a Store").unwrap();
+
+    let output = gitehr()
+        .args(["store", "init", "rex"])
+        .current_dir(store_root.path())
+        .output()
+        .unwrap();
+
+    assert!(!output.status.success(), "{output:?}");
+    assert!(
+        String::from_utf8_lossy(&output.stderr).contains("empty directory"),
+        "{output:?}"
+    );
+    assert!(!store_root.path().join("gitehr-mpi.json").exists());
+    assert!(!store_root.path().join("rex").exists());
+}
+
+#[test]
 #[serial]
 fn store_add_registers_a_second_subject() -> Result<()> {
     let temp = tempdir().unwrap();
@@ -104,4 +129,27 @@ fn store_init_without_a_name_uses_an_auto_id_directory() -> Result<()> {
         "exactly one auto-id subject repo should exist"
     );
     Ok(())
+}
+
+#[test]
+fn single_subject_store_auto_targets_repo_commands() {
+    let store_root = tempdir().unwrap();
+
+    let init = gitehr()
+        .args(["store", "init", "rex"])
+        .current_dir(store_root.path())
+        .output()
+        .unwrap();
+    assert!(init.status.success(), "{init:?}");
+
+    let status = gitehr()
+        .arg("status")
+        .current_dir(store_root.path())
+        .output()
+        .unwrap();
+    assert!(status.status.success(), "{status:?}");
+    assert!(
+        String::from_utf8_lossy(&status.stdout).contains("GitEHR Repository Status"),
+        "{status:?}"
+    );
 }

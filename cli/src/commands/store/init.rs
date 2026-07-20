@@ -19,6 +19,9 @@ pub fn run(name: Option<&str>) -> Result<()> {
             "This directory is a GitEHR repository, not a Store root. Create a Store in an empty directory."
         );
     }
+    if fs::read_dir(".")?.next().transpose()?.is_some() {
+        bail!("A GitEHR Store must be created in an empty directory");
+    }
 
     let prompted = if name.is_none() {
         prompt_first_subject_name()?
