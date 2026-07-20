@@ -46,6 +46,17 @@ and `CHANGELOG.md`; commits; and pushes to `main`. It never tags locally. The
 `auto-tag.yml` workflow creates the `vX.Y.Z` tag after the bump commit lands and
 then invokes the cargo-dist release workflow.
 
+## `s/docs`
+
+Serve the Zensical documentation site through Docker Compose, open it in the default browser, and follow its logs.
+
+```
+s/docs
+GITEHR_DOCS_PORT=8010 s/docs
+```
+
+The script selects the first free port from 8000 to 8030 unless `GITEHR_DOCS_PORT` is set. It passes the host user and group IDs to Compose, so generated site files are owned by the user rather than `root`.
+
 ## `s/size`
 
 Print a tidy table of GitEHR's disk footprint: the size of each release binary (as built and stripped - the real "what ships" figure), the `target/` build cache split into debug/release/total (your `cargo clean` / `cargo sweep` signal), and the repo on disk (`.git`, `gui/` node_modules, whole repo). Works from any directory with standard tools.

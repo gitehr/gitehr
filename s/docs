@@ -1,21 +1,74 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # SPDX-FileCopyrightText: 2026 Marcus Baw and Baw Medical Ltd
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
-# set -v  # Enable verbose mode
-set -e  # Exit on error
+# Start the containerised Zensical site, wait for it, and open the first free
+# local port from 8000 to 8030. The service runs as the host user so generated
+# site files remain editable after the container stops.
+#
+# Override the selected port with GITEHR_DOCS_PORT=<port>.
 
-# UNIX based systems may require special permissions to run this file
-# run chmod +x s/<filename> to allow this
+set -euo pipefail
+cd "$(git rev-parse --show-toplevel)"
 
-# starts the Zensical docs site via docker compose
-rm -rf site
-docker compose up -d "$@"
-
-# open docs in the default browser
-if command -v xdg-open >/dev/null 2>&1; then
-	xdg-open http://localhost:8766 >/dev/null 2>&1 &
+if ! command -v docker >/dev/null 2>&1; then
+  echo "Docker is required to preview the documentation site." >&2
+  exit 1
 fi
 
-# follow logs
-docker compose logs -f
+port_is_listening() {
+  local port="$1"
+
+  if command -v ss >/dev/null 2>&1; then
+    ss -ltn | rg -q "[:.]${port}\\b"
+  elif command -v lsof >/dev/null 2>&1; then
+    lsof -nP -iTCP:"$port" -sTCP:LISTEN >/dev/null 2>&1
+  else
+    (echo > "/dev/tcp/127.0.0.1/${port}") >/dev/null 2>&1
+  fi
+}
+
+if [[ -z "${GITEHR_DOCS_PORT:-}" ]]; then
+  for candidate in {8000..8030}; do
+    if ! port_is_listening "$candidate"; then
+      export GITEHR_DOCS_PORT="$candidate"
+      break
+    fi
+  done
+
+  if [[ -z "${GITEHR_DOCS_PORT:-}" ]]; then
+    echo "No free documentation port found in 8000-8030." >&2
+    exit 1
+  fi
+fi
+
+export GITEHR_UID="$(id -u)"
+export GITEHR_GID="$(id -g)"
+url="http://localhost:${GITEHR_DOCS_PORT}"
+
+docker compose up -d "$@" zensical
+echo "Docs starting at ${url}"
+
+for _ in {1..60}; do
+  if curl -fsS "$url" >/dev/null 2>&1; then
+    break
+  fi
+  sleep 1
+done
+
+if ! curl -fsS "$url" >/dev/null 2>&1; then
+  echo "Docs did not become reachable at ${url}; showing compose logs." >&2
+  docker compose logs --tail=80 zensical >&2
+  exit 1
+fi
+
+if [[ -n "${BROWSER:-}" ]]; then
+  "$BROWSER" "$url" >/dev/null 2>&1 || true
+elif command -v xdg-open >/dev/null 2>&1; then
+  xdg-open "$url" >/dev/null 2>&1 || true
+elif command -v open >/dev/null 2>&1; then
+  open "$url" >/dev/null 2>&1 || true
+fi
+
+echo "Docs ready at ${url}"
+docker compose logs -f zensical

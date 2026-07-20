@@ -2,13 +2,14 @@
 services:
   zensical:
     image: python:3.13-slim
+    user: "${GITEHR_UID:-1000}:${GITEHR_GID:-1000}"
     ports:
-      - "8766:8000"
+      - "${GITEHR_DOCS_PORT:-8000}:8000"
     volumes:
       - .:/app
     working_dir: /app
     environment:
       - PYTHONDONTWRITEBYTECODE=1
       - PYTHONUNBUFFERED=1
-    command: sh -c "pip install --no-cache-dir -r requirements.txt && zensical serve --dev-addr=0.0.0.0:8000"
+    command: sh -c "python -m venv /tmp/zensical-venv && /tmp/zensical-venv/bin/pip install --no-cache-dir -r requirements.txt && /tmp/zensical-venv/bin/zensical serve --dev-addr=0.0.0.0:8000"
     restart: unless-stopped
