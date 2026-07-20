@@ -6,11 +6,11 @@
 ## Big picture
 - Monorepo with three main surfaces: Rust CLI (`cli/`), documentation site (`docs/` + `mkdocs.yml`), and GUI app (`gui/`, Tauri + React/Mantine).
 - CLI manages on-disk EHR repos: a `.gitehr` marker + template folder structure from `folder-structure/` copied by `gitehr store init`.
-- Journal is append-only: entries live in `journal/` with YAML front matter and SHA-256 hash chaining (see `src/commands/journal.rs`, `src/commands/verify.rs`).
+- Journal is append-only: entries live in `journal/` with YAML front matter (`timestamp`, optional `author`, optional `documents`) and one Git commit per entry. Integrity derives from Git's own history, not a per-entry hash chain (see `cli/src/commands/journal/`, and `spec/repository-verification.md` for the planned policy checker / server-side guardian).
 
 ## Key paths & patterns
 - CLI entrypoint: `src/main.rs` (clap subcommands). No-args prints version and help.
-- Init flow: `src/commands/init.rs` copies template + creates genesis entry with random seed hash.
+- Init flow: `cli/src/commands/scaffold.rs` copies the template and creates the first journal entry.
 - Journal format: `journal/<YYYYMMDDTHHMMSS.mmmZ>-<UUID>.md` and YAML front matter delimited by `---`.
 - YAML serialization: uses `serde_yaml_ng` (a maintained fork of the now-deprecated `serde_yaml`; we previously used `serde_yml`, which was withdrawn under RUSTSEC-2025-0068). Keep this consistent.
 - GUI layout: Mantine `AppShell` in `gui/src/App.tsx` with styling in `App.css`.

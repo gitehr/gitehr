@@ -128,7 +128,7 @@ GitEHR is **orthogonal** to EHDS/EHRxF, not competing:
 
 ### 3. Quantum-Resistant Cryptography
 
-**Concept**: Upgrade GitEHR's hash chains and encryption to post-quantum algorithms.
+**Concept**: Upgrade GitEHR's cryptographic hashes, signatures, and encryption to post-quantum algorithms.
 
 **Timeline**:
 - NIST post-quantum standards finalized (2024)
@@ -137,7 +137,7 @@ GitEHR is **orthogonal** to EHDS/EHRxF, not competing:
 
 **Relevance**:
 - Long-lived medical records need to resist future quantum attacks
-- Hash chain integrity must survive 50+ years
+- Commit and signature integrity must survive 50+ years
 
 **Status**: Monitor NIST standards, plan migration when stable.
 

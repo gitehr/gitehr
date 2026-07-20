@@ -10,7 +10,7 @@ This specification summarises the behaviour described in the codebase and docume
 
 - **Git-based storage and auditability:** Every change is version-controlled so history is preserved and auditable across contributors (see [README.md](../../README.md)).
 
-- **Immutable journal chain:** Clinical entries are chronological files that link to their parent via a cryptographic hash, forming a tamper-evident chain seeded with random data on repository creation (see [src/commands/init.rs](../../src/commands/init.rs)).
+- **Immutable, append-only journal:** Clinical entries are chronological files, each committed to Git as it is added. Tamper-evidence derives from Git's own content-addressed history rather than a per-entry hash chain in the front matter (see [commands/journal.md](commands/journal.md) and [repository-verification.md](repository-verification.md)).
 
 - **Clear separation of concerns:** Standard folders divide immutable journal entries, mutable clinical state, imaging assets, and internal configuration data (see [README.md](../../README.md) and [folder-structure/README.md](../../folder-structure/README.md)).
 
@@ -143,7 +143,7 @@ journal/
 - Each file is named with its creation timestamp (UTC, millisecond precision) followed by a UUID to guarantee uniqueness.
 - Example: `20260205T032720.630Z-dab47f45-f5ff-45a2-b6b4-6f2285b173ac.md`
 - Files are sorted chronologically by filename.
-- The first entry (genesis) is created automatically by `gitehr store init` and anchors the chain with a random seed hash.
+- The first entry (genesis) is created automatically by `gitehr store init`.
 
 ## File format
 
@@ -151,8 +151,6 @@ Each file describes one clinical interaction and uses **YAML front matter + Mark
 
 ```yaml
 ---
-parent_hash: '<SHA-256 hash of parent entry content, or random seed for genesis>'
-parent_entry: '<filename of parent entry, or null for genesis>'
 timestamp: '<ISO 8601 UTC timestamp>'
 author: '<optional user ID>'
 ---
@@ -160,8 +158,6 @@ author: '<optional user ID>'
 Markdown narrative of the clinical interaction...
 ```
 
-- `parent_hash` links this entry to its parent, forming a tamper-evident chain.
-- `parent_entry` records the filename of the parent for human readability.
 - `timestamp` is the creation time of this entry.
 - `author` (optional) identifies the user who created this entry.
 - The Markdown body contains the human-readable clinical narrative.
@@ -175,21 +171,17 @@ Markdown narrative of the clinical interaction...
 Running `gitehr store init` creates a new repository with:
 - The folder structure from the template (`journal/`, `state/`, `imaging/`, `documents/`)
 - A `.gitehr/` configuration directory with version information
-- A genesis journal entry that anchors the hash chain with a random seed
+- A genesis journal entry
 
 ### Adding Entries
 
 Use `gitehr journal add "<content>"` to append new entries. Each entry:
-- Links to the previous entry via `parent_hash` and `parent_entry`
 - Gets a unique filename based on timestamp and UUID
-- Becomes immutable once committed to Git
+- Is committed to Git as its own commit and is immutable thereafter
 
-### Verification
+### Integrity
 
-`gitehr journal verify` validates the integrity of the journal chain by:
-- Checking that every non-genesis entry's `parent_hash` exists in the journal
-- Verifying that `parent_entry` matches the expected filename
-- Confirming the hash chain is unbroken from genesis to the latest entry
+There is no per-entry front-matter chain. Each entry is a separate Git commit, so the journal's ordering and tamper-evidence derive from Git's content-addressed history; `git fsck` detects object tampering. Enforcing GitEHR's append-only and authorship invariants is the job of a future policy checker / server-side guardian (see [repository-verification.md](repository-verification.md)).
 
 ### Documentation site
 

@@ -39,8 +39,6 @@ Each file contains YAML front matter followed by the clinical note body.
 
 Typical metadata fields:
 
-- `parent_hash`
-- `parent_entry`
 - `timestamp`
 - `author` (optional)
 - `documents` (optional) - references to Documents this entry relates to:

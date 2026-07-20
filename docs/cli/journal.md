@@ -58,4 +58,4 @@ The offset always moves toward **older** entries; `LATEST~3` equals `LATEST^^^`.
 
 ## Data model
 
-Each entry is YAML front matter followed by a Markdown body. The front matter (`JournalEntry`) holds `timestamp` (UTC), optional `author`, and optional `documents` - references to [Documents](document.md), each with `path`, `sha256`, and optional `original_filename`. The `<timestamp>-<uuid>.md` filename sorts chronologically, so a filename sort reconstructs history. There is no per-entry hash chain (an earlier `parent_hash` linkage was removed; tamper-evidence derives from git history).
+Each entry is YAML front matter followed by a Markdown body. The front matter (`JournalEntry`) holds `timestamp` (UTC), optional `author`, and optional `documents` - references to [Documents](document.md), each with `path`, `sha256`, and optional `original_filename`. The `<timestamp>-<uuid>.md` filename sorts chronologically, so a filename sort reconstructs history. Tamper-evidence derives from Git history, not a per-entry front-matter chain.

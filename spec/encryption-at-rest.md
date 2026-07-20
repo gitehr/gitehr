@@ -59,7 +59,7 @@ GitEHR's PHI is **files in a git working tree and git's object store**, not rows
 Clinical files are stored as ciphertext; `.gitehr/` stays in the clear for repository detection and key metadata (as the current placeholder describes).
 
 - **Pros:** self-contained and portable - the repo is encrypted wherever it travels, satisfying "at rest" in the strongest sense. No reliance on host FDE for the safe harbor.
-- **Cons:** git cannot delta or diff ciphertext, so every change rewrites a whole blob and history bloats. `journal cat`, `journal verify`, `document verify`, and the GUI must decrypt to function. **Critical interaction:** the SHA-256 chain (`parent_hash`) and Document references must define whether they hash *plaintext* or *ciphertext*. Hashing plaintext preserves the existing verifiability semantics but means verification requires the key; hashing ciphertext lets verification run without the key but ties the integrity proof to a specific encryption rather than to the clinical content.
+- **Cons:** git cannot delta or diff ciphertext, so every change rewrites a whole blob and history bloats. Journal reads, `document verify`, and the GUI must decrypt to function. **Critical interaction:** Git's content-addressed history and Document references must define whether they address *plaintext* or *ciphertext*. Addressing plaintext preserves clinical-content integrity semantics but requires the key; addressing ciphertext lets object integrity be checked without the key but ties the proof to a specific encryption.
 
 ### B. Transparent git filters (plaintext working tree, ciphertext blobs)
 

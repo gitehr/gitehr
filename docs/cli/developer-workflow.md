@@ -85,7 +85,7 @@ From the repo root:
    Confirm:
 
    - Exactly one `.md` file exists (if you only ran `init` once)
-   - YAML front matter contains `parent_hash` (not `null`) and `timestamp`
+   - YAML front matter contains `timestamp`
    - The body text matches the genesis description
 
 ## Manually testing `gitehr journal add`
@@ -101,24 +101,9 @@ cat journal/*.md
 
 Confirm for the newest entry:
 
-- `parent_hash` is different from the genesis seed hash
-- `parent_hash` matches the SHA-256 hash of the full contents of the previous entry file
+- A second timestamped journal file exists
+- The entry is committed to Git
 - The body contains `First clinical entry`
-
-Optional - verify the hash manually:
-
-```sh
-# Replace GENESIS_FILE with the actual filename
-GENESIS_FILE=$(ls journal | sort | head -n1)
-NEWEST_FILE=$(ls journal | sort | tail -n1)
-
-HASH=$(sha256sum "journal/$GENESIS_FILE" | awk '{print $1}')
-echo "Genesis hash: $HASH"
-
-grep parent_hash "journal/$NEWEST_FILE"
-```
-
-The `parent_hash` in the newest file should match `HASH`.
 
 ## Versioning
 

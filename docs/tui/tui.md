@@ -24,7 +24,6 @@ Likely first capabilities:
 - Read journal entries by entry ID or by search.
 - Add a journal entry from a multi-line editor.
 - View and edit state files.
-- Run verification (`gitehr journal verify`).
 - Show repository status and contributors.
 
 ## Technology

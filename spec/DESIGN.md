@@ -265,7 +265,7 @@ Each timeline item shows:
 - Summary text: first ~150 chars of the Markdown `body`, truncated with "Show more"
 - SNOMED codes if present: rendered as small `Badge` components with the concept ID
   in monospace and the preferred term as the label (GUI-extended entries only)
-- Entry filename (the `parent_hash` chain anchor): bottom-right, use the first 8 chars of `parent_hash` in monospace, muted colour — this identifies the entry's position in the tamper-evident chain, not a git commit hash
+- Entry filename: bottom-right, show the timestamped filename in monospace and muted colour. It is the entry's stable on-disk identifier; Git history provides the tamper-evident audit trail.
 
 **Entry type colour map** (use `severity` palette + clinical primary):
 - Encounter / Consultation: `clinical[5]` (teal-blue)
@@ -300,14 +300,12 @@ Severity/priority  [SegmentedControl - Low / Moderate / High / Critical]
 
 **Journal entry file format note:**
 
-The base gitehr journal format stores only `parent_hash`, `parent_entry`, `timestamp`, and `author` as YAML front matter, with a free-text Markdown body. The GUI extends this by writing `entry_type`, `snomed_codes`, and (where applicable) `severity` as additional YAML front matter fields. CLI tools and other gitehr consumers ignore unknown front matter fields, so this is safe.
+The base gitehr journal format stores `timestamp`, optional `author`, and optional `documents` as YAML front matter, with a free-text Markdown body. The GUI extends this by writing `entry_type`, `snomed_codes`, and (where applicable) `severity` as additional YAML front matter fields. CLI tools and other gitehr consumers ignore unknown front matter fields, so this is safe.
 
 Example of a GUI-authored journal file:
 
 ```yaml
 ---
-parent_hash: 'abc123...'
-parent_entry: '20260205T032720.630Z-uuid.md'
 timestamp: '2026-05-30T14:22:00Z'
 author: 'dr-smith'
 entry_type: 'encounter'
@@ -450,8 +448,6 @@ export interface SnomedCode {
 // they are written by the GUI and absent from entries created by the CLI alone.
 export interface JournalEntry {
   filename: string;            // e.g. "20260205T032720.630Z-uuid.md" - serves as the unique ID
-  parent_hash: string;         // SHA-256 of parent entry's file content (not a git hash)
-  parent_entry: string | null; // filename of parent, null for genesis entry
   timestamp: string;           // ISO 8601 UTC
   author?: string;             // user ID from .gitehr/contributors.json (optional)
   body: string;                // Markdown narrative body

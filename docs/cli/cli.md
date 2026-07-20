@@ -56,5 +56,4 @@ gitehr journal add "Echo arranged. Started furosemide 40mg OD."
 gitehr journal add "Follow-up: symptoms improved. EF 35%. Started ramipril and bisoprolol."
 
 gitehr journal cat        # play back the record
-gitehr journal verify     # confirm the chain is intact
 ```

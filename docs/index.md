@@ -59,7 +59,7 @@ hide:
         </div>
         <div class="gitehr-card">
           <h3>Cryptographic Trust</h3>
-          <p>Every entry links to the last one, forming an append-only chain that is tamper-evident and mathematically verifiable.</p>
+          <p>Every entry is committed to Git, preserving a reviewable, content-addressed history. A planned guardian will enforce append-only and authorised-authorship rules.</p>
         </div>
         <div class="gitehr-card">
           <h3>Offline First</h3>

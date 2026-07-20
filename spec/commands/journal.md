@@ -46,7 +46,7 @@ gitehr journal show LATEST^ --raw     # the previous entry, full file with front
 
 ### Integrity
 
-There is no `gitehr journal verify` subcommand. Each committed entry is its own git commit, so the journal's history, ordering, and tamper-evidence derive from the underlying git history rather than from a per-entry hash chain in the front matter. (An earlier `parent_hash`/`parent_entry` chain was removed; see [Planned refinements](#planned-refinements).)
+There is no journal-specific verification subcommand. Each committed entry is its own Git commit, so the journal's history, ordering, and tamper-evidence derive from the underlying Git history rather than from a per-entry front-matter chain. A future repository policy checker may enforce the append-only and authorship invariants described in [`repository-verification.md`](../repository-verification.md).
 
 ## Entry references
 
@@ -85,5 +85,5 @@ gitehr journal show 20260619T143012.123Z-<uuid>.md^    # one entry older than th
 
 ## Planned refinements
 
-- **Genesis without a false-genesis claim.** GitEHR has dropped the per-entry `parent_hash`/`parent_entry` linkage (chaining is derived from git history instead). A future refinement is to embed a random seed in the genesis entry's content together with a URL to an external genesis-registration record, so that the seed plus a registered, timestamped registration makes it computationally hard for anyone to fabricate an earlier "first" entry and backdate a false genesis claim.
+- **Genesis without a false-genesis claim.** GitEHR has dropped per-entry front-matter linkage; tamper-evidence derives from Git history instead. A future refinement is to embed a random seed in the genesis entry's content together with a URL to an external genesis-registration record, so that the seed plus a registered, timestamped registration makes it computationally hard for anyone to fabricate an earlier "first" entry and backdate a false genesis claim.
 - **Shorter filename uniqueness token.** The `journal/<timestamp>-<uuid>.md` filename pairs a millisecond timestamp with a full UUID. Because the millisecond timestamp already provides strong uniqueness, the UUID could be shortened to a fragment of a hash or a short random suffix for shorter, more readable filenames.

@@ -23,7 +23,7 @@ GitEHR's architecture makes that closed loop much harder to form.
 
 ### Tamper-evident provenance
 
-Every journal entry is content-addressed via SHA-256 and chained to its parent (see [Tamper resistance](../design/redundancy.md#tamper-resistance) and [Provenance](../design/provenance.md)). Altering any past entry changes its hash and breaks the chain in every descendant. Detection is mechanical: `gitehr journal verify` walks the chain and reports any link that no longer matches.
+Every journal entry is committed to Git as it is added (see [Tamper resistance](../design/redundancy.md#tamper-resistance) and [Provenance](../design/provenance.md)). Git content-addresses every commit and blob, so corruption or a doctored object is detectable in a known history. `git fsck` checks object integrity, while a planned policy checker and server-side guardian will enforce the append-only and authorship invariants that Git itself does not enforce.
 
 This is the same content-addressed-hashing property that makes Git trustworthy as the substrate of essentially all modern software development. It does not require trusting any central server, vendor, or administrator.
 
