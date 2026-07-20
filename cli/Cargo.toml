@@ -15,6 +15,8 @@ keywords = ["ehr", "healthcare", "medical", "git", "cli"]
 [package.metadata.wix]
 upgrade-guid = "749AB1CB-4DC7-4A17-B0AE-3E69D9C592AD"
 path-guid = "18EE1A2E-4026-47A9-8608-CC6564CF7FAD"
+license = false
+eula = false
 
 [[bin]]
 name = "gitehr"
