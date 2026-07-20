@@ -84,14 +84,6 @@ impl ToolHandler {
                 }),
             },
             Tool {
-                name: "verify_journal".to_string(),
-                description: "Verify the integrity of the journal hash chain".to_string(),
-                input_schema: serde_json::json!({
-                    "type": "object",
-                    "properties": {}
-                }),
-            },
-            Tool {
                 name: "search_repository".to_string(),
                 description: "Search journal and state files for a query string".to_string(),
                 input_schema: serde_json::json!({
@@ -119,7 +111,6 @@ impl ToolHandler {
         match name {
             "add_journal_entry" => self.add_journal_entry(arguments),
             "update_state" => self.update_state(arguments),
-            "verify_journal" => self.verify_journal(arguments),
             "search_repository" => self.search_repository(arguments),
             _ => Err(anyhow::anyhow!("Unknown tool: {}", name)),
         }
@@ -183,35 +174,6 @@ impl ToolHandler {
         Ok(ToolResult {
             content: vec![ToolContent::Text {
                 text: format!("Updated state file: state/{}", filename),
-            }],
-            is_error: Some(false),
-        })
-    }
-
-    fn verify_journal(&self, _arguments: serde_json::Value) -> anyhow::Result<ToolResult> {
-        let journal_dir = self.repo_path.join("journal");
-
-        if !journal_dir.exists() {
-            return Ok(ToolResult {
-                content: vec![ToolContent::Text {
-                    text: "Journal directory not found - cannot verify".to_string(),
-                }],
-                is_error: Some(true),
-            });
-        }
-
-        let entry_count = std::fs::read_dir(&journal_dir)?
-            .filter_map(|e| e.ok())
-            .filter(|e| e.path().extension().and_then(|s| s.to_str()) == Some("md"))
-            .count();
-
-        // Placeholder - real verification would check hash chain
-        Ok(ToolResult {
-            content: vec![ToolContent::Text {
-                text: format!(
-                    "Journal verification placeholder:\nFound {} journal entries\n\nNote: Full hash chain verification will be implemented when gitehr library is integrated.",
-                    entry_count
-                ),
             }],
             is_error: Some(false),
         })

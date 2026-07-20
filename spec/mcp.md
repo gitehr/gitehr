@@ -33,7 +33,7 @@ GitEHR will implement the full MCP specification:
    - Add journal entry
    - Update state file
    - Run clinical calculators
-   - Verify journal integrity
+    - Verify repository policy (planned)
    - Search repository content
    - Generate summaries
 
@@ -207,7 +207,7 @@ gitehr://repo/{repo_path}/status
       {
         "uri": "gitehr://repo/current/journal/20260306T120000.000Z-abc123.md",
         "mimeType": "text/markdown",
-        "text": "---\nparent_hash: \"...\"\n...\n---\n\nPatient presented with..."
+        "text": "---\ntimestamp: \"2026-03-06T12:00:00Z\"\n---\n\nPatient presented with..."
       }
     ]
   }
@@ -223,7 +223,7 @@ Tools allow **read-write** operations on the repository.
 1. **`add_journal_entry`**: Create new journal entry
 2. **`update_state`**: Update state file
 3. **`calculate_clinical`**: Run clinical calculator
-4. **`verify_journal`**: Check journal integrity
+4. **`verify_repository`**: Check repository policy (planned)
 5. **`search_repository`**: Full-text search across journal and state
 6. **`summarize_journal`**: Generate summary of recent entries
 7. **`extract_structured_data`**: Parse journal into structured state
@@ -467,8 +467,6 @@ All MCP interactions are logged in a dedicated journal entry format:
 
 ```yaml
 ---
-parent_hash: "..."
-parent_entry: "..."
 timestamp: "2026-03-06T15:00:00Z"
 author: "mcp-server"
 mcp_audit:
@@ -536,7 +534,7 @@ gitehr mcp token revoke mcp_abc123xyz
     "add_journal_entry": { "enabled": true },
     "update_state": { "enabled": true },
     "calculate_clinical": { "enabled": true },
-    "verify_journal": { "enabled": true },
+    "verify_repository": { "enabled": true },
     "search_repository": { "enabled": true }
   },
   "prompts": {

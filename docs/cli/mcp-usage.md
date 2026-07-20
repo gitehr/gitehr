@@ -100,7 +100,6 @@ Tools allow write operations on the repository.
 Returns available tools:
 - `add_journal_entry` - Create a new journal entry
 - `update_state` - Update a state file
-- `verify_journal` - Verify journal integrity
 - `search_repository` - Search journal and state
 
 #### Call Tool: Add Journal Entry
@@ -179,12 +178,6 @@ cargo build --release
 2. Claude uses `search_repository` to find medication mentions
 3. Claude parses text and creates structured JSON
 4. Claude uses `update_state` tool to save to `state/medications.json`
-
-### Repository Quality Checks
-
-1. Ask Claude: "Verify the journal integrity"
-2. Claude uses `verify_journal` tool
-3. Claude reports any broken hash chain links
 
 ## Security Considerations
 
