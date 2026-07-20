@@ -19,13 +19,21 @@ That is the whole idea. Everything else - the cryptographic integrity, the offli
 Outside healthcare, the rest of software has been steadily abandoning databases as the substrate for portable, long-lived data:
 
 - **Source code.** Git replaced centralised version control systems (CVS, SVN, Perforce) by treating code as content-addressed files distributed across every developer's machine. Every major tech company now runs on this model. The debate is over.
-- **Analytics.** The lakehouse architecture (Apache Iceberg, Delta Lake, Apache Hudi over Parquet files on object storage) has become the default for modern data platforms. Snowflake, Databricks, DuckDB, Trino and Spark all read the same files because the files, not any single database, are the source of truth.
+- **Analytics.** The lakehouse architecture ([Apache Iceberg](https://iceberg.apache.org/), Delta Lake, Apache Hudi over Parquet files on object storage) has become the default for modern data platforms. Snowflake, Databricks, DuckDB, Trino and Spark all read the same files because the files, not any single database, are the source of truth.
 - **Knowledge work.** Obsidian, Logseq, and the wider "file over app" movement store notes as plain markdown files on disk, on the explicit principle that apps are ephemeral and files outlast them.
 - **Imaging.** [DICOM](https://en.wikipedia.org/wiki/DICOM), the one truly successful interoperability standard in healthcare, is fundamentally a file format. Hospitals still mail DICOM CDs between sites when networks fail, and it works.
 - **Email.** SMTP and IMAP federate across every provider on earth because the unit of exchange is a self-describing [RFC 5322](https://datatracker.ietf.org/doc/html/rfc5322) file, not a database row. Maildir stores one message per file.
 - **Archival.** SQLite, despite the name, is marketed by its creator as ["a better-than-fopen() file format"](https://www.sqlite.org/affcase1.html), and is one of the Library of Congress's [recommended formats for long-term archival storage](https://www.loc.gov/preservation/resources/rfs/data.html).
 
 Healthcare is the holdout, not the pioneer. GitEHR applies the lesson that the rest of software has already learned.
+
+## Healthcare records are an archival problem
+
+Personal medical and hospital records must often survive for a patient's lifetime, and sometimes longer for family and population health research. The [Digital Preservation Coalition's Bit List entry for Electronic Hospital and Medical Records](https://www.dpconline.org/index.php?option=com_content&view=article&id=4519:bitlist-electronic-hospital-medical-records&catid=127:bitlist-endangered&Itemid=989) identifies them as endangered material requiring immediate action. It warns that loss is made more likely by lost context and integrity, poor migration planning, weak records management, and an over-reliance on unsuitable paper-era processes for digital records.
+
+The DPC also observes that there is little evidence of the medical profession participating in the digital-preservation community. That is a serious gap: healthcare has unusually long retention obligations and high consequences of loss, yet its records remain bound to short-lived software products and opaque databases.
+
+GitEHR provides a file-based, archival-grade record format. Its clinical narrative is human-readable text; structured data, documents, images, provenance, and change history are self-contained files in a standard directory layout. A future reader does not need the original supplier's database schema or application simply to inspect the record. The format does not remove the need for preservation governance - managed copies, storage, access control, retention, migration, and disposal still matter - but it gives those processes a durable, inspectable record to preserve. See [Common objections](common-objections.md#does-a-file-format-solve-digital-preservation) and [Longevity](longevity.md) for the limits and rationale.
 
 ## Why database-to-database interoperability does not work
 
@@ -44,6 +52,8 @@ Agreeing on a shared file format instead produces N implementations and zero pai
 ![Five organisations need ten pairwise database integrations, compared with five implementations of one shared file format.](../assets/images/n-squared-interoperability.svg)
 
 The gap grows rapidly: five organisations require ten custom integrations, fifty require 1,225, and five hundred require 124,750. A shared format does not remove local implementation work, but it makes that work linear rather than combinatorial and lets every participant exchange the same durable record.
+
+![A patient, GP practice, hospital, and pharmacy each hold an independent complete copy of the patient's GitEHR repository.](../assets/images/patient-repository-topology.svg)
 
 ### Where DB-to-DB interop appears to work, it is files underneath
 
@@ -83,6 +93,8 @@ This matters for GitEHR's argument because the lakehouse is the industry quietly
 
 GitEHR is the same shape applied to health records: canonical patient data lives in plain files in a Git repository; organisation-level derived databases sit on top for population queries and operational workflows; applications sit on top of those.
 
+![Applications use organisation-specific derived databases, which are rebuilt from canonical per-patient GitEHR repositories.](../assets/images/lakehouse-stack.svg)
+
 ## What about cross-patient queries?
 
 This is the first and best objection. A folder-per-patient model looks like it would make population health, research cohorts, and operational dashboards harder.
@@ -95,6 +107,8 @@ It does not, because that workload was never the patient record's job in the fir
 - If the derived database is lost, the clinical record is not lost.
 
 The current paradigm collapses these two roles into one system, which is why losing the database means losing the record. Separating them is the point.
+
+For the other hard questions about concurrent edits, ACID guarantees, and the right to erasure, see [Common objections](common-objections.md).
 
 ## Files make records agent-readable
 
@@ -124,3 +138,5 @@ There is a sting in the tail of Stonebraker's own argument. His through-line is 
 - [What Goes Around Comes Around... And Around...](https://db.cs.cmu.edu/papers/2024/whatgoesaround-sigmodrec2024.pdf) - Stonebraker and Pavlo, SIGMOD Record 2024. The serious counter-argument that the relational model endures; addressed above.
 - [SQLite as an Application File Format](https://www.sqlite.org/affcase1.html) - Richard Hipp.
 - [What is a Lakehouse?](https://www.databricks.com/glossary/data-lakehouse) - the original framing from Databricks.
+- [Apache Iceberg](https://iceberg.apache.org/) - an open table format for the lakehouse pattern described above.
+- [Electronic Hospital and Medical Records](https://www.dpconline.org/index.php?option=com_content&view=article&id=4519:bitlist-electronic-hospital-medical-records&catid=127:bitlist-endangered&Itemid=989) - Digital Preservation Coalition Bit List entry on the preservation risk facing medical records.

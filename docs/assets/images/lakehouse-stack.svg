@@ -1,0 +1,39 @@
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 640" role="img" aria-labelledby="title description">
+  <title id="title">GitEHR custody and query layers</title>
+  <desc id="description">Canonical per-patient GitEHR repositories are open files at the base. Organisation-specific derived databases provide queries above them, and clinical, research, and patient applications sit at the top.</desc>
+  <style>
+    .heading { fill: #273024; font: 700 29px sans-serif; }
+    .subheading { fill: #5c6458; font: 18px sans-serif; }
+    .layer-title { fill: #273024; font: 700 22px sans-serif; }
+    .layer-text { fill: #3f493b; font: 17px sans-serif; }
+    .side-title { fill: #5c6458; font: 700 17px sans-serif; text-anchor: end; }
+    .side-text { fill: #5c6458; font: 15px sans-serif; text-anchor: end; }
+  </style>
+
+  <rect width="1200" height="640" rx="24" fill="#fbfbf8" />
+  <text x="600" y="55" class="heading" text-anchor="middle">GitEHR separates durable custody from useful queries</text>
+  <text x="600" y="85" class="subheading" text-anchor="middle">Applications and databases can change without replacing the canonical patient record</text>
+
+  <rect x="250" y="130" width="700" height="120" rx="18" fill="#eef1e9" stroke="#c7d1ba" stroke-width="2" />
+  <text x="290" y="172" class="layer-title">Applications</text>
+  <text x="290" y="205" class="layer-text">Clinical systems, patient tools, research tools, reporting</text>
+  <text x="190" y="172" class="side-title">Use</text>
+  <text x="190" y="198" class="side-text">replaceable interfaces</text>
+
+  <path d="M600 260 l-15 18 h10 v24 h10 v-24 h10 z" fill="#7b8453" />
+
+  <rect x="250" y="315" width="700" height="120" rx="18" fill="#e1e8d6" stroke="#adc09b" stroke-width="2" />
+  <text x="290" y="357" class="layer-title">Derived databases</text>
+  <text x="290" y="390" class="layer-text">Organisation-specific indexes, analytics, cohort queries, operational workflows</text>
+  <text x="190" y="357" class="side-title">Query</text>
+  <text x="190" y="383" class="side-text">rebuildable views</text>
+
+  <path d="M600 445 l-15 18 h10 v24 h10 v-24 h10 z" fill="#7b8453" />
+
+  <rect x="250" y="500" width="700" height="105" rx="18" fill="#7b8453" stroke="#526030" stroke-width="3" />
+  <text x="290" y="540" fill="#ffffff" font-family="sans-serif" font-size="22" font-weight="700">Canonical GitEHR record repositories</text>
+  <text x="290" y="572" fill="#ffffff" font-family="sans-serif" font-size="17">One patient per repository: open files, provenance, and versioned history</text>
+  <text x="190" y="540" class="side-title">Custody</text>
+  <text x="190" y="566" class="side-text">durable source of truth</text>
+</svg>
