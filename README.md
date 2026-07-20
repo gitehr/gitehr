@@ -54,4 +54,4 @@ After a GitEHR release is published to crates.io, install it with:
 cargo install gitehr --locked
 ```
 
-Cargo downloads the released source package and compiles it locally. Prebuilt GitHub Release assets are not available yet; see the [installation documentation](https://gitehr.org/install/cli/) for source builds and current distribution status.
+Cargo downloads the released source package and compiles it locally. Prebuilt archives and installer scripts are available from [GitHub Releases](https://github.com/gitehr/gitehr/releases); see the [installation documentation](https://gitehr.org/install/cli/) for current distribution options.

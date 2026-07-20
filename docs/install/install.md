@@ -11,7 +11,7 @@ GitEHR is shipped as two main components: a Rust CLI (`gitehr`) and a Tauri-base
 
 GitEHR will publish the `gitehr` CLI to crates.io. Once published, Rust users can install the released version with `cargo install gitehr --locked`; Cargo downloads the crate source and compiles it locally.
 
-Prebuilt release binaries and operating-system installers are a separate distribution path. The release pipeline is configured for them, but no GitHub release assets are available yet. Until the first packaged release is published, build from source as described in the CLI and GUI guides.
+Prebuilt release binaries and operating-system installers are available from [GitHub Releases](https://github.com/gitehr/gitehr/releases). Use the CLI guide for source builds and the currently supported installation paths.
 
 ## After install
 

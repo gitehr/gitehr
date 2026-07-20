@@ -160,7 +160,7 @@ if [ "$mode" = "direct" ]; then
   git push origin main
   echo
   echo "Pushed $tag bump to main. auto-tag.yml will create the tag and invoke"
-  echo "release.yml (cargo-dist binaries, GitHub Release, Homebrew tap)."
+  echo "release.yml (cargo-dist binaries and GitHub Release)."
 else
   git push -u origin "$relbranch"
   pr_url=""

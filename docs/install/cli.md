@@ -29,6 +29,10 @@ cargo install gitehr --locked
 
 This downloads the released source package from crates.io and compiles it locally. It does not download a prebuilt binary, so Rust remains a prerequisite.
 
+## Install a prebuilt binary
+
+Prebuilt archives, Windows MSI installers, and shell/PowerShell installer scripts are available from [GitHub Releases](https://github.com/gitehr/gitehr/releases). Use the assets for your operating system and architecture.
+
 ## Build from source
 
 From the CLI project root:
