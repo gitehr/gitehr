@@ -1,158 +1,94 @@
-# GitEHR Roadmap (Spec-Aligned)
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
 
-This roadmap tracks implementation status against the current `spec/` documents.
+# GitEHR Roadmap
 
-## Core CLI and Repository Lifecycle
+Legend: `[x]` done, `[~]` in progress, `[ ]` not started. This roadmap lists outstanding work only. Every item has a stable reference code: use it in discussion, commits, and decision notes (for example, `implements R12`).
 
-- [x] Implement binary bundling in `gitehr store init` (`.gitehr/gitehr`).
-- [x] Implement finalized journal file layout (`journal/<timestamp>-<uuid>.md`).
-- [x] Implement journal YAML front matter fields: `parent_hash`, `parent_entry`, `timestamp`, optional `author`.
-- [x] Implement `gitehr journal add` input modes: inline, `--file <path>`, and stdin via `--file -`.
-- [x] Implement `gitehr journal show` with pagination options.
-- [x] Implement `gitehr journal verify` hash-chain validation.
-- [x] Implement contributor activation so journal entries include current `author`.
-- [x] Implement `gitehr version` output with both GitEHR and Git versions.
-- [x] Implement shell completions generation (`gitehr completions <shell>`).
-- [ ] **Store-first bootstrap ([ADR-0005](adr/0005-store-first-model.md)):** make `gitehr store init` create the Store, the MPI, and the first subject repo in one step (reusing the repo-scaffolding from the old `gitehr store init`), and **remove the top-level `gitehr store init`**. Subject repos use the UUIDv7 + Crockford directory naming from the spec.
-- [ ] Add robust `gitehr journal verify --verbose` (or equivalent) failure diagnostics per spec TODO.
+## Import and Acquisition
 
-## Plugin System
+- [ ] **R1 - Add offline OCR for imported documents:** when importing a scan or photo with `--mode documents`, write searchable derived text alongside the original without sending clinical images to a cloud service. The original remains canonical.
+- [ ] **R2 - Add further import modes:** add modes only when a concrete need arises, beginning with an imaging-scanned mode if required.
+- [ ] **R3 - Add a configured document-format whitelist:** once the config format can express it, let `--mode documents` accept only configured file formats.
+- [ ] **R4 - Decide and implement NHS App import:** resolve the extraction-surface and bundle-format forks in [`nhs-app-import.md`](nhs-app-import.md), then build the local-only extraction agent and idempotent provenance-stamped importer.
 
-Git-style `$PATH` extensibility (see [`spec/commands/plugin.md`](commands/plugin.md), `cli/src/commands/plugin.rs`).
+## Repository and Commands
 
-- [x] Plugin discovery: scan `$PATH` for `gitehr-<command>` executables (`gitehr plugins`).
-- [x] Resolution order, built-in commands first: implemented via clap `#[command(external_subcommand)]`, so a plugin can never shadow a built-in (security property, with plugin-name validation against path traversal).
-- [x] Argument pass-through: `gitehr foo arg1 arg2` execs `gitehr-foo arg1 arg2` (on Unix the plugin replaces the process, so stdio/signals/exit code pass through).
-- [x] `gitehr plugins` command listing installed plugins (built-in-shadowed names excluded).
-- [x] `gitehr --help` shows discovered plugins alongside built-in commands (dynamic `after_help`).
-- [x] Plugin authoring guidelines documented in `spec/commands/plugin.md` and `docs/cli/plugins.md`.
-- [x] Plugin example documented (a `gitehr-hello` sample).
+- [ ] **R5 - Add `gitehr export`:** generate standardised FHIR, EHRxF, and openEHR export bundles from a repository (see [`fhir-openehr.md`](fhir-openehr.md) and [`long-term-ideas.md`](long-term-ideas.md)).
+- [ ] **R6 - Extend Store identifier operations:** add `search`, `link`, `unlink`, `merge`, and `path`, plus the `GITEHR_MPI_PATH` override, as `gitehr store` subcommands.
+- [ ] **R7 - Document the self-hoster on-ramp:** make families, carers, and pet owners first-class audiences in site and GUI onboarding, alongside clinics (ADR-0005).
+- [ ] **R8 - Align GUI launch behaviour:** prefer the bundled `.gitehr/gitehr-gui`, then `gitehr-gui` on `$PATH`, rather than the current development launcher.
 
-## Import and Document Capture
+## Repository Template
 
-Bringing existing records into a repository (see [`spec/commands/import.md`](commands/import.md), [`docs/cli/import.md`](../docs/cli/import.md), `cli/src/commands/import.rs`).
+- [ ] **R9 - Add the FHIR layout to the template:** add `/fhir/definitions`, `/fhir/resources`, and `/fhir/indexes`, with lifecycle documentation.
+- [ ] **R10 - Add openEHR layout and storage conventions:** add `/openehr/` to the template and document its native storage model.
 
-- [x] Implement `gitehr import` (`--mode journal | documents`): import well-formed journal entries verbatim (filename/UUID/author/provenance preserved, non-entries skipped, already-present skipped so it is idempotent, each entry committed), or bulk-import documents of any format (each copied into `documents/` with a lightweight linking journal entry). Accepts a file or a directory, walked recursively with hidden files skipped, and reports a summary count.
-- [ ] **Built-in OCR for imported documents (eventually).** Make it as trivially easy as possible for less-technical patients using the GUI to bring their own medical records together. When importing a scan or photo via `--mode documents`, run OCR so the journal entry carries searchable, machine-readable text alongside the original file, not just a link - a patient should be able to drop in a photo of a letter and get a real, searchable record entry with near-zero friction. Keep it **built-in and offline** (no shipping medical images to a cloud OCR service), and treat the OCR text as a derived convenience layer, never a replacement for the original document.
-- [ ] Add further import modes as the need arises (e.g. an imaging-scanned mode), per the "other modes later" note in `spec/commands/import.md`.
-- [ ] Once a config file exists, let `--mode documents` filter against a configured file-format whitelist (per the TODO in `spec/commands/import.md`).
+## FHIR v5
 
-## Command Coverage vs Spec
+- [ ] **R11 - Confirm FHIR lifecycle documentation:** specify storage, journaling, and provenance rules for FHIR resources.
+- [ ] **R12 - Download pinned FHIR definitions:** build tooling to place pinned FHIR v5 definitions in `/fhir/definitions`.
+- [ ] **R13 - Implement Rust FHIR modules:** load definitions and validate resources in `cli/src/fhir/`.
+- [ ] **R14 - Add FHIR CLI commands:** implement FHIR import and validation commands.
+- [ ] **R15 - Add journal references for FHIR provenance:** connect resource changes to journal entries.
+- [ ] **R16 - Add FHIR workflow tests and documentation.**
 
-- [x] Implement `gitehr state` (`list`, `get`, `set`).
-- [x] Implement typed state for `gitehr demographics`, `gitehr allergies`, and `gitehr vaccinations`.
-- [x] Implement `gitehr remote` (`add`, `remove`/`rm`, `list`).
-- [x] Implement `gitehr encrypt` placeholder marker flow.
-- [x] Implement `gitehr decrypt` placeholder marker removal flow.
-- [x] Implement `gitehr status` summary output.
-- [x] Implement `gitehr transport` (`create`, `extract`) - "transport mode" bundling.
-- [x] Delegate clinical calculations to the external `clincalc` plugin: `gitehr clincalc <command>` discovers `gitehr-clincalc` on `$PATH`, keeping GitEHR's release pipeline free of calculator dependencies.
-- [x] Implement `gitehr journal` `new-entry`/`commit`/`list`/`show`. Note: the journal is append-only - drafts (`new-entry`) can be edited or discarded before commit, but committed entries are immutable, so there is no `journal edit`/`journal delete` of committed entries by design.
-- [ ] Add `gitehr export` - generate standardised export bundles (FHIR / EHRxF / openEHR) from a repository for cross-border sharing and portability (see `spec/fhir-openehr.md` and the EHDS/EHRxF notes in `spec/long-term-ideas.md`).
-- [x] Implement `gitehr user` (`create`, `add`, `enable`, `disable`, `activate`, `deactivate`, `list`) and `contributor` alias.
-- [x] Implement `gitehr upgrade`.
-- [x] Implement `gitehr upgrade-binary`.
-- [x] `gitehr store` ([ADR-0005](adr/0005-store-first-model.md)): `init [name]` bootstraps the Store + MPI + first subject repo; `add [name]` creates and registers a new subject repo; `remove <id|name>` de-registers; `list` shows subjects. Each subject gets a canonical UUIDv7 (Crockford base32) id and a friendly-name-or-id directory (`cli/src/commands/scaffold.rs`).
-- [ ] **Store-first, remaining ([ADR-0005](adr/0005-store-first-model.md)):** Store/repo context detection (walk up for `.gitehr/` and `gitehr-mpi.json`) plus single-subject auto-targeting; then **remove the top-level `gitehr store init`** and move the test suite onto `gitehr store init`. The MPI identifier operations (`search`, `link`, `unlink`, `merge`, `path`) and the `GITEHR_MPI_PATH` override fold in as `gitehr store` subcommands later.
-- [ ] **Self-hoster on-ramp docs (families and pets):** make the single-user, multi-subject story first-class on the site and in GUI onboarding - individuals and families keeping their own records, and **pet owners** keeping their animals' records - alongside the clinic story. Per ADR-0005 these are primary audiences, not afterthoughts.
-- [ ] Align `gitehr gui` launcher with command spec (prefer bundled `.gitehr/gitehr-gui`, then PATH `gitehr-gui`; current implementation still launches dev command).
+## openEHR
 
-## Repository Template and Data Layout
+- [ ] **R17 - Design and implement native openEHR RM storage.**
+- [ ] **R18 - Implement required openEHR REST endpoints and content negotiation.**
+- [ ] **R19 - Add archetype and template validation.**
+- [ ] **R20 - Implement openEHR versioning, audit, and contribution semantics.**
+- [ ] **R21 - Add AQL support and the conformance manifest/OPTIONS surface.**
+- [ ] **R22 - Add openEHR conformance tests and implementation documentation.**
 
-- [x] Ensure init copies template directories from `folder-structure/`.
-- [x] Persist `.gitehr/GITEHR_VERSION` and bundled binary during init/upgrade paths.
-- [ ] Add `/fhir/` layout (`definitions`, `resources`, `indexes`) to template and lifecycle docs.
-- [ ] Add `/openehr/` layout and storage conventions from spec.
+## GUI and TUI
 
-## FHIR v5 Workstream
+- [ ] **R23 - Restore GUI end-to-end coverage and keep it green in CI.**
+- [ ] **R24 - Build the planned terminal user interface:** start with the smallest useful record browsing, journal, state, and status workflows (see [`gui/gui.md`](gui/gui.md) and [`../docs/tui/tui.md`](../docs/tui/tui.md)).
 
-- [ ] Add/confirm spec-linked lifecycle docs for FHIR storage and journaling.
-- [ ] Build tooling to download pinned FHIR v5 definitions into `/fhir/definitions`.
-- [ ] Implement Rust FHIR modules (`src/fhir/`) for definitions loading and resource validation.
-- [ ] Add CLI commands for FHIR import and validation.
-- [ ] Add journal structured references for FHIR resource provenance.
-- [ ] Add tests and documentation for FHIR workflows.
+## Clinical Calculators
 
-## openEHR Workstream
+The calculator engine lives in [clincalc](https://github.com/pacharanero/clincalc). GitEHR delegates `gitehr clincalc <command>` to `gitehr-clincalc` on `$PATH`.
 
-- [ ] Design and implement native openEHR RM storage model.
-- [ ] Implement required openEHR REST endpoints and content negotiation.
-- [ ] Add archetype/template validation integration.
-- [ ] Implement versioning/audit/contribution semantics for openEHR entities.
-- [ ] Add AQL query support and conformance manifest/OPTIONS support.
-- [ ] Add conformance testing and implementation documentation.
+- [ ] **R25 - Record calculator results in the journal:** record calculator, version, inputs, result, and citation in an immutable entry.
+- [ ] **R26 - Store latest calculation results:** add `state/calculations/<name>-latest.json`.
+- [ ] **R27 - Add a GUI calculator panel:** expose a Tauri `calculate_clinical` command integrating with clincalc.
 
-## GUI and UX
+## Model Context Protocol
 
-- [x] Implement GUI shell and data panels connected to CLI-backed repository data.
-- [x] Implement new-entry flow from GUI to journal.
-- [x] Implement repo detection/folder selection flow.
-- [ ] Keep GUI launch behavior aligned with CLI command spec for bundled-binary-first execution.
-- [ ] Add/restore GUI E2E coverage and keep it green in CI.
+- [ ] **R28 - Implement full MCP JSON-RPC transports:** support stdio, HTTP, and SSE.
+- [ ] **R29 - Add MCP resource handlers:** journal, state, imaging, documents, and status.
+- [ ] **R30 - Add MCP tool handlers:** journal/state mutations, search, repository-policy checks, and clinical calculation through clincalc.
+- [ ] **R31 - Add MCP prompt templates:** SOAP note, discharge summary, referral, and medication review.
+- [ ] **R32 - Add token-based MCP authentication:** use `.gitehr/mcp-tokens.json`.
+- [ ] **R33 - Add MCP audit logging to journal entries.**
+- [ ] **R34 - Make MCP encryption-aware:** respect `.gitehr/ENCRYPTED`.
+- [ ] **R35 - Add MCP configuration:** use `.gitehr/mcp.json`.
+- [ ] **R36 - Integrate clincalc MCP tools:** expose each calculator's JSON Schema and response contract.
+- [ ] **R37 - Add a GUI MCP client panel.**
+- [ ] **R38 - Document MCP integration and API reference.**
+- [ ] **R39 - Add MCP client libraries for testing.**
 
-## Clinical Calculators Workstream
+## Security and Integrity
 
-The calculators live in their own repository, **[clincalc](https://github.com/pacharanero/clincalc)** (`~/code/clincalc`), built and tested there. GitEHR uses its existing plugin discovery to delegate `gitehr clincalc <command>` to a `gitehr-clincalc` executable on `$PATH`, keeping the release pipeline free of calculator dependencies. The architecture, roadmap, and input-definition design specs live in that repository's `spec/`.
-
-- [x] **The full 50-tool calculator library is complete in clincalc** - 42 implemented and verified against primary sources (including QRISK3 and QFracture, ported from ClinRisk's LGPL source and validated against its C reference), plus 8 proprietary/licence-locked tools shipped as protest stubs. Its serde-only engine drives the `clincalc` CLI, MCP, GUI, and web; every calculator records a `license()` and carries machine-readable input definitions.
-- [x] Expose the command-line calculator interface through the external `gitehr-clincalc` plugin, invoked as `gitehr clincalc`.
-- [ ] Record calculator results in the journal (immutable entry: calculator, version, inputs, result, citation) - GitEHR-side integration.
-- [ ] Add state file storage for latest results (`state/calculations/<name>-latest.json`) - GitEHR-side.
-- [ ] Add a GUI calculator panel + Tauri `calculate_clinical` command integrating with clincalc.
-
-## Model Context Protocol (MCP) Server
-
-- [x] Fold the MCP server into the `gitehr` binary as `gitehr mcp serve`.
-- [ ] Implement MCP JSON-RPC 2.0 protocol with stdio/HTTP/SSE transports.
-- [ ] Add MCP resource handlers (journal, state, imaging, documents, status).
-- [ ] Add MCP tool handlers (add_journal_entry, update_state, verify_journal, search; integrate clinical calculation through clincalc).
-- [ ] Add MCP prompt templates (SOAP note, discharge summary, referral, medication review).
-- [ ] Implement token-based authentication with `.gitehr/mcp-tokens.json`.
-- [ ] Add MCP audit logging to journal entries.
-- [x] Create `gitehr mcp serve` CLI command for stdio.
-- [ ] Implement encryption awareness (respect `.gitehr/ENCRYPTED` marker).
-- [ ] Add MCP configuration system (`.gitehr/mcp.json`).
-- [ ] Integrate clincalc MCP tools so each calculator exposes its own JSON Schema and `tools/call` returns its `CalculationResponse`.
-- [ ] Add GUI MCP client panel for LLM chat interface.
-- [ ] Document MCP integration guide and API reference.
-- [ ] Add MCP client libraries (Python/TypeScript) for testing.
-
-## Security and Integrity (to review)
-
-- [ ] **Hardware-backed contributor signing credentials.** Design support for contributors to hold signing credentials off-device on a hardware authenticator such as a YubiKey, PIV/smartcard, TPM-backed key, Secure Enclave, or equivalent. The intended workflow is that a contributor presents/unlocks the hardware credential when signing a GitEHR journal entry or commit, so the private signing material does not live as an ordinary file on the workstation. This needs to integrate with `.gitehr/contributors.json`, contributor activation, repository signing policy, recovery/revocation, and offline use.
-- [ ] **Evaluate [gittuf](https://gittuf.dev/) for GitEHR.** gittuf applies The Update Framework (TUF) concepts to a Git repository, adding security that Git itself lacks: policy-controlled, signed access to branches/tags/refs, key management and rotation, and protection against attacks on references (unauthorised ref updates, rollback/freeze, tag tampering). This is directly relevant to GitEHR's integrity, provenance, and tamper-evidence goals (who may update which refs in a patient repository, and proving a ref's history has not been rewritten). It is still in beta - the action is to keep an eye on it and review whether and how it can fit into GitEHR's security model once it matures.
+- [ ] **R40 - Design the repository policy checker and server-side guardian:** enforce append-only journal and authorised-authorship invariants as described in [`repository-verification.md`](repository-verification.md).
+- [ ] **R41 - Add hardware-backed contributor signing credentials:** support YubiKey/PIV/smartcard, TPM-backed keys, Secure Enclave, or equivalent, including recovery and revocation.
+- [ ] **R42 - Evaluate gittuf:** assess whether its policy-controlled refs, signed access, and rollback/rewrite protection should provide the server-side guardian.
 
 ## Documentation and Operations
 
-- [x] Maintain Zensical site scaffolding (`docs/`, `mkdocs.yml`, `requirements.txt`).
-- [ ] Restructure top-level nav to seven tabs: Home, Design, Install, CLI, GUI, TUI, Safety. Move existing content into the new sections; create stubs for sections that do not yet have content (TUI, Safety).
-- [ ] Keep command docs consistently aligned with runtime behavior.
-- [ ] Expand user-facing docs (Install, CLI reference, GUI walkthroughs, TUI overview once it exists, Safety / Turva, troubleshooting).
-- [ ] Document packaging strategy for CLI+GUI distribution and upgrade/migration compatibility.
-- [ ] Add calculator usage guide with clinical examples and validation references.
-- [ ] Add MCP integration guide for LLM application developers.
-- [ ] Document long-term strategic considerations (EHDS, EHRxF, quantum crypto, federated learning).
+- [ ] **R43 - Keep command documentation aligned with runtime behaviour.**
+- [ ] **R44 - Expand user-facing documentation:** installation, CLI reference, GUI walkthroughs, TUI, safety/Turva, and troubleshooting.
+- [ ] **R45 - Document CLI/GUI packaging, upgrade, and migration compatibility.**
+- [ ] **R46 - Add a calculator usage guide:** include clinical examples and validation references.
+- [ ] **R47 - Document long-term strategic considerations:** EHDS, EHRxF, quantum cryptography, and federated learning.
+- [ ] **R51 - Verify a strict Zensical build and internal links after site changes.**
 
-## Site Content (gitehr.org)
+## Distribution
 
-Goal: strengthen the "files on disk vs databases" argument that underpins GitEHR's design, by framing it as the consensus the rest of software has already reached rather than as a healthcare-specific opinion. Style: ASCII hyphen-minus only (no emdash), MkDocs-compatible admonitions (work in Zensical's classic variant), relative internal links.
-
-### High priority
-
-- [x] Replace the blockchain reference in `docs/design/design.md` ("Using the same consensus principle from blockchain technology...") with a content-addressed-hashing / Merkle DAG framing. Git is not a Nakamoto-consensus system. *(Done in `redundancy.md` and the duplicated content in `design.md`.)*
-- [x] Add a new "Files, not databases" section to `docs/design/design.md` (or a new page under `docs/design/`) covering: the one-sentence pitch, why this is not radical (Git, lakehouse/Iceberg, file-over-app, DICOM, email), and why database-to-database interoperability does not work. *(New page `docs/design/files-not-databases.md` added to nav.)*
-- [x] Promote the CVS/DVCS analogy from `docs/about/the-gitehr-story.md` to the homepage (`docs/index.md`) as a one-line elevator pitch. *(Now the lead of the hero subtitle.)*
-- [x] Replace the Mars colony ship example with grounded real-world cases. *(Updated in `portability.md` and the duplicated content in `design.md`.)*
-
-### Medium priority
-
-- [ ] Add a "Common objections" or FAQ page covering: cross-patient queries for research and population health (org-level derived databases built from canonical files, mirroring Iceberg-over-Parquet); concurrent edits (Git branch-and-merge with clinical conflict resolution); ACID and consistency (per-file atomicity plus cryptographic chain-of-custody); GDPR right to erasure (the hardest one - needs careful framing given Git's immutable history).
-- [ ] Cross-reference the wider movement with explicit links: Ink and Switch local-first paper (Kleppmann et al. 2019), Steph Ango's "File over app" essay, Pat Helland's "Immutability Changes Everything" (2015), Apache Iceberg, SQLite-as-archival-format. Add to a references section or inline citations.
-- [x] Expand the N-squared integration problem into its own paragraph plus a diagram: N organisations with their own databases produces N(N-1)/2 integration pairs; N organisations agreeing on a file format produces N implementations and zero pairs. *(Added `docs/assets/images/n-squared-interoperability.svg`.)*
-- [x] Add an agentic-tooling section to `design/files-not-databases.md`: clinical LLM applications can read, diff, and answer questions over a Git history of markdown files while preserving the evidence for human review. Derived databases remain the right surface for population-scale queries.
-
-### Lower priority / diagrams
-
-- [ ] Commission or generate two further diagrams: (a) "patient as folder, organisations as clones" distributed clone topology, (b) optional lakehouse-style stack diagram with canonical files at the bottom, derived organisation-level databases in the middle, applications at the top.
-- [x] Style sweep across all `docs/*.md`: remove emdash characters in favour of ASCII hyphen-minus, audit for blockchain references, audit for the Mars colony example. *(Initial pass: en-dashes converted in `glossary.md` and `developers.md`; one U+2011 fixed; no em-dashes found. Re-run after major content additions.)*
-- [ ] Verify Zensical strict build (or enable equivalent) and ensure no broken internal links after content reshuffles.
+- [ ] **R52 - Publish the CLI to crates.io:** make `cargo install gitehr --locked` available after each release.
+- [ ] **R53 - Publish verified prebuilt release archives:** provide supported Linux, macOS, and Windows binaries with checksums.
+- [ ] **R54 - Publish native Linux packages:** distribute `.deb` packages through an APT repository and `.rpm` packages through an RPM repository.
+- [ ] **R55 - Publish an Arch Linux package:** maintain an AUR package for installation through `pacman` helpers.
+- [ ] **R56 - Publish native desktop installers:** distribute signed Windows `.exe` and macOS `.dmg` installers.
+- [ ] **R57 - Maintain package-manager channels:** publish and update the Homebrew formula and Scoop manifest from verified release checksums.
