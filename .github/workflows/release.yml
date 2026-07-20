@@ -298,8 +298,7 @@ jobs:
       PLAN: ${{ needs.plan.outputs.val }}
       GITHUB_USER: "axo bot"
       GITHUB_EMAIL: "admin+bot@axo.dev"
-    # Re-enable once HOMEBREW_TAP_TOKEN is configured for pacharanero/homebrew-tap.
-    if: ${{ false && (!fromJson(needs.plan.outputs.val).announcement_is_prerelease || fromJson(needs.plan.outputs.val).publish_prereleases) }}
+    if: ${{ !fromJson(needs.plan.outputs.val).announcement_is_prerelease || fromJson(needs.plan.outputs.val).publish_prereleases }}
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
@@ -329,6 +328,13 @@ jobs:
             brew update
             # We avoid reformatting user-provided data such as the app description and homepage.
             brew style --except-cops FormulaAudit/Homepage,FormulaAudit/Desc,FormulaAuditStrict --fix "Formula/${filename}" || true
+            brew tap --custom-remote gitehr-release-test/tap "$GITHUB_WORKSPACE"
+            test_tap="$(brew --repository gitehr-release-test/tap)"
+            mkdir -p "$test_tap/Formula"
+            cp "Formula/${filename}" "$test_tap/Formula/${filename}"
+            brew install --build-from-source "gitehr-release-test/tap/${name}"
+            brew uninstall "gitehr-release-test/tap/${name}"
+            brew untap gitehr-release-test/tap
 
             git add "Formula/${filename}"
             git commit -m "${name} ${version}"

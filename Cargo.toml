@@ -49,6 +49,9 @@ install-path = "CARGO_HOME"
 install-updater = false
 # Whether to publish prereleases to package managers
 publish-prereleases = false
+# Shared Homebrew tap updated by cargo-dist after each release.
+tap = "pacharanero/homebrew-tap"
+publish-jobs = ["homebrew"]
 # Skip checking whether the specified configuration files are up to date
 allow-dirty = ["ci"]
 
