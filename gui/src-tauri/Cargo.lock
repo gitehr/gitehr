@@ -1534,7 +1534,7 @@ dependencies = [
 
 [[package]]
 name = "gitehr"
-version = "0.3.2"
+version = "0.3.3"
 dependencies = [
  "anyhow",
  "chrono",
@@ -1559,7 +1559,7 @@ dependencies = [
 
 [[package]]
 name = "gitehr-gui"
-version = "0.3.2"
+version = "0.3.3"
 dependencies = [
  "chrono",
  "gitehr",

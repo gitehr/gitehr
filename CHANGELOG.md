@@ -5,6 +5,12 @@ All notable changes to GitEHR are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Releases are grouped from conventional-commit messages by [git-cliff](https://git-cliff.org).
 
+## [0.3.3] - 2026-07-20
+
+### Bug fixes
+
+- **release**: Generate WiX installer metadata ([bd1dd3c](https://github.com/gitehr/gitehr/commit/bd1dd3c11f4481954a6e2176e83d70d634bc2448))
+
 ## [0.3.2] - 2026-07-20
 
 ### Bug fixes
