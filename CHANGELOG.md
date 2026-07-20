@@ -5,6 +5,12 @@ All notable changes to GitEHR are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Releases are grouped from conventional-commit messages by [git-cliff](https://git-cliff.org).
 
+## [0.3.5] - 2026-07-20
+
+### Bug fixes
+
+- **release**: Skip unavailable Homebrew publisher ([4d6f787](https://github.com/gitehr/gitehr/commit/4d6f7870c062d4333b84d3c195dd43c85ce228ab))
+
 ## [0.3.4] - 2026-07-20
 
 ### Bug fixes
