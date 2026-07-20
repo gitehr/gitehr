@@ -7,9 +7,11 @@ GitEHR is shipped as two main components: a Rust CLI (`gitehr`) and a Tauri-base
 - [**Install the CLI**](cli.md) - required for everyone. Small Rust binary. This is the foundation; everything else is built on top.
 - [**Install the GUI**](gui.md) - recommended for clinicians and patients. Built on top of the CLI.
 
-## What you will not find here
+## CLI releases
 
-A pre-built distribution. GitEHR is in developer preview; for now you build the CLI and the GUI from source. Packaged binaries, system installers, and macOS/Windows bundles will follow once the on-disk format is stable.
+GitEHR will publish the `gitehr` CLI to crates.io. Once published, Rust users can install the released version with `cargo install gitehr --locked`; Cargo downloads the crate source and compiles it locally.
+
+Prebuilt release binaries and operating-system installers are a separate distribution path. The release pipeline is configured for them, but no GitHub release assets are available yet. Until the first packaged release is published, build from source as described in the CLI and GUI guides.
 
 ## After install
 

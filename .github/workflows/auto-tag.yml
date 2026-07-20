@@ -76,3 +76,13 @@ jobs:
     with:
       tag: ${{ needs.tag.outputs.tag }}
     secrets: inherit
+
+  publish-crate:
+    needs:
+      - tag
+      - release
+    if: needs.tag.outputs.bumped == 'true'
+    uses: ./.github/workflows/publish-crates.yml
+    with:
+      tag: ${{ needs.tag.outputs.tag }}
+    secrets: inherit

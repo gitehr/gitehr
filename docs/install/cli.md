@@ -19,7 +19,17 @@ Then activate it in your shell:
 mise use rust
 ```
 
-## Build and install
+## Install a released CLI
+
+After a GitEHR release is published to crates.io, install the CLI with:
+
+```sh
+cargo install gitehr --locked
+```
+
+This downloads the released source package from crates.io and compiles it locally. It does not download a prebuilt binary, so Rust remains a prerequisite.
+
+## Build from source
 
 From the CLI project root:
 
@@ -30,7 +40,7 @@ cargo build
 
 This compiles the `gitehr` binary in debug mode under `target/debug/gitehr`.
 
-To build and install the release binary into `~/.cargo/bin` so it is available globally:
+To build and install the local checkout into `~/.cargo/bin` so it is available globally:
 
 ```sh
 cd gitehr

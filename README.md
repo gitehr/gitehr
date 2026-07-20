@@ -13,10 +13,10 @@ A Git-based, decentralised, multi-contributor Electronic Health Record system.
 
 2. **Immutable Journal Structure**
 
-   - Clinical entries are stored in chronological order
-   - Each entry links to its parent via cryptographic hash
-   - Forms a tamper-evident chain of clinical events
-   - Initial entry seeded with random data for security
+    - Clinical entries are stored in chronological order
+    - Each entry is committed to Git as a chronological history
+    - Git content-addresses commits and file blobs, making stored objects tamper-evident
+    - A planned policy checker will enforce GitEHR-specific append-only and authorship rules
 
 3. **Clear Data Organization**
 
@@ -45,3 +45,13 @@ This repository is a monorepo combining the core CLI tool, documentation, and fo
 GitEHR's documentation is best viewed online at [https://gitehr.org/](https://gitehr.org/).
 
 All docs are also available in this repository under the `docs/` directory in markdown format.
+
+## Install the CLI
+
+After a GitEHR release is published to crates.io, install it with:
+
+```sh
+cargo install gitehr --locked
+```
+
+Cargo downloads the released source package and compiles it locally. Prebuilt GitHub Release assets are not available yet; see the [installation documentation](https://gitehr.org/install/cli/) for source builds and current distribution status.

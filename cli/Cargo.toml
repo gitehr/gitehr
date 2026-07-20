@@ -7,6 +7,10 @@ license.workspace = true
 repository.workspace = true
 homepage.workspace = true
 description = "A Git-based Electronic Health Record system - CLI tool"
+documentation = "https://gitehr.org/cli/"
+readme = "../README.md"
+categories = ["command-line-utilities"]
+keywords = ["ehr", "healthcare", "medical", "git", "cli"]
 
 [package.metadata.wix]
 upgrade-guid = "749AB1CB-4DC7-4A17-B0AE-3E69D9C592AD"

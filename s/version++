@@ -1,50 +1,105 @@
 #!/usr/bin/env bash
 # SPDX-FileCopyrightText: 2026 Marcus Baw and Baw Medical Ltd
 # SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# Usage: s/version++ [patch|minor|major] [--pr|--direct] [--auto-merge]
+#   default bump: patch
+#   default mode: auto-detect from whether `main` is branch-protected
+#
+# The one release action. Gates the tree, bumps all GitEHR version-bearing
+# files (Rust workspace, Tauri crate, npm package, tauri.conf.json), regenerates
+# CHANGELOG.md (git-cliff), commits the release, and lands it on `main`.
+# Landing on `main` triggers .github/workflows/auto-tag.yml, which creates the
+# matching v<version> tag and invokes the cargo-dist release workflow via
+# workflow_call.
+#
+# Landing on `main` happens two ways, chosen automatically from whether `main`
+# is branch-protected (probed via `gh`), or forced with --pr / --direct:
+#
+#   - direct: commit on `main` and `git push origin main`.
+#   - pr:     branch `release/vX.Y.Z` off `main`, push it, `gh pr create`.
+#             Merging the PR lands the bump on `main` and fires auto-tag.yml.
+#             --auto-merge queues `gh pr merge --merge --auto` once CI is green.
+#
+# This is the branch-protection-ready cascade model documented in
+# ~/code/house-style/distribution.md. Do not tag locally; the workflow tags
+# after the bump lands on `main`.
+#
+# Requires `cargo-set-version` and `git-cliff`; `gh` for PR mode / detection:
+#   cargo install cargo-edit --locked
+#   cargo install git-cliff --locked
+#   gh auth login   # https://cli.github.com
 
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
 
 usage() {
-  echo "Usage: s/version++ [patch|minor|major]" >&2
+  cat >&2 <<'EOF'
+Usage: s/version++ [patch|minor|major] [--pr|--direct] [--auto-merge]
+  bump defaults to patch; mode auto-detects from main branch protection.
+  --pr / --direct force the landing mode; --auto-merge queues the PR merge on green CI.
+EOF
 }
 
-if [[ $# -gt 1 ]]; then
-  usage
-  exit 2
-fi
+bump="patch"; mode=""; auto_merge=false
+for arg in "$@"; do
+  case "$arg" in
+    patch|minor|major) bump="$arg" ;;
+    --pr) mode="pr" ;;
+    --direct) mode="direct" ;;
+    --auto-merge) auto_merge=true ;;
+    -h|--help) usage; exit 0 ;;
+    *) usage; echo "Unknown argument: $arg" >&2; exit 2 ;;
+  esac
+done
 
-bump="${1:-patch}"
-case "$bump" in
-  patch|minor|major) ;;
-  *)
-    usage
-    echo "Invalid bump: $bump" >&2
-    exit 2
-    ;;
-esac
-
-if [[ "$(git branch --show-current)" != "main" ]]; then
-  echo "s/version++ must be run on main." >&2
+branch="$(git rev-parse --abbrev-ref HEAD)"
+if [[ "$branch" != "main" ]]; then
+  echo "On '$branch', not 'main'. Releases are cut from main." >&2
   exit 1
 fi
 
 if [[ -n "$(git status --porcelain)" ]]; then
-  echo "Working tree is not clean; commit or stash changes before releasing." >&2
+  echo "Working tree not clean. Commit your feature work first, then release." >&2
   exit 1
 fi
 
-command -v cargo-set-version >/dev/null 2>&1 || command -v cargo >/dev/null 2>&1
-if ! cargo set-version --help >/dev/null 2>&1; then
-  echo "cargo-edit is required: cargo install cargo-edit" >&2
-  exit 1
-fi
-if ! command -v git-cliff >/dev/null 2>&1; then
-  echo "git-cliff is required: cargo install git-cliff" >&2
-  exit 1
-fi
+need() {
+  if ! command -v "$1" >/dev/null 2>&1; then
+    echo "$1 is required by s/version++ but isn't installed." >&2
+    echo "  $2" >&2
+    exit 1
+  fi
+}
+need cargo-set-version "cargo install cargo-edit --locked"
+need git-cliff "cargo install git-cliff --locked"
 
-current="$(awk -F\" '/^version =/ {print $2; exit}' Cargo.toml)"
+git pull --ff-only
+
+if [ -z "$mode" ]; then
+  if [ -n "${GITEHR_RELEASE_VIA_PR:-}" ]; then
+    mode="pr"
+  elif command -v gh >/dev/null 2>&1 \
+       && gh repo view --json nameWithOwner -q .nameWithOwner >/dev/null 2>&1; then
+    repo="$(gh repo view --json nameWithOwner -q .nameWithOwner)"
+    if gh api "repos/$repo/branches/main/protection" >/dev/null 2>&1; then
+      mode="pr"
+    else
+      mode="direct"
+    fi
+  else
+    mode="direct"
+    echo "Note: 'gh' not available; assuming direct push to main (no branch-protection check)." >&2
+  fi
+fi
+echo "Release mode: $mode"
+
+echo "Pre-release checks (mirror .github/workflows/ci.yml): fmt + clippy + tests..."
+cargo fmt --all --check
+cargo clippy --all-targets --all-features -- -D warnings
+cargo test --all-features
+
+current="$(awk -F\" '/^version[[:space:]]*=/ {print $2; exit}' Cargo.toml)"
 if [[ -z "$current" ]]; then
   echo "Could not read workspace version from Cargo.toml." >&2
   exit 1
@@ -52,21 +107,25 @@ fi
 
 echo "Current version: $current"
 cargo set-version --bump "$bump"
-
-next="$(awk -F\" '/^version =/ {print $2; exit}' Cargo.toml)"
+next="$(awk -F\" '/^version[[:space:]]*=/ {print $2; exit}' Cargo.toml)"
 if [[ -z "$next" || "$next" == "$current" ]]; then
   echo "Version did not change." >&2
   exit 1
 fi
 echo "Bumped $bump: $current -> $next"
+tag="v$next"
 
+if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
+  echo "Tag $tag already exists." >&2
+  exit 1
+fi
+
+# GitEHR has version-bearing artefacts outside the root Rust workspace.
 cargo set-version --manifest-path gui/src-tauri/Cargo.toml "$next"
-
 (
   cd gui
   npm version "$next" --no-git-tag-version >/dev/null
 )
-
 node -e '
   const fs = require("fs");
   const path = "gui/src-tauri/tauri.conf.json";
@@ -77,14 +136,54 @@ node -e '
 
 cargo generate-lockfile
 cargo generate-lockfile --manifest-path gui/src-tauri/Cargo.toml
-git-cliff --output CHANGELOG.md --tag "v$next"
+
+if [ "$mode" = "pr" ]; then
+  relbranch="release/$tag"
+  if git rev-parse -q --verify "refs/heads/$relbranch" >/dev/null \
+     || git rev-parse -q --verify "refs/remotes/origin/$relbranch" >/dev/null; then
+    echo "Branch $relbranch already exists locally or on origin; delete it first." >&2
+    exit 1
+  fi
+  git checkout -b "$relbranch"
+fi
+
+git-cliff --output CHANGELOG.md --tag "$tag"
 
 git add Cargo.toml Cargo.lock CHANGELOG.md cli/Cargo.toml \
   gui/package.json gui/package-lock.json \
   gui/src-tauri/Cargo.toml gui/src-tauri/Cargo.lock \
   gui/src-tauri/tauri.conf.json
 
-git commit -m "chore(release): v${next}"
-git push
+git commit -m "chore(release): $tag"
 
-echo "Pushed version bump to v${next}. CI will create the tag and release."
+if [ "$mode" = "direct" ]; then
+  git push origin main
+  echo
+  echo "Pushed $tag bump to main. auto-tag.yml will create the tag and invoke"
+  echo "release.yml (cargo-dist binaries, GitHub Release, Homebrew tap)."
+else
+  git push -u origin "$relbranch"
+  pr_url=""
+  if command -v gh >/dev/null 2>&1; then
+    pr_url="$(gh pr create --base main --head "$relbranch" \
+      --title "chore(release): $tag" \
+      --body "Release bump generated by \`s/version++\`. Merging triggers auto-tag.yml -> release.yml." \
+      2>/dev/null || true)"
+  fi
+  if [ -n "$pr_url" ] && [ "$auto_merge" = true ]; then
+    gh pr merge "$pr_url" --merge --auto --delete-branch 2>/dev/null || true
+    echo
+    echo "PR opened and queued to auto-merge on green CI: $pr_url"
+    echo "On merge, auto-tag.yml creates $tag and invokes release.yml."
+  elif [ -n "$pr_url" ]; then
+    echo
+    echo "PR opened: $pr_url"
+    echo "Merge it (CI runs on the PR); auto-tag.yml then creates $tag and invokes release.yml."
+  else
+    repo="$(gh repo view --json nameWithOwner -q .nameWithOwner 2>/dev/null || echo 'OWNER/REPO')"
+    echo
+    echo "Pushed $relbranch. Open and merge a PR against main:"
+    echo "  https://github.com/$repo/compare/main...$relbranch"
+    echo "On merge, auto-tag.yml creates $tag and invokes release.yml."
+  fi
+fi
