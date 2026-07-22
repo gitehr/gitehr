@@ -4,14 +4,14 @@ GitEHR is shipped as two main components: a Rust CLI (`gitehr`) and a Tauri-base
 
 ## Pick your install path
 
-- [**Install the CLI**](cli.md) - required for everyone. Small Rust binary. This is the foundation; everything else is built on top.
+- [**Install the CLI**](cli.md) - required for everyone. Choose a prebuilt binary for your operating system, or compile from source with Cargo. This is the foundation; everything else is built on top.
 - [**Install the GUI**](gui.md) - recommended for clinicians and patients. Built on top of the CLI.
 
 ## CLI releases
 
-GitEHR will publish the `gitehr` CLI to crates.io. Once published, Rust users can install the released version with `cargo install gitehr --locked`; Cargo downloads the crate source and compiles it locally.
+GitEHR publishes `gitehr` to crates.io and as prebuilt Linux, macOS, and Windows release assets. Rust users can also install the released source with `cargo install gitehr --locked`.
 
-Prebuilt release binaries and operating-system installers are available from [GitHub Releases](https://github.com/gitehr/gitehr/releases). Use the CLI guide for source builds and the currently supported installation paths.
+Use the [CLI installation guide](cli.md) to choose an operating-system installer, a standalone archive, Homebrew, or a source build.
 
 ## After install
 

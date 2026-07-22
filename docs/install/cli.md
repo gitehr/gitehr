@@ -1,39 +1,83 @@
 # Install the CLI
 
-!!! note "Linux first"
-    These instructions are written for Linux because that is the primary development platform. macOS should work with minor adjustments. Windows support is best-effort for now.
-
-## Prerequisites
-
-- `cargo` available on your PATH.
-
-[`mise`](https://mise.jdx.dev/) is recommended as a general development toolchain manager. It handles the installation and versioning of Rust and many other languages. Once you have `mise` installed, install Rust with:
-
-```sh
-mise install rust
-```
-
-Then activate it in your shell:
-
-```sh
-mise use rust
-```
+Install a released `gitehr` binary for your operating system. Every release includes checksums in [`sha256.sum`](https://github.com/gitehr/gitehr/releases/latest/download/sha256.sum) and the full list of assets is on [GitHub Releases](https://github.com/gitehr/gitehr/releases).
 
 ## Install a released CLI
 
-After a GitEHR release is published to crates.io, install the CLI with:
+=== ":material-apple: macOS"
+
+    **Homebrew** (recommended)
+
+    ```sh
+    brew tap pacharanero/tap
+    brew install gitehr
+    ```
+
+    **Shell installer** - detects your chip, verifies the release checksum, and installs to `~/.local/bin`:
+
+    ```sh
+    curl -LsSf https://github.com/gitehr/gitehr/releases/latest/download/gitehr-installer.sh | sh
+    ```
+
+    **Standalone archive** - download an archive, extract it, then place `gitehr` on your `PATH`:
+
+    [:material-download: Apple Silicon](https://github.com/gitehr/gitehr/releases/latest/download/gitehr-aarch64-apple-darwin.tar.xz){ .md-button }
+    [:material-download: Intel](https://github.com/gitehr/gitehr/releases/latest/download/gitehr-x86_64-apple-darwin.tar.xz){ .md-button }
+
+=== ":material-linux: Linux"
+
+    **Homebrew**
+
+    ```sh
+    brew tap pacharanero/tap
+    brew install gitehr
+    ```
+
+    **Shell installer** - detects your architecture, verifies the release checksum, and installs to `~/.local/bin`:
+
+    ```sh
+    curl -LsSf https://github.com/gitehr/gitehr/releases/latest/download/gitehr-installer.sh | sh
+    ```
+
+    **Standalone archive** - download an archive, extract it, then place `gitehr` on your `PATH`:
+
+    [:material-download: x86_64](https://github.com/gitehr/gitehr/releases/latest/download/gitehr-x86_64-unknown-linux-gnu.tar.xz){ .md-button }
+    [:material-download: aarch64](https://github.com/gitehr/gitehr/releases/latest/download/gitehr-aarch64-unknown-linux-gnu.tar.xz){ .md-button }
+
+=== ":material-microsoft-windows: Windows"
+
+    **MSI installer** (recommended)
+
+    [:material-download: Download the Windows installer](https://github.com/gitehr/gitehr/releases/latest/download/gitehr-x86_64-pc-windows-msvc.msi){ .md-button }
+
+    **PowerShell installer** - downloads and verifies the release, then installs `gitehr` for the current user:
+
+    ```powershell
+    irm https://github.com/gitehr/gitehr/releases/latest/download/gitehr-installer.ps1 | iex
+    ```
+
+    **Standalone executable** - download the ZIP archive, extract `gitehr.exe`, and place it in a folder on your `PATH`:
+
+    [:material-download: Download the Windows ZIP](https://github.com/gitehr/gitehr/releases/latest/download/gitehr-x86_64-pc-windows-msvc.zip){ .md-button }
+
+=== ":material-language-rust: Cargo"
+
+    With a [Rust toolchain](https://rustup.rs) installed:
+
+    ```sh
+    cargo install gitehr --locked
+    ```
+
+    Cargo downloads the released source package from crates.io and compiles it locally. Choose one of the operating-system tabs when you want a prebuilt binary instead.
+
+## Build GitEHR from source
+
+For contributors developing GitEHR itself, build and install the local checkout. [`mise`](https://mise.jdx.dev/) is recommended for managing the Rust toolchain:
 
 ```sh
-cargo install gitehr --locked
+mise install rust
+mise use rust
 ```
-
-This downloads the released source package from crates.io and compiles it locally. It does not download a prebuilt binary, so Rust remains a prerequisite.
-
-## Install a prebuilt binary
-
-Prebuilt archives, Windows MSI installers, and shell/PowerShell installer scripts are available from [GitHub Releases](https://github.com/gitehr/gitehr/releases). Use the assets for your operating system and architecture.
-
-## Build from source
 
 From the CLI project root:
 
