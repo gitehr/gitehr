@@ -46,6 +46,21 @@ export GITEHR_UID="$(id -u)"
 export GITEHR_GID="$(id -g)"
 url="http://localhost:${GITEHR_DOCS_PORT}"
 
+# Older root-run previews can leave generated output unwritable by the current
+# user. Repair only Zensical's disposable cache and site output before serving.
+repair_generated_directory() {
+  local directory="$1"
+
+  if [[ -e "$directory" && ! -w "$directory" ]]; then
+    echo "Repairing ownership of generated ${directory}/"
+    docker compose run --rm --no-deps --no-ports --user root --entrypoint sh zensical \
+      -c "chown -R ${GITEHR_UID}:${GITEHR_GID} /app/${directory}"
+  fi
+}
+
+repair_generated_directory ".cache"
+repair_generated_directory "site"
+
 docker compose up -d "$@" zensical
 echo "Docs starting at ${url}"
 
