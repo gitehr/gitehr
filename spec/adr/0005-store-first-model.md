@@ -45,5 +45,6 @@ One model serves all three, and a family or pet-owner self-hoster grows into a c
 - `store init` grows from "write an empty MPI" to a real bootstrap (Store + MPI + first repo), reusing the repo-scaffolding logic that currently lives in `gitehr store init`; `add` changes from "register an existing repo" to "create and register a new repo"; the top-level `init` command is removed. One shared repo-scaffolding implementation.
 - Commands gain Store/repo **context detection** (walk up for `.gitehr/` and `gitehr-mpi.json`, then fall back to `GITEHR_STORE_PATH`/`store_path` config) plus the single-subject auto-target, replacing today's bare `.gitehr`-in-cwd checks.
 - **Contributor scoping is deliberately left open** (per-repo `.gitehr/contributors.json` today vs a Store-level staff directory): parked until multi-subject workflows are fleshed out.
+- Selection between independent Stores belongs to the GUI; the CLI continues to resolve one Store from its explicit execution context. See [ADR-0006](0006-multiple-stores-are-a-gui-concern.md).
 - Docs gain a first-class self-hoster story - **families and pets** - alongside clinics, on the homepage and audience pages.
 - No data migration: there are no existing users.
