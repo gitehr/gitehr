@@ -71,6 +71,7 @@ The calculator engine lives in [clincalc](https://github.com/pacharanero/clincal
 - [ ] **R45 - Document CLI/GUI packaging, upgrade, and migration compatibility.**
 - [ ] **R46 - Add a calculator usage guide:** include clinical examples and validation references.
 - [ ] **R47 - Document long-term strategic considerations:** EHDS, EHRxF, post-quantum cryptography, federated learning, genomics, streamed vitals, and purpose-scoped sharing.
+- [ ] **R71 - Evaluate Open Wearables for streamed vitals integration:** assess [the-momentum/open-wearables](https://github.com/the-momentum/open-wearables) as a self-hostable unified API for wearable device data (Garmin, Whoop, Apple HealthKit, etc.) that could feed observations into GitEHR through an import adapter. MIT-licensed, FastAPI + React, early-stage.
 
 ## Distribution
 
