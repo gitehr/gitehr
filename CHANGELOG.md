@@ -5,6 +5,32 @@ All notable changes to GitEHR are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Releases are grouped from conventional-commit messages by [git-cliff](https://git-cliff.org).
 
+## [0.3.6] - 2026-07-22
+
+### Bug fixes
+
+- **docs**: Repair root-owned generated site and cache before preview ([abc196d](https://github.com/gitehr/gitehr/commit/abc196da1138a669d2f8083ffe7f4057699f04f5))
+
+### CI
+
+- Align workflows with house-style security and crates.io Trusted Publishing ([3eb9dab](https://github.com/gitehr/gitehr/commit/3eb9dabc44d5c5d9946b63564e7d6e2a1760cc83))
+
+- **release**: Publish and test Homebrew formulae ([8cc6604](https://github.com/gitehr/gitehr/commit/8cc66042528ba842c46c9ffa88d101958a8ebde8))
+
+### CI / dependencies
+
+- **deps**: Bump clap from 4.6.2 to 4.6.3 ([#107](https://github.com/gitehr/gitehr/issues/107)) ([802c999](https://github.com/gitehr/gitehr/commit/802c999cbea17527cb75bd3ca7b0ad292c74e971))
+
+- **deps**: Bump tokio from 1.53.0 to 1.53.1 ([#108](https://github.com/gitehr/gitehr/issues/108)) ([a04bee5](https://github.com/gitehr/gitehr/commit/a04bee548381ccd3171acf909837fccfb5b1db78))
+
+### Documentation
+
+- **roadmap**: Remove completed items, reorder, and add spec gaps ([e869bfb](https://github.com/gitehr/gitehr/commit/e869bfbf50117ca95daaf672b0076de5aaafda4a))
+
+- **adr**: Multiple Stores are a GUI concern (ADR-0006) ([914a9f0](https://github.com/gitehr/gitehr/commit/914a9f01aed08556cb52d055c6e4f89f39e41582))
+
+- **install**: Lead with tabbed prebuilt binary options and OS icons ([7da1d59](https://github.com/gitehr/gitehr/commit/7da1d59b140188e5461552fc805624f95c8a866d))
+
 ## [0.3.5] - 2026-07-20
 
 ### Bug fixes
