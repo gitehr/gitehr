@@ -15,12 +15,14 @@ on:
     branches: [main]
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   tag:
     name: Detect version bump and create tag
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     outputs:
       tag: ${{ steps.bump.outputs.tag }}
       bumped: ${{ steps.bump.outputs.bumped }}
@@ -29,7 +31,7 @@ jobs:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           fetch-depth: 2
-          persist-credentials: true
+          persist-credentials: false
 
       - name: Detect Cargo.toml version change
         id: bump
@@ -62,27 +64,40 @@ jobs:
 
       - name: Create and push tag
         if: steps.bump.outputs.bumped == 'true'
+        env:
+          COMMIT_SHA: ${{ github.sha }}
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.bump.outputs.tag }}
         run: |
-          tag="${{ steps.bump.outputs.tag }}"
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git tag -a "$tag" -m "Release $tag"
-          git push origin "$tag"
+          tag_object=$(gh api --method POST "repos/${GITHUB_REPOSITORY}/git/tags" \
+            -f tag="$TAG" \
+            -f message="Release $TAG" \
+            -f object="$COMMIT_SHA" \
+            -f type=commit \
+            --jq .sha)
+          gh api --method POST "repos/${GITHUB_REPOSITORY}/git/refs" \
+            -f ref="refs/tags/$TAG" \
+            -f sha="$tag_object"
 
   release:
     needs: tag
     if: needs.tag.outputs.bumped == 'true'
+    permissions:
+      contents: write
     uses: ./.github/workflows/release.yml
     with:
       tag: ${{ needs.tag.outputs.tag }}
-    secrets: inherit
+    secrets:
+      HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
 
   publish-crate:
     needs:
       - tag
       - release
     if: needs.tag.outputs.bumped == 'true'
+    permissions:
+      contents: read
+      id-token: write
     uses: ./.github/workflows/publish-crates.yml
     with:
       tag: ${{ needs.tag.outputs.tag }}
-    secrets: inherit

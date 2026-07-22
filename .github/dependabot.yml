@@ -1,22 +1,59 @@
-# Set update schedule for GitHub Actions and Rust/Cargo dependencies
-
 version: 2
-updates:
 
-    # Check for updates to GitHub Actions every week
+updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
+      day: "monday"
+    cooldown:
+      default-days: 7
+    groups:
+      github-actions-minor-and-patch:
+        applies-to: version-updates
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
 
-    # Check for updates to Rust/Cargo dependencies every day
   - package-ecosystem: "cargo"
     directory: "/"
     schedule:
-      interval: "daily"
+      interval: "weekly"
+      day: "monday"
+    cooldown:
+      default-days: 7
+      semver-patch-days: 3
+      semver-minor-days: 7
+      semver-major-days: 14
+    groups:
+      routine-minor-and-patch:
+        applies-to: version-updates
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
 
-    # Check for updates to Tauri/npm dependencies every day
   - package-ecosystem: "npm"
-    directory: "/gui"
-    schedule: 
-      interval: "daily"
+    directories:
+      - "/gui"
+      - "/gui/e2e"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    cooldown:
+      default-days: 7
+      semver-patch-days: 3
+      semver-minor-days: 7
+      semver-major-days: 14
+    groups:
+      routine-minor-and-patch:
+        applies-to: version-updates
+        group-by: dependency-name
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
