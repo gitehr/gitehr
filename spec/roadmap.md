@@ -19,7 +19,7 @@ Legend: `[x]` done, `[~]` in progress, `[ ]` not started. This roadmap lists out
 ## Repository and Commands
 
 - [ ] **R6 - Extend Store identifier operations:** add `search`, `link`, `unlink`, `merge`, and `path`, plus the `GITEHR_MPI_PATH` override, as `gitehr store` subcommands.
-- [ ] **R7 - Document the self-hoster on-ramp:** make families, carers, and pet owners first-class audiences in site and GUI onboarding, alongside clinics (ADR-0005).
+- [~] **R7 - Document the self-hoster on-ramp:** make families, carers, and pet owners first-class audiences in site and GUI onboarding, alongside clinics (ADR-0005). Site homepage done (families/carers folded into "For Patients & Families", plus a new "For Pet Owners" card); GUI onboarding has no onboarding flow yet to update (tracked by R63).
 - [ ] **R8 - Align GUI launch behaviour:** prefer the bundled `.gitehr/gitehr-gui`, then `gitehr-gui` on `$PATH`, rather than the current development launcher.
 
 ## GUI and TUI
