@@ -73,7 +73,7 @@ hide:
   <div class="gitehr-band gitehr-band--alt">
     <div class="gitehr-container">
       <h2>Built for the entire ecosystem</h2>
-      <div class="gitehr-grid gitehr-grid--3">
+      <div class="gitehr-grid">
         
         <!-- CLINICIANS -->
         <div class="gitehr-audience">
@@ -85,14 +85,24 @@ hide:
           <p>GitEHR provides a unified view of care across specialists and facilities, reducing medical errors and redundant testing.</p>
         </div>
 
-        <!-- PATIENTS -->
+        <!-- PATIENTS & FAMILIES -->
         <div class="gitehr-audience">
           <div class="gitehr-audience__header">
             <div class="gitehr-audience__icon">P</div>
-            <h3>For Patients</h3>
+            <h3>For Patients &amp; Families</h3>
           </div>
           <p><strong>Your health, in your hands.</strong> You hold the master copy of your record. No more requesting faxed transfers.</p>
-          <p>Grant temporary access to new doctors with a key, and revoke it when you're done. Your privacy is mathematically guaranteed.</p>
+          <p>A self-hoster is usually already caring for more than one record - yourself, your children, or an elderly parent. GitEHR's Store holds them all in one place, under one owner.</p>
+        </div>
+
+        <!-- PET OWNERS -->
+        <div class="gitehr-audience">
+          <div class="gitehr-audience__header">
+            <div class="gitehr-audience__icon">🐾</div>
+            <h3>For Pet Owners</h3>
+          </div>
+          <p><strong>The same record, for the whole family.</strong> Vaccinations, vet visits, and a major surgery, kept in one place you own forever.</p>
+          <p>Pet records use the identical multi-subject Store model as the rest of GitEHR - a low-stakes way to try it before trusting it with your own.</p>
         </div>
 
         <!-- ORGANISATIONS -->
