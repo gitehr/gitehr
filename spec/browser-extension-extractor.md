@@ -39,4 +39,4 @@ Patient-run, in the patient's own browser, observing the patient's own authentic
 
 This is the "extraction agents" layer of the synopsis made concrete and durable: not a one-off script per session, but an installable, community-extensible bridge from the walled portals into a patient-owned record. It also composes with GitEHR's Tauri GUI (a future in-app webview could host the same adapters).
 
-Cross-ref: `gitehr-patient-activated-extraction-synopsis.md`, `nhs-app-extraction-playbook.md`, #85, #86, #100.
+Cross-ref: `gitehr-patient-activated-extraction-synopsis.md`, `nhs-app-extraction-playbook.md`, #85, #86, #100. The public position statement behind this approach is published at [`docs/design/patient-mediated-extraction.md`](../docs/design/patient-mediated-extraction.md).
