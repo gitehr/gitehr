@@ -21,6 +21,7 @@ nav:
       - Overview: design/design.md
       - Files, not databases: design/files-not-databases.md
       - Common objections: design/common-objections.md
+      - Patient-mediated extraction: design/patient-mediated-extraction.md
       - Patient Centricity: design/patient-centricity.md
       - Structure: design/structure.md
       - Repository structure: design/repository-structure.md
