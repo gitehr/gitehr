@@ -52,7 +52,7 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 [dev-dependencies]
 tempfile.workspace = true
 regex = "1"
-serial_test = "3"
+serial_test = "4"
 
 [lib]
 name = "gitehr"
