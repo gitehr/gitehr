@@ -15,12 +15,11 @@ Legend: `[x]` done, `[~]` in progress, `[ ]` not started. This roadmap lists out
 - [ ] **R60 - Add provenance and acquisition tracking:** add reusable fact provenance plus an acquisition/SAR register, typed commands, audit entries, and SAR-letter generation (see [`record-provenance-and-acquisition.md`](record-provenance-and-acquisition.md)).
 - [ ] **R61 - Add typed Conditions, medications, and observations state:** provide audited mutations and safe import targets, including a problem-list projection over Conditions (see [`problem-condition-list.md`](problem-condition-list.md)).
 - [ ] **R62 - Demonstrate QRISK3 end to end:** derive inputs from imported structured data, calculate through clincalc, and record the result with version, inputs, and citation.
+- [ ] **R72 - Prototype local research-use imaging derivation:** preserve source DICOM as an immutable Document, run explicitly non-diagnostic local models into provenance-bearing derived artifacts, require visual QC, and prohibit automatic clinical-State promotion (see [`local-imaging-model-playbook.md`](local-imaging-model-playbook.md)).
 
 ## Repository and Commands
 
 - [ ] **R6 - Extend Store identifier operations:** add `search`, `link`, `unlink`, `merge`, and `path`, plus the `GITEHR_MPI_PATH` override, as `gitehr store` subcommands.
-- [~] **R7 - Document the self-hoster on-ramp:** make families, carers, and pet owners first-class audiences in site and GUI onboarding, alongside clinics (ADR-0005). Site homepage done (families/carers folded into "For Patients & Families", plus a new "For Pet Owners" card); GUI onboarding has no onboarding flow yet to update (tracked by R63).
-- [x] **R8 - Align GUI launch behaviour:** prefer the bundled `.gitehr/gitehr-gui`, then `gitehr-gui` on `$PATH`, rather than the current development launcher.
 
 ## GUI and TUI
 

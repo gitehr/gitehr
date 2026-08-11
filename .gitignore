@@ -87,9 +87,6 @@ ipython_config.py
 # Journal drafts (tmp/journal/ lives next to journal/ in each repo instance)
 tmp/
 
-# Other generated files
-.sisyphus/
-
 # Personal notes and session summaries
 .marcus/
 .claude/

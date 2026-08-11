@@ -35,11 +35,12 @@ pub fn find_gui_binary() -> Option<PathBuf> {
 ///
 /// Prefers a bundled GUI binary at `.gitehr/gitehr-gui` (or `.gitehr/gitehr-gui.exe`
 /// on Windows), then falls back to `gitehr-gui` on `$PATH`. If neither is found,
-/// prints guidance on how to install or build one. For running the GUI from
-/// source during development, use `s/gui-dev` instead of this command.
+/// returns an error carrying guidance on how to install or build one, so that
+/// callers and scripts see a non-zero exit. For running the GUI from source
+/// during development, use `s/gui-dev` instead of this command.
 pub fn run() -> Result<()> {
     if !is_gitehr_repo() {
-        println!("Warning: Not in a GitEHR repository. Opening GUI without repository context.");
+        eprintln!("Warning: Not in a GitEHR repository. Opening GUI without repository context.");
     }
 
     match find_gui_binary() {
@@ -50,15 +51,11 @@ pub fn run() -> Result<()> {
             }
             Ok(())
         }
-        None => {
-            println!("No GitEHR GUI binary found.");
-            println!();
-            println!(
-                "Looked for a bundled binary at .gitehr/gitehr-gui and for gitehr-gui on $PATH."
-            );
-            println!("To install the GUI, see https://gitehr.org/install/gui/");
-            println!("To build and run it from source, run `s/gui-dev` from the repository root.");
-            Ok(())
-        }
+        None => anyhow::bail!(
+            "No GitEHR GUI binary found.\n\n\
+             Looked for a bundled binary at .gitehr/gitehr-gui and for gitehr-gui on $PATH.\n\
+             To install the GUI, see https://gitehr.org/install/gui/\n\
+             To build and run it from source, run `s/gui-dev` from the repository root."
+        ),
     }
 }
