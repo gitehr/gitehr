@@ -9,10 +9,9 @@ fn is_gitehr_repo() -> bool {
     PathBuf::from(".gitehr").exists()
 }
 
-// Locates a bundled or installed GUI binary for the release launch path
-// described in `run()`. Not yet wired up (dev mode runs `npm run tauri dev`).
-#[allow(dead_code)]
-fn find_gui_binary() -> Option<PathBuf> {
+/// Locates a bundled or installed GUI binary for the release launch path
+/// described in `run()`.
+pub fn find_gui_binary() -> Option<PathBuf> {
     let bundled_path = PathBuf::from(".gitehr/gitehr-gui");
     if bundled_path.exists() {
         return Some(bundled_path);
@@ -32,23 +31,34 @@ fn find_gui_binary() -> Option<PathBuf> {
     None
 }
 
-/// Launch the GitEHR GUI application
-/// For development, launches with: WEBKIT_DISABLE_DMABUF_RENDERER=1 npm run tauri dev
-/// For release, should launch the compiled, OS-appropriate GUI binary
+/// Launch the GitEHR GUI application.
+///
+/// Prefers a bundled GUI binary at `.gitehr/gitehr-gui` (or `.gitehr/gitehr-gui.exe`
+/// on Windows), then falls back to `gitehr-gui` on `$PATH`. If neither is found,
+/// prints guidance on how to install or build one. For running the GUI from
+/// source during development, use `s/gui-dev` instead of this command.
 pub fn run() -> Result<()> {
     if !is_gitehr_repo() {
         println!("Warning: Not in a GitEHR repository. Opening GUI without repository context.");
     }
-    // Development mode: run tauri dev
-    let status = Command::new("npm")
-        .arg("run")
-        .arg("tauri")
-        .arg("dev")
-        .env("WEBKIT_DISABLE_DMABUF_RENDERER", "1")
-        .current_dir("gui")
-        .status()?;
-    if !status.success() {
-        anyhow::bail!("Failed to launch GUI in dev mode.");
+
+    match find_gui_binary() {
+        Some(path) => {
+            let status = Command::new(path).status()?;
+            if !status.success() {
+                anyhow::bail!("GUI exited with an error.");
+            }
+            Ok(())
+        }
+        None => {
+            println!("No GitEHR GUI binary found.");
+            println!();
+            println!(
+                "Looked for a bundled binary at .gitehr/gitehr-gui and for gitehr-gui on $PATH."
+            );
+            println!("To install the GUI, see https://gitehr.org/install/gui/");
+            println!("To build and run it from source, run `s/gui-dev` from the repository root.");
+            Ok(())
+        }
     }
-    Ok(())
 }
