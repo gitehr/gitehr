@@ -20,7 +20,6 @@ Legend: `[x]` done, `[~]` in progress, `[ ]` not started. This roadmap lists out
 ## Repository and Commands
 
 - [ ] **R6 - Extend Store identifier operations:** add `search`, `link`, `unlink`, `merge`, and `path`, plus the `GITEHR_MPI_PATH` override, as `gitehr store` subcommands.
-- [ ] **R8 - Align GUI launch behaviour:** prefer the bundled `.gitehr/gitehr-gui`, then `gitehr-gui` on `$PATH`, rather than the current development launcher.
 
 ## GUI and TUI
 

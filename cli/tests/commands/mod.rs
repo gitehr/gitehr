@@ -7,6 +7,7 @@ pub mod contributor;
 pub mod demographics;
 pub mod document;
 pub mod encrypt;
+pub mod gui;
 pub mod journal;
 pub mod mcp;
 #[cfg(unix)]
