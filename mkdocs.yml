@@ -22,6 +22,7 @@ nav:
       - Files, not databases: design/files-not-databases.md
       - Common objections: design/common-objections.md
       - Patient-mediated extraction: design/patient-mediated-extraction.md
+      - Open Wearables evaluation: design/open-wearables-evaluation.md
       - Patient Centricity: design/patient-centricity.md
       - Structure: design/structure.md
       - Repository structure: design/repository-structure.md
