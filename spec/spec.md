@@ -62,6 +62,8 @@ GitEHR supports extensibility through a plugin system. Any executable named `git
 - `gitehr plugins` lists all available plugins by scanning `$PATH` for `gitehr-*` executables
 - `gitehr --help` displays both built-in commands and available plugins
 
+See [`gitehr plugins`](commands/plugin.md) for the full command-resolution order and authoring notes.
+
 **Plugin authoring guidelines:**
 - Plugins should implement `--help` flag for usage information
 - Exit codes: 0 for success, non-zero for errors
@@ -83,9 +85,29 @@ Manages local machine configuration, including the default Store path used by th
 
 Adds a new clinical document to the GitEHR repository.
 
+### [`gitehr document`](commands/document.md)
+
+Attaches and verifies source Documents (scans, photos, and other files referenced from journal entries). Alias: `attach`.
+
+### [`gitehr import`](commands/import.md)
+
+Imports journal entries or documents from another GitEHR instance, in `--mode journal` or `--mode documents`.
+
 ### [`gitehr state`](commands/state.md)
 
 Manages the mutable clinical state files within the GitEHR repository.
+
+### [`gitehr allergies`](commands/allergies.md)
+
+Manages the typed allergy and adverse-reaction summary in `state/allergies.md`.
+
+### [`gitehr demographics`](commands/demographics.md)
+
+Manages typed patient demographics state.
+
+### [`gitehr vaccinations`](commands/vaccinations.md)
+
+Manages typed vaccination and immunisation state. Aliases: `immunisations`, `immunizations`.
 
 ### [`gitehr remote`](commands/remote.md)
 
@@ -109,7 +131,11 @@ Adds, enables, disables, activates, or deactivates users for the GitEHR record.
 
 ### [`gitehr mpi`](commands/mpi.md)
 
-Resolves and manages patient identifiers against a local Main Patient Index (MPI).
+Design page for identifier-resolution operations (`search`, `link`, `unlink`, `merge`, `path`) against the local Main Patient Index (MPI). Per [ADR-0005](adr/0005-store-first-model.md), these are not a separate `gitehr mpi` command - they fold into `gitehr store` (tracked as [`R6`](roadmap.md)).
+
+### [`gitehr mcp`](mcp.md)
+
+Runs the built-in Model Context Protocol server (`gitehr mcp serve --stdio`), exposing repository resources and tools to MCP-aware clients. See [`mcp.md`](mcp.md) for the full protocol design; parts of it (e.g. TCP/HTTP transports, token auth) remain roadmap items.
 
 ### [`gitehr gui`](commands/gui.md)
 
@@ -126,6 +152,10 @@ Updates the bundled binary in `.gitehr/gitehr` to match the current CLI version.
 ### [`gitehr version`](commands/version.md)
 
 Displays the current GitEHR version shared by the CLI and GUI.
+
+### [`gitehr completions`](commands/completions.md)
+
+Generates and installs shell completions for `gitehr` (bash, zsh, fish, powershell, elvish).
 
 ---
 
