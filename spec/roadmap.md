@@ -68,7 +68,7 @@ The calculator engine lives in [clincalc](https://github.com/pacharanero/clincal
 - [ ] **R43 - Keep command documentation aligned with runtime behaviour.**
 - [ ] **R44 - Expand user-facing documentation:** installation, CLI reference, GUI walkthroughs, TUI, safety/Turva, and troubleshooting.
 - [ ] **R45 - Document CLI/GUI packaging, upgrade, and migration compatibility.**
-- [ ] **R46 - Add a calculator usage guide:** include clinical examples and validation references.
+- [x] **R46 - Add a calculator usage guide:** include clinical examples and validation references. Published as [`docs/cli/clincalc.md`](../docs/cli/clincalc.md), now linked from CLI nav.
 - [ ] **R47 - Document long-term strategic considerations:** EHDS, EHRxF, post-quantum cryptography, federated learning, genomics, streamed vitals, and purpose-scoped sharing.
 
 ## Distribution
