@@ -105,6 +105,36 @@ Run `gitehr clincalc list` for the current set (or `gitehr clincalc list --forma
 
 A handful of tools cannot be shipped because they are proprietary or licence-locked (FRAX, MMSE, ELF, ACQ, the Oxford Hip/Knee Scores, CAT, MUST, CFS, LANSS). These are still listed: running one returns an explanation of why it is absent, who owns it, open alternatives, and how to advocate for open clinical tools - see "Proprietary tools" below.
 
+## Validation references
+
+Each calculator ships its own authoritative citation, returned in the `reference` field of `--input ... --format json`, and re-checked at any time with `gitehr clincalc <name> --license`. For background reading, the table below lists the primary paper behind each tool family currently in the catalogue:
+
+| Calculator | Primary reference |
+|---|---|
+| FeverPAIN | Little P, Stuart B, Thompson M, et al. Predictors of suppurative complications for acute sore throat in primary care: prospective clinical cohort study. *BMJ*. 2013;347:f6867. |
+| QRISK3 | Hippisley-Cox J, Coupland C, Brindle P. Development and validation of QRISK3 risk prediction algorithms to estimate future risk of cardiovascular disease: prospective cohort study. *BMJ*. 2017;357:j2099. |
+| PHQ-9 | Kroenke K, Spitzer RL, Williams JBW. The PHQ-9: validity of a brief depression severity measure. *J Gen Intern Med*. 2001;16(9):606-613. |
+| GAD-7 | Spitzer RL, Kroenke K, Williams JBW, Löwe B. A brief measure for assessing generalized anxiety disorder: the GAD-7. *Arch Intern Med*. 2006;166(10):1092-1097. |
+| AUDIT | Saunders JB, Aasland OG, Babor TF, de la Fuente JR, Grant M. Development of the Alcohol Use Disorders Identification Test (AUDIT). *Addiction*. 1993;88(6):791-804. |
+| eGFR (CKD-EPI) | Levey AS, Stevens LA, Schmid CH, et al. A new equation to estimate glomerular filtration rate. *Ann Intern Med*. 2009;150(9):604-612. |
+| FIB-4 | Sterling RK, Lissen E, Clumeck N, et al. Development of a simple noninvasive index to predict significant liver fibrosis in HIV/HCV-coinfected patients. *Hepatology*. 2006;43(6):1317-1325. |
+| NEWS2 | Royal College of Physicians. National Early Warning Score (NEWS) 2. RCP, London, 2017. |
+| CURB-65 | Lim WS, van der Eerden MM, Laing R, et al. Defining community acquired pneumonia severity on presentation to hospital. *Thorax*. 2003;58(5):377-382. |
+| Wells (DVT/PE) | Wells PS, Anderson DR, Rodger M, et al. Evaluation of D-dimer in the diagnosis of suspected deep-vein thrombosis. *N Engl J Med*. 2003;349(13):1227-1235. |
+| CHA2DS2-VASc | Lip GYH, Nieuwlaat R, Pisters R, Lane DA, Crijns HJGM. Refining clinical risk stratification for predicting stroke and thromboembolism in atrial fibrillation. *Chest*. 2010;137(2):263-272. |
+| HAS-BLED | Pisters R, Lane DA, Nieuwlaat R, de Vos CB, Crijns HJGM, Lip GYH. A novel user-friendly score (HAS-BLED) to assess 1-year risk of major bleeding. *Chest*. 2010;138(5):1093-1100. |
+| qSOFA | Seymour CW, Liu VX, Iwashyna TJ, et al. Assessment of clinical criteria for sepsis (Sepsis-3). *JAMA*. 2016;315(8):762-774. |
+| DAS28 | Prevoo MLL, van 't Hof MA, Kuper HH, van Leeuwen MA, van de Putte LBA, van Riel PLCM. Modified disease activity scores that include twenty-eight-joint counts. *Arthritis Rheum*. 1995;38(1):44-48. |
+| SOFA | Vincent JL, Moreno R, Takala J, et al. The SOFA score to describe organ dysfunction/failure. *Intensive Care Med*. 1996;22(7):707-710. |
+| HEART score | Six AJ, Backus BE, Kelder JC. Chest pain in the emergency room: value of the HEART score. *Neth Heart J*. 2008;16(6):191-196. |
+| MELD | Kamath PS, Wiesner RH, Malinchoc M, et al. A model to predict survival in patients with end-stage liver disease. *Hepatology*. 2001;33(2):464-470. |
+| Child-Pugh | Pugh RNH, Murray-Lyon IM, Dawson JL, Pietroni MC, Williams R. Transection of the oesophagus for bleeding oesophageal varices. *Br J Surg*. 1973;60(8):646-649. |
+| CHALICE | Dunning J, Daly JP, Lomas JP, Lecky F, Batchelor J, Mackway-Jones K. Derivation of the CHALICE decision rule for head injury in children. *Arch Dis Child*. 2006;91(11):885-891. |
+| Gleason | Gleason DF, Mellinger GT. Prediction of prognosis for prostatic adenocarcinoma by combined histological grading and clinical staging. *J Urol*. 1974;111(1):58-64. |
+| Nottingham Prognostic Index | Galea MH, Blamey RW, Elston CE, Ellis IO. The Nottingham Prognostic Index in primary breast cancer. *Breast Cancer Res Treat*. 1992;22(3):207-219. |
+
+These are starting points for clinical review, not a substitute for the in-tool `reference` field or a calculator's own `--schema` definitions, which are the exact versions GitEHR ships and tests against.
+
 ## Proprietary tools
 
 Some clinical tools are owned and licence-controlled by their authors and cannot be distributed in open-source software. Rather than omit them silently, GitEHR registers each as a calculator that returns a structured explanation instead of a score:

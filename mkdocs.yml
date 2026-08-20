@@ -62,6 +62,7 @@ nav:
       - version: cli/version.md
       - completions: cli/completions.md
       - plugins: cli/plugins.md
+      - clincalc: cli/clincalc.md
       - Developer workflow: cli/developer-workflow.md
       - MCP usage: cli/mcp-usage.md
   - GUI:
