@@ -50,7 +50,7 @@ The calculator engine lives in [clincalc](https://github.com/pacharanero/clincal
 - [ ] **R35 - Add MCP configuration:** use `.gitehr/mcp.json`.
 - [ ] **R36 - Integrate clincalc MCP tools:** expose each calculator's JSON Schema and response contract.
 - [ ] **R37 - Add a GUI MCP client panel.**
-- [ ] **R38 - Document MCP integration and API reference.**
+- [x] **R38 - Document MCP integration and API reference.** Published as [`docs/cli/mcp-usage.md`](../docs/cli/mcp-usage.md), with a full resource/tool reference table and corrected URI examples.
 - [ ] **R39 - Add MCP client libraries for testing.**
 
 ## Security and Integrity

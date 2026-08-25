@@ -64,9 +64,15 @@ Resources provide read-only access to repository data.
 ```
 
 Returns available resources:
-- `gitehr://repo/{path}/journal` - Journal entries list
-- `gitehr://repo/{path}/state` - State files list
-- `gitehr://repo/{path}/status` - Repository status
+- `gitehr://repo/journal` - Journal entries list
+- `gitehr://repo/state` - State files list
+- `gitehr://repo/status` - Repository status
+
+Two further URI patterns are readable but not listed by `resources/list` — read them directly by URI:
+- `gitehr://repo/journal/{filename}` - Content of one journal entry (e.g. `gitehr://repo/journal/20260101T000000.000Z-abc123.md`)
+- `gitehr://repo/state/{filename}` - Content of one state file (e.g. `gitehr://repo/state/demographics.json`)
+
+Every resource URI is relative to the repository the server was started against (`--repo-path`, or the current directory) — the URI itself never contains a filesystem path.
 
 #### Read Resource
 
@@ -76,7 +82,7 @@ Returns available resources:
   "id": 3,
   "method": "resources/read",
   "params": {
-    "uri": "gitehr://repo/./journal"
+    "uri": "gitehr://repo/journal"
   }
 }
 ```
@@ -118,12 +124,29 @@ Returns available tools:
 }
 ```
 
-#### Call Tool: Search Repository
+#### Call Tool: Update State
 
 ```json
 {
   "jsonrpc": "2.0",
   "id": 6,
+  "method": "tools/call",
+  "params": {
+    "name": "update_state",
+    "arguments": {
+      "filename": "medications.json",
+      "content": "{\"medications\": []}"
+    }
+  }
+}
+```
+
+#### Call Tool: Search Repository
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 7,
   "method": "tools/call",
   "params": {
     "name": "search_repository",
@@ -135,6 +158,28 @@ Returns available tools:
 ```
 
 Returns list of matching files in journal/ and state/.
+
+## API Reference
+
+### Resources
+
+| URI | Returns | MIME type |
+| --- | --- | --- |
+| `gitehr://repo/journal` | JSON array of journal entry filenames | `application/json` |
+| `gitehr://repo/journal/{filename}` | Raw Markdown content of one journal entry | `text/markdown` |
+| `gitehr://repo/state` | JSON array of state filenames (excludes `README.md`) | `application/json` |
+| `gitehr://repo/state/{filename}` | Raw content of one state file | `text/plain` |
+| `gitehr://repo/status` | Repository status: `version`, `encrypted`, `journal_entry_count`, `state_files` | `application/json` |
+
+Only the three top-level URIs are returned by `resources/list`; the `{filename}` forms are read directly by URI and are not enumerated.
+
+### Tools
+
+| Tool | Parameters | Behaviour |
+| --- | --- | --- |
+| `add_journal_entry` | `content` (string, required) — Markdown body | **Placeholder only.** Validates that `journal/` exists and returns a description of what *would* be written; it does not create a file or commit anything. See [Limitations](#limitations-current-implementation). |
+| `update_state` | `filename` (string, required), `content` (string, required) | Writes `content` verbatim to `state/{filename}`, creating `state/` if needed. Overwrites any existing file at that path. No journal entry or commit is recorded. |
+| `search_repository` | `query` (string, required) | Case-insensitive substring search across every file in `journal/` and every file in `state/`. Returns matching paths as `journal/{filename}` or `state/{filename}`. |
 
 ## Integration with Claude Desktop
 
@@ -181,9 +226,8 @@ cargo build --release
 
 ## Security Considerations
 
-- MCP server requires a valid GitEHR repository (`.gitehr` directory must exist)
-- Respects encryption markers (will fail if repository is encrypted)
-- All operations are logged (future: audit entries in journal)
+- The server does not currently verify that `--repo-path` points at a valid GitEHR repository, and does not check `.gitehr/ENCRYPTED` before reading or writing — `gitehr://repo/status` reports the encryption flag, but no tool or resource handler refuses to operate on an encrypted repository. Point the server only at repositories you trust.
+- All operations are logged to stderr via `RUST_LOG` (future: audit entries in journal — see [Limitations](#limitations-current-implementation))
 - Runs with the same file permissions as the user running the command
 
 ## Debugging
@@ -198,10 +242,10 @@ This will show all MCP protocol messages in stderr.
 
 ## Limitations (Current Implementation)
 
-- **Placeholder journal creation**: The `add_journal_entry` tool currently doesn't create real journal entries (needs integration with gitehr library)
+- **Placeholder journal creation**: The `add_journal_entry` tool currently doesn't create real journal entries or commit anything to git (needs integration with the gitehr library; see [API Reference](#tools))
 - **No prompts**: Prompt templates not yet implemented
 - **No authentication**: Stdio mode assumes local trust
-- **No encryption handling**: Server doesn't decrypt encrypted repos
+- **No encryption handling**: Server neither decrypts encrypted repos nor refuses to operate on them (see [Security Considerations](#security-considerations))
 - **No audit logging**: MCP operations not yet recorded in journal
 
 These will be addressed in future releases.
