@@ -18,48 +18,24 @@ fn setup() -> tempfile::TempDir {
     temp_dir
 }
 
-#[test]
-#[serial]
-fn test_encrypt_creates_marker_file() -> Result<()> {
-    let _temp_dir = setup();
-
-    encrypt_repository(None)?;
-
-    let marker_path = Path::new(".gitehr/ENCRYPTED");
-    assert!(marker_path.exists(), "ENCRYPTED marker file should exist");
-
-    Ok(())
+/// Write the marker an earlier placeholder `gitehr encrypt` used to leave.
+fn write_stale_marker() {
+    fs::write(
+        ".gitehr/ENCRYPTED",
+        "encrypted_at=2026-01-01T00:00:00Z\nkey_source=local\n",
+    )
+    .unwrap();
 }
 
 #[test]
 #[serial]
-fn test_encrypt_marker_contains_timestamp() -> Result<()> {
+fn test_encrypt_refuses_until_implemented() -> Result<()> {
     let _temp_dir = setup();
 
-    encrypt_repository(None)?;
-
-    let content = fs::read_to_string(".gitehr/ENCRYPTED")?;
+    let err = encrypt_repository(None).unwrap_err();
     assert!(
-        content.contains("encrypted_at="),
-        "Should contain encrypted_at timestamp"
-    );
-    assert!(content.contains("T"), "Should be ISO 8601 format");
-    assert!(content.contains("Z"), "Should be in UTC");
-
-    Ok(())
-}
-
-#[test]
-#[serial]
-fn test_encrypt_marker_contains_key_source() -> Result<()> {
-    let _temp_dir = setup();
-
-    encrypt_repository(Some("azure-keyvault"))?;
-
-    let content = fs::read_to_string(".gitehr/ENCRYPTED")?;
-    assert!(
-        content.contains("key_source=azure-keyvault"),
-        "Should contain key_source"
+        err.to_string().contains("not yet implemented"),
+        "encrypt must refuse until R67/R68 land, got: {err}"
     );
 
     Ok(())
@@ -67,15 +43,14 @@ fn test_encrypt_marker_contains_key_source() -> Result<()> {
 
 #[test]
 #[serial]
-fn test_encrypt_marker_default_key_source() -> Result<()> {
+fn test_encrypt_writes_no_marker() -> Result<()> {
     let _temp_dir = setup();
 
-    encrypt_repository(None)?;
+    let _ = encrypt_repository(None);
 
-    let content = fs::read_to_string(".gitehr/ENCRYPTED")?;
     assert!(
-        content.contains("key_source=local"),
-        "Should default to local key source"
+        !Path::new(".gitehr/ENCRYPTED").exists(),
+        "encrypt must not claim encryption that never happened"
     );
 
     Ok(())
@@ -85,28 +60,28 @@ fn test_encrypt_marker_default_key_source() -> Result<()> {
 #[serial]
 fn test_encrypt_fails_if_already_encrypted() -> Result<()> {
     let _temp_dir = setup();
+    write_stale_marker();
 
-    encrypt_repository(None)?;
-
-    let result = encrypt_repository(None);
-    assert!(result.is_err(), "Should fail if already encrypted");
+    let err = encrypt_repository(None).unwrap_err();
+    assert!(
+        err.to_string().contains("already encrypted"),
+        "should report the existing marker, got: {err}"
+    );
 
     Ok(())
 }
 
 #[test]
 #[serial]
-fn test_decrypt_removes_marker_file() -> Result<()> {
+fn test_decrypt_removes_stale_marker() -> Result<()> {
     let _temp_dir = setup();
-
-    encrypt_repository(None)?;
-    assert!(Path::new(".gitehr/ENCRYPTED").exists());
+    write_stale_marker();
 
     decrypt_repository(None)?;
 
     assert!(
         !Path::new(".gitehr/ENCRYPTED").exists(),
-        "ENCRYPTED marker should be removed"
+        "decrypt should clean up a stale placeholder marker"
     );
 
     Ok(())
@@ -119,27 +94,6 @@ fn test_decrypt_fails_if_not_encrypted() -> Result<()> {
 
     let result = decrypt_repository(None);
     assert!(result.is_err(), "Should fail if not encrypted");
-
-    Ok(())
-}
-
-#[test]
-#[serial]
-fn test_encrypt_decrypt_roundtrip() -> Result<()> {
-    let _temp_dir = setup();
-
-    let marker_path = Path::new(".gitehr/ENCRYPTED");
-
-    assert!(!marker_path.exists(), "Should not be encrypted initially");
-
-    encrypt_repository(None)?;
-    assert!(marker_path.exists(), "Should be encrypted");
-
-    decrypt_repository(None)?;
-    assert!(
-        !marker_path.exists(),
-        "Should not be encrypted after decrypt"
-    );
 
     Ok(())
 }
@@ -167,6 +121,9 @@ fn test_decrypt_without_gitehr_fails() -> Result<()> {
 
     Ok(())
 }
+
+// The two tests below describe the behaviour R68 must deliver; they stay
+// ignored until real encryption exists.
 
 #[test]
 #[serial]

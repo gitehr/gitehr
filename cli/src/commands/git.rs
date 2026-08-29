@@ -29,7 +29,8 @@ pub fn git_init() -> Result<()> {
 
 /// Stage a file for commit
 pub fn git_add(file_path: &str) -> Result<()> {
-    run_git_command(&["add", file_path])
+    // `--` stops git parsing a path that begins with `-` as an option.
+    run_git_command(&["add", "--", file_path])
 }
 
 /// Create a commit with the given message

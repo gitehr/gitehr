@@ -22,17 +22,19 @@ pub fn run(key_source: Option<&str>) -> Result<()> {
         anyhow::bail!("Repository is not encrypted.");
     }
 
-    let key_info = key_source.unwrap_or("local");
+    let _ = key_source;
 
-    println!("Decrypting repository with {} key...", key_info);
+    println!("Removing stale .gitehr/ENCRYPTED marker.");
     println!();
-    println!("NOTE: Full decryption implementation is pending.");
-    println!("This command will decrypt all clinical data files.");
+    println!("Note: encryption at rest was never implemented (roadmap R67/R68),");
+    println!("so no data was actually encrypted and there is nothing to decrypt.");
+    println!("This marker was written by an earlier placeholder version of");
+    println!("`gitehr encrypt`.");
 
     fs::remove_file(".gitehr/ENCRYPTED")?;
 
     println!();
-    println!("Repository decrypted.");
+    println!("Marker removed.");
 
     Ok(())
 }
