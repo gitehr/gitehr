@@ -98,6 +98,10 @@ jobs:
       - name: Install tauri-driver
         run: cargo install tauri-driver --locked
 
+      - name: Install GUI Node dependencies
+        working-directory: gui
+        run: npm ci
+
       - name: Install e2e Node dependencies
         working-directory: gui/e2e
         run: npm ci
