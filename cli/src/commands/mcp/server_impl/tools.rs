@@ -157,6 +157,7 @@ impl ToolHandler {
             .get("filename")
             .and_then(|v| v.as_str())
             .ok_or_else(|| anyhow::anyhow!("Missing 'filename' parameter"))?;
+        let filename = super::resources::safe_filename(filename)?;
 
         let content = arguments
             .get("content")
@@ -193,13 +194,12 @@ impl ToolHandler {
             for entry in std::fs::read_dir(&journal_dir)? {
                 let entry = entry?;
                 let path = entry.path();
-                if path.extension().and_then(|s| s.to_str()) == Some("md") {
-                    let content = std::fs::read_to_string(&path)?;
-                    if content.to_lowercase().contains(&query.to_lowercase())
-                        && let Some(filename) = path.file_name().and_then(|s| s.to_str())
-                    {
-                        results.push(format!("journal/{}", filename));
-                    }
+                if path.extension().and_then(|s| s.to_str()) == Some("md")
+                    && let Ok(content) = std::fs::read_to_string(&path)
+                    && content.to_lowercase().contains(&query.to_lowercase())
+                    && let Some(filename) = path.file_name().and_then(|s| s.to_str())
+                {
+                    results.push(format!("journal/{}", filename));
                 }
             }
         }
@@ -210,13 +210,12 @@ impl ToolHandler {
             for entry in std::fs::read_dir(&state_dir)? {
                 let entry = entry?;
                 let path = entry.path();
-                if path.is_file() {
-                    let content = std::fs::read_to_string(&path)?;
-                    if content.to_lowercase().contains(&query.to_lowercase())
-                        && let Some(filename) = path.file_name().and_then(|s| s.to_str())
-                    {
-                        results.push(format!("state/{}", filename));
-                    }
+                if path.is_file()
+                    && let Ok(content) = std::fs::read_to_string(&path)
+                    && content.to_lowercase().contains(&query.to_lowercase())
+                    && let Some(filename) = path.file_name().and_then(|s| s.to_str())
+                {
+                    results.push(format!("state/{}", filename));
                 }
             }
         }
@@ -264,6 +263,23 @@ mod tests {
             .call_tool("clincalc_nonesuch", serde_json::json!({}))
             .unwrap_err();
         assert!(err.to_string().contains("Unknown tool"));
+    }
+
+    #[test]
+    fn test_update_state_rejects_traversal() {
+        let handler = ToolHandler::new(PathBuf::from("."));
+        for filename in ["../evil.txt", "/tmp/evil.txt", "a/b.txt", "..", "c\\d.txt"] {
+            let err = handler
+                .call_tool(
+                    "update_state",
+                    serde_json::json!({"filename": filename, "content": "x"}),
+                )
+                .unwrap_err();
+            assert!(
+                err.to_string().contains("Invalid filename"),
+                "expected rejection for {filename:?}"
+            );
+        }
     }
 
     #[test]

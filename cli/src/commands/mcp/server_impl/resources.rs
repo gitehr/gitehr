@@ -57,6 +57,18 @@ pub struct ResourceHandler {
 
 const REPO_URI_PREFIX: &str = "gitehr://repo/";
 
+/// Accept only a bare filename: a single normal path component.
+///
+/// Filenames arrive from MCP resource URIs and tool arguments; anything
+/// with separators, `..`, or a root component would escape the repository.
+pub(super) fn safe_filename(name: &str) -> anyhow::Result<&str> {
+    let mut components = std::path::Path::new(name).components();
+    match (components.next(), components.next()) {
+        (Some(std::path::Component::Normal(_)), None) if !name.contains('\\') => Ok(name),
+        _ => Err(anyhow::anyhow!("Invalid filename: {name}")),
+    }
+}
+
 impl ResourceHandler {
     pub fn new(repo_path: PathBuf) -> Self {
         Self { repo_path }
@@ -142,6 +154,7 @@ impl ResourceHandler {
     }
 
     fn read_journal_entry(&self, entry_id: &str) -> anyhow::Result<ResourcesRead> {
+        let entry_id = safe_filename(entry_id)?;
         let entry_path = self.repo_path.join("journal").join(entry_id);
 
         if !entry_path.exists() {
@@ -193,6 +206,7 @@ impl ResourceHandler {
     }
 
     fn read_state_file(&self, filename: &str) -> anyhow::Result<ResourcesRead> {
+        let filename = safe_filename(filename)?;
         let file_path = self.repo_path.join("state").join(filename);
 
         if !file_path.exists() {
