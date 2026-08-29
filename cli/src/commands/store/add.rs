@@ -1,22 +1,15 @@
 // SPDX-FileCopyrightText: 2026 Marcus Baw and Baw Medical Ltd
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use anyhow::{Result, bail};
-use std::fs;
+use anyhow::Result;
 use std::path::Path;
 
-use super::{MpiIdentifier, MpiInfo, MpiPatient};
+use super::{MpiIdentifier, MpiPatient, load_mpi, save_mpi};
 use crate::commands::scaffold;
 
 /// Create a new subject repo and register it in the Store's MPI.
 pub fn run(name: Option<&str>, identifiers: Vec<(String, String)>) -> Result<()> {
-    if !Path::new("gitehr-mpi.json").exists() {
-        bail!(
-            "Not a GitEHR Store root (gitehr-mpi.json not found). Run `gitehr store init` first."
-        );
-    }
-
-    let mut mpi: MpiInfo = serde_json::from_str(&fs::read_to_string("gitehr-mpi.json")?)?;
+    let mut mpi = load_mpi()?;
 
     let (dir, id) = scaffold::create_subject_repo(Path::new("."), name)?;
 
@@ -33,7 +26,7 @@ pub fn run(name: Option<&str>, identifiers: Vec<(String, String)>) -> Result<()>
             .collect(),
     });
     mpi.updated_at = now;
-    fs::write("gitehr-mpi.json", serde_json::to_string_pretty(&mpi)?)?;
+    save_mpi(&mpi)?;
 
     println!("Added subject '{dir}' ({id}).");
     Ok(())

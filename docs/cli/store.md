@@ -3,10 +3,15 @@
 A GitEHR install is always a **Store**: a directory holding one or more subject **repos** (each a complete record) plus a small `gitehr-mpi.json` index, the Main Patient Index (MPI). One model fits everyone - a single self-hoster, a family (yourself, your children, an elderly parent you care for), a **pet owner** keeping vet records, or a clinic of any size. See [the repository structure](../design/repository-structure.md).
 
 ```text
-gitehr store init [name]        Create a Store + MPI + the first subject's repo
-gitehr store add [name]         Create and register another subject's repo
-gitehr store remove <id|name>   De-register a subject (its files are kept)
-gitehr store list               List the subjects in the Store
+gitehr store init [name]              Create a Store + MPI + the first subject's repo
+gitehr store add [name]               Create and register another subject's repo
+gitehr store remove <id|name>         De-register a subject (its files are kept)
+gitehr store list                     List the subjects in the Store
+gitehr store search <query>           Find subjects by identifier, id, or name
+gitehr store link <id|name> <type:value>          Link an identifier to a subject
+gitehr store unlink <type:value>                  Remove an identifier link
+gitehr store merge <from> <into>      Merge one subject into another
+gitehr store path <id|name>           Print the repository path for a subject
 ```
 
 Each subject gets a stable canonical id - a time-ordered UUIDv7 in Crockford base32 - recorded in the MPI and in the repo's `.gitehr/ID`. Its directory is a friendly slug when you give a name (`rex/`, `mum/`), or the canonical id when you don't, so a self-hoster gets readable folders while a large store needs no manual naming.
@@ -53,6 +58,34 @@ gitehr store list
 ```
 
 Lists the subjects: friendly name (or id), canonical id, and any recorded identifiers.
+
+## Identifier operations
+
+The MPI answers "which record is this person?" - the identifier operations search and maintain those links:
+
+```bash
+gitehr store link rex NHS:1234567890     # record rex's NHS number
+gitehr store search 1234567890           # find a subject by identifier or name
+gitehr store search NHS:1234567890       # exact identifier lookup
+gitehr store path rex                    # print rex's repo directory
+gitehr store unlink NHS:1234567890       # remove a wrong or stale link
+```
+
+`link` refuses to attach an identifier that is already linked to a different subject, so an identifier always resolves to at most one subject.
+
+## Merging subjects
+
+If two subject entries turn out to be the same person, `merge` folds the source entry into the target:
+
+```bash
+gitehr store merge duplicate-rex rex
+```
+
+The source is marked `merged` with a pointer to the target, and its identifiers move across - unless an identifier already exists on the target, which blocks the merge rather than silently dropping data. Repository files are never deleted (the record only grows, ADR-0002).
+
+## MPI location
+
+The MPI lives at the Store root as `gitehr-mpi.json`. Set `GITEHR_MPI_PATH` to place or read it elsewhere (for example, a read-only mirror or a scripted fixture); every `gitehr store` command honours it.
 
 ## Working inside a subject
 

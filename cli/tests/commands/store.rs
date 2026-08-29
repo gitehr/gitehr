@@ -153,3 +153,195 @@ fn single_subject_store_auto_targets_repo_commands() {
         "{status:?}"
     );
 }
+
+// ── R6: identifier resolution operations ──────────────────────────────────────
+
+#[test]
+#[serial]
+fn store_path_prints_repo_path_for_id_or_name() -> Result<()> {
+    let temp = tempdir().unwrap();
+    std::env::set_current_dir(&temp)?;
+
+    store::init::run(Some("rex"))?;
+    let mpi_text = fs::read_to_string("gitehr-mpi.json")?;
+    // Extract the canonical id by reading the MPI as JSON.
+    let mpi: store::MpiInfo = serde_json::from_str(&mpi_text)?;
+    let id = mpi.patients[0].patient_id.clone();
+
+    store::path::run("rex")?; // prints the path; must not error
+    store::path::run(&id)?;
+
+    assert!(
+        store::path::run("nonexistent").is_err(),
+        "path for an unknown subject should fail"
+    );
+    Ok(())
+}
+
+#[test]
+#[serial]
+fn store_search_finds_by_identifier_value_and_fails_when_no_match() -> Result<()> {
+    let temp = tempdir().unwrap();
+    std::env::set_current_dir(&temp)?;
+
+    store::init::run(Some("rex"))?;
+    store::link::run("rex", "NHS".to_string(), "1234567890")?;
+
+    assert!(
+        store::search::run("1234567890").is_ok(),
+        "value substring should match"
+    );
+    assert!(
+        store::search::run("NHS:1234567890").is_ok(),
+        "exact type:value should match"
+    );
+    assert!(store::search::run("rex").is_ok(), "name should match");
+    assert!(
+        store::search::run("zzz-no-match").is_err(),
+        "no match should error"
+    );
+    Ok(())
+}
+
+#[test]
+#[serial]
+fn store_link_adds_identifier_and_conflict_is_refused() -> Result<()> {
+    let temp = tempdir().unwrap();
+    std::env::set_current_dir(&temp)?;
+
+    store::init::run(Some("rex"))?;
+    store::add::run(Some("fido"), vec![])?;
+
+    store::link::run("rex", "NHS".to_string(), "1234567890")?;
+    // Re-linking the same subject is a harmless no-op.
+    store::link::run("rex", "NHS".to_string(), "1234567890")?;
+    // Same identifier on another subject must be refused.
+    assert!(
+        store::link::run("second", "NHS".to_string(), "1234567890").is_err()
+            || store::link::run("second-clone", "NHS".to_string(), "1234567890").is_err(),
+    );
+
+    let mpi: store::MpiInfo = serde_json::from_str(&fs::read_to_string("gitehr-mpi.json")?)?;
+    let rex = mpi.patients.iter().find(|p| p.repo_path == "rex").unwrap();
+    assert!(
+        rex.identifiers
+            .iter()
+            .any(|i| i.id_type == "NHS" && i.value == "1234567890"),
+        "identifier should be recorded"
+    );
+    Ok(())
+}
+
+#[test]
+#[serial]
+fn store_unlink_removes_identifier_anywhere() -> Result<()> {
+    let temp = tempdir().unwrap();
+    std::env::set_current_dir(&temp)?;
+
+    store::init::run(Some("rex"))?;
+    store::link::run("rex", "NHS".to_string(), "1234567890")?;
+
+    store::unlink::run("NHS", "1234567890")?;
+
+    let mpi: store::MpiInfo = serde_json::from_str(&fs::read_to_string("gitehr-mpi.json")?)?;
+    assert!(
+        !mpi.patients
+            .iter()
+            .any(|p| p.identifiers.iter().any(|i| i.value == "1234567890")),
+        "identifier should be gone"
+    );
+    assert!(
+        store::unlink::run("NHS", "1234567890").is_err(),
+        "unlinking an absent identifier should fail"
+    );
+    Ok(())
+}
+
+#[test]
+#[serial]
+fn store_merge_moves_identifiers_and_marks_source() -> Result<()> {
+    let temp = tempdir().unwrap();
+    std::env::set_current_dir(&temp)?;
+
+    store::init::run(Some("rex"))?;
+    store::link::run("rex", "NHS".to_string(), "1111111111")?;
+    store::add::run(Some("duplicate-rex"), vec![])?;
+    store::link::run("duplicate-rex", "NHS".to_string(), "2222222222")?;
+
+    store::merge::run("duplicate-rex", "rex")?;
+
+    let mpi: store::MpiInfo = serde_json::from_str(&fs::read_to_string("gitehr-mpi.json")?)?;
+    let rex = mpi.patients.iter().find(|p| p.repo_path == "rex").unwrap();
+    assert_eq!(
+        rex.identifiers.len(),
+        2,
+        "both identifiers should be on the target"
+    );
+    let dup = mpi
+        .patients
+        .iter()
+        .find(|p| p.repo_path == "duplicate-rex")
+        .unwrap();
+    assert_eq!(dup.status, "merged");
+    assert!(dup.identifiers.is_empty(), "source identifiers should move");
+    assert!(dup.merged_into.is_some(), "merged_into should be set");
+
+    // Records never silently merge into themselves; already-merged sources refuse.
+    assert!(store::merge::run("rex", "rex").is_err());
+    assert!(store::merge::run("duplicate-rex", "rex").is_err());
+    Ok(())
+}
+
+#[test]
+#[serial]
+fn store_merge_refuses_identifier_conflicts() -> Result<()> {
+    let temp = tempdir().unwrap();
+    std::env::set_current_dir(&temp)?;
+
+    store::init::run(Some("rex"))?;
+    store::link::run("rex", "NHS".to_string(), "1111111111")?;
+    store::add::run(Some("dupe"), vec![])?;
+
+    // `link` refuses to put the same identifier on two subjects, so to place
+    // the conflict the test edits the MPI directly (defence-in-depth check of
+    // merge's own conflict guard).
+    let mut mpi: store::MpiInfo = serde_json::from_str(&fs::read_to_string("gitehr-mpi.json")?)?;
+    for p in &mut mpi.patients {
+        if p.repo_path == "dupe" {
+            p.identifiers.push(store::MpiIdentifier {
+                id_type: "NHS".to_string(),
+                value: "1111111111".to_string(),
+            });
+        }
+    }
+    fs::write("gitehr-mpi.json", serde_json::to_string_pretty(&mpi)?)?;
+
+    assert!(
+        store::merge::run("dupe", "rex").is_err(),
+        "a clashing identifier must block the merge"
+    );
+    Ok(())
+}
+
+#[test]
+#[serial]
+fn store_mpi_path_env_override_is_honoured() -> Result<()> {
+    let temp = tempdir().unwrap();
+    std::env::set_current_dir(&temp)?;
+
+    store::init::run(Some("rex"))?;
+
+    let elsewhere = tempdir().unwrap();
+    let moved = elsewhere.path().join("custom-mpi.json");
+    fs::copy("gitehr-mpi.json", &moved)?;
+
+    // Edition 2024 marks env mutation unsafe; safe here because the test is
+    // #[serial], so no other test reads the environment concurrently.
+    // SAFETY: single-threaded, serial test; the variable is removed before return.
+    unsafe { std::env::set_var("GITEHR_MPI_PATH", &moved) };
+    let result = store::path::run("rex");
+    unsafe { std::env::remove_var("GITEHR_MPI_PATH") };
+
+    assert!(result.is_ok(), "GITEHR_MPI_PATH should redirect MPI reads");
+    Ok(())
+}

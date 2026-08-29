@@ -26,9 +26,29 @@ Remove a subject from the MPI, matching the argument against the canonical id or
 
 List the subjects: directory/friendly name, canonical id, and recorded identifiers.
 
-## Planned
+## `gitehr store search <query>`
 
-The MPI identifier-resolution operations - `search`, `link`, `unlink`, `merge`, `path` (see [mpi.md](mpi.md)) - and the `GITEHR_MPI_PATH` override fold in here as further `gitehr store` subcommands.
+Find subjects. Matching is: exact `type:value` identifier, exact canonical id or friendly name (case-insensitive), substring match on identifier values, and substring match on the directory name for queries of three characters or more. Errors with no matches.
+
+## `gitehr store link <id-or-name> <type:value>`
+
+Link an identifier to a subject. Refuses if the identifier is already linked to a *different* subject (an identifier resolves to at most one subject); re-linking the same subject is a no-op. Updates both the subject's and the MPI's `updated_at`.
+
+## `gitehr store unlink <type:value>`
+
+Remove the identifier link from whichever subject holds it. Fails if no subject holds it. The subject's record itself is untouched.
+
+## `gitehr store merge <from> <into>`
+
+Merge subject `from` into subject `into`: `from` is marked `status = merged` with `merged_into` set, its identifiers move to the target, and its identifier list is cleared. Refuses a self-merge, a re-merge of an already-merged source, and any identifier clash with the target (conflicts must be resolved explicitly rather than silently dropped). Repository files are never touched.
+
+## `gitehr store path <id-or-name>`
+
+Print the repository path for a subject - the scripting-friendly counterpart to `search`.
+
+## MPI location
+
+All subcommands read the MPI through one resolver: `GITEHR_MPI_PATH` (when set to a non-empty path) overrides the default of `gitehr-mpi.json` in the current directory. `store init` writes the bootstrap MPI to the resolved path too. The walk-up-to-Store-root behaviour of other commands is unchanged.
 
 ## Binary bundling
 

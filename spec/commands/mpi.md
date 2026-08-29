@@ -2,7 +2,7 @@
 
 # `gitehr mpi`
 
-> **Superseded by [ADR-0005](../adr/0005-store-first-model.md).** These operations are not a separate `gitehr mpi` command - they fold into **`gitehr store`** (the MPI is the Store's index file, not its own command surface). This page is retained as the design for the identifier-resolution operations themselves (`search`, `link`, `unlink`, `merge`, `path`); read every `gitehr mpi` below as `gitehr store`.
+> **Superseded by [ADR-0005](../adr/0005-store-first-model.md) and implemented as `gitehr store` subcommands (R6).** These operations are not a separate `gitehr mpi` command - they fold into **`gitehr store`** (the MPI is the Store's index file, not its own command surface). This page is retained as the design record for the identifier-resolution operations; the shipped behaviour is documented in [store.md](store.md). Differences from this early design: `create` and the duplicate `search`/`list` sections below were folded into `store init`/`store add` and `store list`; `merge` additionally refuses identifier conflicts instead of leaving them; and `GITEHR_MPI_PATH` is the implemented override (not "e.g.").
 
 Resolve and manage patient identifiers against a local Main Patient Index (MPI).
 

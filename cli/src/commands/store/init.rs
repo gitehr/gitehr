@@ -5,14 +5,17 @@ use anyhow::{Result, bail};
 use std::fs;
 use std::path::Path;
 
-use super::{MpiInfo, MpiPatient};
+use super::{MpiInfo, MpiPatient, mpi_path};
 use crate::commands::scaffold;
 
 /// Bootstrap a new GitEHR Store in the current directory: the MPI index and the
 /// first subject's repo (see spec/adr/0005).
 pub fn run(name: Option<&str>) -> Result<()> {
-    if Path::new("gitehr-mpi.json").exists() {
-        bail!("This directory is already a GitEHR Store (gitehr-mpi.json exists)");
+    if mpi_path()?.exists() {
+        bail!(
+            "This directory is already a GitEHR Store ({} exists)",
+            mpi_path()?.display()
+        );
     }
     if Path::new(".gitehr").exists() {
         bail!(
@@ -45,7 +48,7 @@ pub fn run(name: Option<&str>) -> Result<()> {
             identifiers: Vec::new(),
         }],
     };
-    fs::write("gitehr-mpi.json", serde_json::to_string_pretty(&mpi)?)?;
+    fs::write(mpi_path()?, serde_json::to_string_pretty(&mpi)?)?;
 
     println!("Initialised GitEHR Store with first subject '{dir}' ({id}).");
     Ok(())

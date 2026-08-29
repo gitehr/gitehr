@@ -19,7 +19,7 @@ Legend: `[x]` done, `[~]` in progress, `[ ]` not started. This roadmap lists out
 
 ## Repository and Commands
 
-- [ ] **R6 - Extend Store identifier operations:** add `search`, `link`, `unlink`, `merge`, and `path`, plus the `GITEHR_MPI_PATH` override, as `gitehr store` subcommands.
+- [x] **R6 - Extend Store identifier operations:** add `search`, `link`, `unlink`, `merge`, and `path`, plus the `GITEHR_MPI_PATH` override, as `gitehr store` subcommands. Shipped in `cli/src/commands/store/{search,link,unlink,merge,path}.rs` with tests in `cli/tests/commands/store.rs`; documented in `docs/cli/store.md` and `spec/commands/store.md`.
 
 ## GUI and TUI
 
