@@ -12,6 +12,15 @@ pub fn run(output_path: Option<&str>, encrypt: bool) -> Result<()> {
         anyhow::bail!("Not a GitEHR repository (or not in the repository root).");
     }
 
+    // Refusing is deliberate (roadmap R81): silently producing a plaintext
+    // archive after the user asked for encryption is false assurance.
+    if encrypt {
+        anyhow::bail!(
+            "Transport encryption is not yet implemented (roadmap R68). \
+Re-run without --encrypt to create an unencrypted archive."
+        );
+    }
+
     let default_output = format!(
         "gitehr-transport-{}.tar.gz",
         chrono::Utc::now().format("%Y%m%d-%H%M%S")
