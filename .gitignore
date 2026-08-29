@@ -88,5 +88,5 @@ ipython_config.py
 tmp/
 
 # Personal notes and session summaries
-.marcus/
+.private/
 .claude/
