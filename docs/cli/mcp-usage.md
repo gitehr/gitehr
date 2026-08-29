@@ -179,7 +179,7 @@ Only the three top-level URIs are returned by `resources/list`; the `{filename}`
 | --- | --- | --- |
 | `add_journal_entry` | `content` (string, required) — Markdown body | **Placeholder only.** Validates that `journal/` exists and returns a description of what *would* be written; it does not create a file or commit anything. See [Limitations](#limitations-current-implementation). |
 | `update_state` | `filename` (string, required), `content` (string, required) | Writes `content` verbatim to `state/{filename}`, creating `state/` if needed. Overwrites any existing file at that path. No journal entry or commit is recorded. |
-| `search_repository` | `query` (string, required) | Case-insensitive substring search across every file in `journal/` and every file in `state/`. Returns matching paths as `journal/{filename}` or `state/{filename}`. |
+| `search_repository` | `query` (string, required) | Case-insensitive substring search across `.md` files in `journal/` and every file in `state/`. Returns matching paths as `journal/{filename}` or `state/{filename}`. |
 
 ## Integration with Claude Desktop
 
@@ -227,6 +227,7 @@ cargo build --release
 ## Security Considerations
 
 - The server does not currently verify that `--repo-path` points at a valid GitEHR repository, and does not check `.gitehr/ENCRYPTED` before reading or writing — `gitehr://repo/status` reports the encryption flag, but no tool or resource handler refuses to operate on an encrypted repository. Point the server only at repositories you trust.
+- File paths in resource URIs (`journal/{filename}`, `state/{filename}`) and in tool arguments (`update_state`'s `filename`) are not sanitised: a value containing `/` or `..` is resolved relative to the repository, so the server can read (and, with `update_state`, write) files outside the repository. Any client with access to this server can therefore reach arbitrary files writable by the process. This will be addressed in a future release — until then, expose the server only to fully trusted clients.
 - All operations are logged to stderr via `RUST_LOG` (future: audit entries in journal — see [Limitations](#limitations-current-implementation))
 - Runs with the same file permissions as the user running the command
 
@@ -246,6 +247,7 @@ This will show all MCP protocol messages in stderr.
 - **No prompts**: Prompt templates not yet implemented
 - **No authentication**: Stdio mode assumes local trust
 - **No encryption handling**: Server neither decrypts encrypted repos nor refuses to operate on them (see [Security Considerations](#security-considerations))
+- **No path sanitisation**: Resource and tool paths can traverse outside the repository (see [Security Considerations](#security-considerations))
 - **No audit logging**: MCP operations not yet recorded in journal
 
 These will be addressed in future releases.
