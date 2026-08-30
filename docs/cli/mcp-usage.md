@@ -227,7 +227,7 @@ cargo build --release
 ## Security Considerations
 
 - Filenames in resource URIs (`journal/{filename}`, `state/{filename}`) and in the `update_state` tool are validated to a single bare path component, so `../` traversal outside the repository is rejected.
-- The server does not currently verify that `--repo-path` points at a valid GitEHR repository, and does not check `.gitehr/ENCRYPTED` before reading or writing — `gitehr://repo/status` reports the encryption flag, but no tool or resource handler refuses to operate on an encrypted repository. Point the server only at repositories you trust.
+- `gitehr mcp serve` refuses to start unless `--repo-path` (or the current directory) contains a `.gitehr` directory, and refuses to start against a repository marked `.gitehr/ENCRYPTED`, since encrypted-repository support does not exist yet. Point the server only at repositories you trust.
 - File paths in resource URIs (`journal/{filename}`, `state/{filename}`) and in tool arguments (`update_state`'s `filename`) are not sanitised: a value containing `/` or `..` is resolved relative to the repository, so the server can read (and, with `update_state`, write) files outside the repository. Any client with access to this server can therefore reach arbitrary files writable by the process. This will be addressed in a future release — until then, expose the server only to fully trusted clients.
 - All operations are logged to stderr via `RUST_LOG` (future: audit entries in journal — see [Limitations](#limitations-current-implementation))
 - Runs with the same file permissions as the user running the command
