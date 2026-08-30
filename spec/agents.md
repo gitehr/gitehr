@@ -34,3 +34,14 @@
 
 - All CLI commands should have unit tests.
 - Typical GitEHR workflows should have integration tests.
+
+## Overnight agents - task queue
+
+When an agent session is left to pick up "suitable" work (e.g. overnight runs), start from these GitHub issues, in this order. Each is self-contained, has an existing proven pattern or spec to follow, and needs no product decisions:
+
+1. **#84 - Complete the typed-state primitives: medications, immunisations, family history.** Follow the shipped `allergies`/`vaccinations` typed-state pattern exactly (typed state file, subcommands, journal entry per mutation, integration tests). FHIR mappings are in the issue. Update `docs/cli/` and `spec/commands/` to match, and tick the corresponding part of R61/R84 on commit.
+2. **#83 - Problem/condition list.** Design sketch already in `spec/problem-condition-list.md`; same typed-state shape plus a lifecycle (active/inactive/resolved/entered-in-error).
+
+Do NOT start these without Marcus: #86 (provenance - needs evidence-level vocabulary decisions), #88/#87 (depend on #85 primitives), #94 (external collaborator mid-experiment), #29 (awaiting the typed-error decision), #63/#81 (awaiting Marcus close/reply). #149 and #62 are ready to close if still open.
+
+Rules of engagement for such runs: commit straight to main per repo convention, `s/lint` + `s/test` green before every push, conventional commits, and never claim a file was reviewed unless its contents actually arrived in your tool results (see memory: ACP tool results unreliable - trust `git diff` over narration).
