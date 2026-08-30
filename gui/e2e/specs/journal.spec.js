@@ -64,9 +64,15 @@ describe('GitEHR Store and Record View', () => {
       const textarea = await $('textarea[placeholder*="new journal entry"]');
       await textarea.waitForDisplayed({ timeout: 5000 });
       await textarea.setValue('E2E test entry from WebDriverIO');
+      await browser.waitUntil(
+        async () => await (await $('button*=Add')).isEnabled(),
+        { timeout: 5000, timeoutMsg: 'Add button should become enabled' }
+      );
 
       const addButton = await $('button*=Add');
-      await addButton.click();
+      // Under xvfb the point-click is occasionally intercepted by the sticky
+      // header; a DOM click is deterministic.
+      await browser.execute((el) => el.click(), addButton);
 
       const newEntry = await $('div*=E2E test entry from WebDriverIO');
       await newEntry.waitForDisplayed({ timeout: 15000 });
