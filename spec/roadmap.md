@@ -23,7 +23,7 @@ Legend: `[x]` done, `[~]` in progress, `[ ]` not started. This roadmap lists out
 
 ## GUI and TUI
 
-- [ ] **R23 - Restore GUI end-to-end coverage and keep it green in CI.**
+- [x] **R23 - Restore GUI end-to-end coverage and keep it green in CI.** New `gui-e2e` CI job (`.github/workflows/ci.yml`) runs both suites under xvfb on WebKitGTK; harness repaired (fixture-file handoff because local-runner workers are separate processes, config quarantine against the developer's own store, typed-state seeding, correct repo-relative CLI paths) and specs rewritten for the shipped UI. PR #150/#148 lineage; kept green on CI 2026-08-30.
 - [ ] **R24 - Build the planned terminal user interface:** start with the smallest useful record browsing, journal, state, and status workflows (see [`gui/gui.md`](gui/gui.md) and [`../docs/tui/tui.md`](../docs/tui/tui.md)).
 - [ ] **R63 - Complete the five-screen clinical GUI MVP:** deliver the record selector, overview, timeline, SNOMED-coded encounter form, and typed current-state workflows described in [`DESIGN.md`](DESIGN.md).
 - [ ] **R64 - Add the multi-Store GUI experience:** provide a Store chooser and switcher, recent local Stores and labels, launch-context handling, and unsaved-draft protection (ADR-0006).
