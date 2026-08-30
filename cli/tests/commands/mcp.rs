@@ -97,8 +97,17 @@ fn mcp_resources_read_works_with_explicit_repo_path() {
 
 #[test]
 fn mcp_serve_initialize_responds_on_stdout_only() {
+    let dir = tempdir().unwrap();
+    std::fs::create_dir(dir.path().join(".gitehr")).unwrap();
+
     let mut child = gitehr()
-        .args(["mcp", "serve", "--stdio"])
+        .args([
+            "mcp",
+            "serve",
+            "--stdio",
+            "--repo-path",
+            dir.path().to_str().unwrap(),
+        ])
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
@@ -133,5 +142,53 @@ fn mcp_serve_initialize_responds_on_stdout_only() {
     assert!(
         stderr.contains("Starting MCP server on stdio"),
         "tracing should go to stderr; got {stderr:?}"
+    );
+}
+
+#[test]
+fn mcp_serve_refuses_non_repository_path() {
+    let dir = tempdir().unwrap();
+
+    let out = gitehr()
+        .args([
+            "mcp",
+            "serve",
+            "--stdio",
+            "--repo-path",
+            dir.path().to_str().unwrap(),
+        ])
+        .output()
+        .unwrap();
+
+    assert!(!out.status.success());
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    assert!(
+        stderr.contains("not a GitEHR repository"),
+        "expected a clear refusal; got {stderr:?}"
+    );
+}
+
+#[test]
+fn mcp_serve_refuses_encrypted_repository() {
+    let dir = tempdir().unwrap();
+    std::fs::create_dir(dir.path().join(".gitehr")).unwrap();
+    std::fs::write(dir.path().join(".gitehr/ENCRYPTED"), "").unwrap();
+
+    let out = gitehr()
+        .args([
+            "mcp",
+            "serve",
+            "--stdio",
+            "--repo-path",
+            dir.path().to_str().unwrap(),
+        ])
+        .output()
+        .unwrap();
+
+    assert!(!out.status.success());
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    assert!(
+        stderr.contains("marked as encrypted"),
+        "expected a clear refusal; got {stderr:?}"
     );
 }

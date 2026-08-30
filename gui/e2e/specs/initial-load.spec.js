@@ -17,7 +17,7 @@ describe('GitEHR GUI', () => {
       const instructions = await $('div*=Select a folder containing');
       await instructions.waitForDisplayed({ timeout: 5000 });
       const text = await instructions.getText();
-      expect(text).toContain('GitEHR repository');
+      expect(text).toContain('GitEHR subject repository');
     });
 
     it('should display the GitEHR logo', async () => {
