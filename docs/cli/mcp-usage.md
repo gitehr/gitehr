@@ -227,7 +227,8 @@ cargo build --release
 ## Security Considerations
 
 - Filenames in resource URIs (`journal/{filename}`, `state/{filename}`) and in the `update_state` tool are validated to a single bare path component, so `../` traversal outside the repository is rejected.
-- `gitehr mcp serve` refuses to start unless `--repo-path` (or the current directory) contains a `.gitehr` directory, and refuses to start against a repository marked `.gitehr/ENCRYPTED`, since encrypted-repository support does not exist yet. Point the server only at repositories you trust.
+- The server does not currently verify that `--repo-path` points at a valid GitEHR repository, and does not check `.gitehr/ENCRYPTED` before reading or writing — `gitehr://repo/status` reports the encryption flag, but no tool or resource handler refuses to operate on an encrypted repository. Point the server only at repositories you trust.
+- File paths in resource URIs (`journal/{filename}`, `state/{filename}`) and in tool arguments (`update_state`'s `filename`) are not sanitised: a value containing `/` or `..` is resolved relative to the repository, so the server can read (and, with `update_state`, write) files outside the repository. Any client with access to this server can therefore reach arbitrary files writable by the process. This will be addressed in a future release — until then, expose the server only to fully trusted clients.
 - All operations are logged to stderr via `RUST_LOG` (future: audit entries in journal — see [Limitations](#limitations-current-implementation))
 - Runs with the same file permissions as the user running the command
 
@@ -246,7 +247,8 @@ This will show all MCP protocol messages in stderr.
 - **Placeholder journal creation**: The `add_journal_entry` tool currently doesn't create real journal entries or commit anything to git (needs integration with the gitehr library; see [API Reference](#tools))
 - **No prompts**: Prompt templates not yet implemented
 - **No authentication**: Stdio mode assumes local trust
-- **No encryption support**: Server refuses to operate on encrypted repos rather than decrypting them (see [Security Considerations](#security-considerations))
+- **No encryption handling**: Server neither decrypts encrypted repos nor refuses to operate on them (see [Security Considerations](#security-considerations))
+- **No path sanitisation**: Resource and tool paths can traverse outside the repository (see [Security Considerations](#security-considerations))
 - **No audit logging**: MCP operations not yet recorded in journal
 
 These will be addressed in future releases.
