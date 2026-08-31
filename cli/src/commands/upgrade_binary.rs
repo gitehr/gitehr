@@ -3,7 +3,9 @@
 
 use anyhow::Result;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+
+use super::upgrade::reject_symlink;
 
 pub fn run() -> Result<()> {
     if !PathBuf::from(".gitehr").exists() {
@@ -29,7 +31,9 @@ pub fn run() -> Result<()> {
     super::upgrade::update_bundled_binary()?;
     println!("  Copied current executable to .gitehr/gitehr");
 
-    fs::write(".gitehr/GITEHR_VERSION", cli_version)?;
+    let version_path = Path::new(".gitehr/GITEHR_VERSION");
+    reject_symlink(version_path)?;
+    fs::write(version_path, cli_version)?;
     println!("  Updated version file to {}", cli_version);
 
     println!();
