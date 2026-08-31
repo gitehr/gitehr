@@ -57,3 +57,13 @@ updates:
         update-types:
           - "minor"
           - "patch"
+    # The Rust crates in gui/src-tauri are =-pinned (tauri 2.10.1,
+    # tauri-plugin-dialog 2.6.0, tauri-plugin-opener 2.5.3); tauri-cli's
+    # version-mismatch check fails if the npm side moves ahead of them
+    # (see tauri-cli's check and the e2e CI history). Ignore these until
+    # the Rust side deliberately moves to the next minor line.
+    ignore:
+      - dependency-name: "@tauri-apps/api"
+      - dependency-name: "@tauri-apps/plugin-dialog"
+      - dependency-name: "@tauri-apps/plugin-opener"
+      - dependency-name: "@tauri-apps/cli"
