@@ -246,3 +246,33 @@ fn test_archive_roundtrip() -> Result<()> {
 
     Ok(())
 }
+
+#[cfg(unix)]
+#[test]
+#[serial]
+fn test_create_archive_does_not_follow_symlinks() -> Result<()> {
+    use std::os::unix::fs::symlink;
+
+    let _temp_dir = setup();
+
+    let secret_dir = tempdir()?;
+    let secret_path = secret_dir.path().join("secret.txt");
+    fs::write(&secret_path, "top secret contents")?;
+
+    // A hostile repo could ship a symlink in place of a real journal file,
+    // pointing anywhere on the filesystem the victim can read.
+    symlink(&secret_path, "journal/linked.md")?;
+
+    create_transport_archive(Some("test.tar.gz"), false)?;
+
+    let extract_dir = tempdir()?;
+    extract_transport_archive("test.tar.gz", extract_dir.path().to_str())?;
+
+    let extracted_link_target = extract_dir.path().join("journal/linked.md");
+    assert!(
+        !extracted_link_target.exists(),
+        "Symlink target should not be dereferenced into the archive"
+    );
+
+    Ok(())
+}

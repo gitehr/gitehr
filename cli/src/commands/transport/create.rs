@@ -40,7 +40,12 @@ Re-run without --encrypt to create an unencrypted archive."
         if path.exists() {
             for entry in WalkDir::new(&path).into_iter().filter_map(|e| e.ok()) {
                 let entry_path = entry.path();
-                if entry_path.is_file() {
+                // Use the WalkDir-cached file type (symlink_metadata), not
+                // entry_path.is_file() (fs::metadata), which follows symlinks.
+                // A symlink planted in the repo (e.g. by a hostile contributor
+                // or a received/cloned repo) must not be dereferenced here, or
+                // `transport create` becomes an arbitrary-file-read primitive.
+                if entry.file_type().is_file() {
                     let mut file = File::open(entry_path)?;
                     let mut contents = Vec::new();
                     file.read_to_end(&mut contents)?;

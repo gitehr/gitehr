@@ -254,3 +254,65 @@ fn test_upgrade_repository_journal_entry_contains_version_info() -> Result<()> {
 
     Ok(())
 }
+
+#[cfg(unix)]
+#[test]
+#[serial]
+fn test_upgrade_repository_refuses_symlinked_version_file() -> Result<()> {
+    use std::os::unix::fs::symlink;
+
+    let _temp_dir = setup();
+
+    initialise()?;
+    fs::remove_file(".gitehr/GITEHR_VERSION")?;
+
+    let secret_dir = tempdir()?;
+    let secret_path = secret_dir.path().join("secret.txt");
+    fs::write(&secret_path, "top secret contents")?;
+    symlink(&secret_path, ".gitehr/GITEHR_VERSION")?;
+
+    let result = upgrade_repository();
+    assert!(
+        result.is_err(),
+        "Should refuse to read/write through a symlinked version file"
+    );
+
+    let secret_contents = fs::read_to_string(&secret_path)?;
+    assert_eq!(
+        secret_contents, "top secret contents",
+        "Symlink target must not be overwritten"
+    );
+
+    Ok(())
+}
+
+#[cfg(unix)]
+#[test]
+#[serial]
+fn test_upgrade_binary_refuses_symlinked_destination() -> Result<()> {
+    use std::os::unix::fs::symlink;
+
+    let _temp_dir = setup();
+
+    initialise()?;
+    fs::remove_file(".gitehr/gitehr")?;
+
+    let secret_dir = tempdir()?;
+    let secret_path = secret_dir.path().join("secret-binary");
+    fs::write(&secret_path, "not a real binary")?;
+    symlink(&secret_path, ".gitehr/gitehr")?;
+
+    let result = upgrade_binary();
+    assert!(
+        result.is_err(),
+        "Should refuse to copy over a symlinked bundled-binary path"
+    );
+
+    let secret_contents = fs::read_to_string(&secret_path)?;
+    assert_eq!(
+        secret_contents, "not a real binary",
+        "Symlink target must not be overwritten"
+    );
+
+    Ok(())
+}
