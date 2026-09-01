@@ -295,9 +295,16 @@ impl ResourceHandler {
         let root_dir = self.repo_path.join(root);
         let mut entries = vec![];
 
+        // Same symlink discipline as transport create (R77): refuse to read
+        // through a symlink planted in the Documents tree. Also skip
+        // symlinked entries when listing, so the listing cannot advertise a
+        // link that the item read will refuse.
         if root_dir.exists() {
             for entry in std::fs::read_dir(&root_dir)? {
                 let entry = entry?;
+                if entry.file_type().map(|t| t.is_symlink()).unwrap_or(true) {
+                    continue;
+                }
                 if let Some(name) = entry.file_name().to_str()
                     && name != "README.md"
                 {
@@ -347,6 +354,20 @@ impl ResourceHandler {
 
         if !path.is_file() {
             return Err(anyhow::anyhow!("Document not found: {}/{}", root, name));
+        }
+
+        // Same symlink discipline as transport create (R77): Documents are
+        // repo-local content, and a symlink planted in a received or cloned
+        // repo must not become an arbitrary-file-read through the MCP
+        // surface. Regular files only; symlinks are refused.
+        if std::fs::symlink_metadata(&path)
+            .map(|m| m.file_type().is_symlink())
+            .unwrap_or(false)
+        {
+            return Err(anyhow::anyhow!(
+                "Refusing to read '{}': it is a symlink, which could point outside the repository.",
+                path.display()
+            ));
         }
 
         let bytes = std::fs::read(&path)?;
