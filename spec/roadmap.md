@@ -99,7 +99,7 @@ Findings from a bug/security review; each item records the issue and remediation
 These standards are important but deliberately sequenced after the core patient-owned record, acquisition, GUI, and safety work needed for the proof of concept.
 
 - [ ] **R9 - Add the FHIR layout to the template:** add `/fhir/definitions`, `/fhir/resources`, and `/fhir/indexes`, with lifecycle documentation.
-- [ ] **R10 - Add openEHR layout and storage conventions:** add `/openehr/` to the template and document its native storage model.
+- [x] **R10 - Add openEHR layout and storage conventions:** `/openehr/` added to the folder template (`templates/`, `instances/COMPOSITION/`, `instances/EHR/`, `indexes/`) with a README documenting the native storage model and immutable-version conventions from `spec/openehr.md`; the layout ships in every new repo via the template, and transport archives include it. No openEHR commands yet - those are R14/R17+.
 - [ ] **R11 - Decide the FHIR definitions lifecycle:** resolve pinned official definitions versus GitEHR FSH profiles, then specify storage, compilation, journaling, and provenance rules.
 - [ ] **R12 - Download or compile the chosen FHIR definitions:** build tooling for the selected definitions source and place its output in `/fhir/definitions`.
 - [ ] **R13 - Implement Rust FHIR modules:** load definitions and validate resources in `cli/src/fhir/`.

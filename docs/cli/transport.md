@@ -10,7 +10,7 @@ All subcommands require a GitEHR repository.
 gitehr transport create [-o|--output <path>] [--encrypt]
 ```
 
-Creates a `.tar.gz` archive containing `journal/`, `state/`, `imaging/`, `documents/`, and `.gitehr/`.
+Creates a `.tar.gz` archive containing `journal/`, `state/`, `imaging/`, `documents/`, `openehr/`, and `.gitehr/`.
 
 Options:
 

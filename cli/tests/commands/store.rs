@@ -345,3 +345,32 @@ fn store_mpi_path_env_override_is_honoured() -> Result<()> {
     assert!(result.is_ok(), "GITEHR_MPI_PATH should redirect MPI reads");
     Ok(())
 }
+
+#[test]
+#[serial]
+fn store_init_scaffolds_openehr_layout() -> Result<()> {
+    let temp = tempdir().unwrap();
+    std::env::set_current_dir(&temp)?;
+
+    store::init::run(Some("rex"))?;
+
+    let openehr = Path::new("rex/openehr");
+    assert!(
+        openehr.join("README.md").exists(),
+        "openehr README should exist"
+    );
+    assert!(
+        openehr.join("templates").is_dir(),
+        "templates/ should exist"
+    );
+    assert!(
+        openehr.join("instances/COMPOSITION").is_dir(),
+        "instances/COMPOSITION/ should exist"
+    );
+    assert!(
+        openehr.join("instances/EHR").is_dir(),
+        "instances/EHR/ should exist"
+    );
+    assert!(openehr.join("indexes").is_dir(), "indexes/ should exist");
+    Ok(())
+}
