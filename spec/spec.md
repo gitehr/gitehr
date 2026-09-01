@@ -30,6 +30,8 @@ When `gitehr store init` runs, it copies the template from `folder-structure` in
 
 - `/documents` – Non-imaging clinical documents such as reports, correspondence, and lab results (see [folder-structure/documents/README.md](../../folder-structure/documents/README.md)).
 
+- `/openehr` – Native openEHR content: operational templates, versioned reference-model instances, and optional derived indexes (see [folder-structure/openehr/README.md](../../folder-structure/openehr/README.md) and [openehr.md](openehr.md)). Scaffolding and conventions only for now; commands arrive with R14/R17+.
+
 - `/.gitehr` – Internal configuration directory created at init time (template currently empty; see [src/commands/init.rs](../../src/commands/init.rs)).
 
 ---

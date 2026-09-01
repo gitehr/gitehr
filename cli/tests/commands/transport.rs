@@ -276,3 +276,35 @@ fn test_create_archive_does_not_follow_symlinks() -> Result<()> {
 
     Ok(())
 }
+
+#[test]
+#[serial]
+fn test_create_archive_includes_openehr_layout() -> Result<()> {
+    let _temp_dir = setup();
+
+    fs::create_dir_all("openehr/instances/COMPOSITION")?;
+    fs::write("openehr/README.md", "openEHR layout")?;
+    fs::write(
+        "openehr/instances/COMPOSITION/550e8400-e29b-41d4-a716-446655440000.json",
+        "{}",
+    )?;
+
+    create_transport_archive(Some("test.tar.gz"), false)?;
+
+    let extract_dir = tempdir()?;
+    extract_transport_archive("test.tar.gz", extract_dir.path().to_str())?;
+
+    assert!(
+        extract_dir.path().join("openehr/README.md").exists(),
+        "openehr layout should be included in transport archives"
+    );
+    assert!(
+        extract_dir
+            .path()
+            .join("openehr/instances/COMPOSITION/550e8400-e29b-41d4-a716-446655440000.json")
+            .exists(),
+        "nested openEHR instance files should be included"
+    );
+
+    Ok(())
+}

@@ -33,7 +33,14 @@ Re-run without --encrypt to create an unencrypted archive."
     let encoder = flate2::write::GzEncoder::new(tar_file, flate2::Compression::default());
     let mut archive = tar::Builder::new(encoder);
 
-    let dirs_to_include = ["journal", "state", "imaging", "documents", ".gitehr"];
+    let dirs_to_include = [
+        "journal",
+        "state",
+        "imaging",
+        "documents",
+        "openehr",
+        ".gitehr",
+    ];
 
     for dir in &dirs_to_include {
         let path = PathBuf::from(dir);
