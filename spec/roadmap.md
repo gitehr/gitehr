@@ -41,7 +41,7 @@ The calculator engine lives in [clincalc](https://github.com/pacharanero/clincal
 ## Model Context Protocol
 
 - [ ] **R28 - Implement full MCP JSON-RPC transports:** support stdio, HTTP, SSE, Unix sockets, and Windows named pipes.
-- [ ] **R29 - Add MCP resource handlers:** journal, state, imaging, documents, and status.
+- [x] **R29 - Add MCP resource handlers:** journal, state, imaging, documents, and status. Journal/state/status shipped earlier; `documents` and `imaging` added in `cli/src/commands/mcp/server_impl/resources.rs` - each root lists its Documents via `gitehr://repo/{documents,imaging}`, and an individual Document reads via `gitehr://repo/{documents,imaging}/<name>` as a base64 blob (MIME type guessed from extension), or, for a directory Document (a multi-file study), returns its `manifest.json` as JSON text. Filenames are validated through the existing `safe_filename` traversal guard.
 - [ ] **R30 - Add MCP tool handlers:** journal/state mutations, search, repository-policy checks, and clinical calculation through clincalc.
 - [ ] **R31 - Add MCP prompt templates:** SOAP note, discharge summary, referral, consultation, and medication review.
 - [ ] **R32 - Add MCP authentication:** start with `.gitehr/mcp-tokens.json`, then define OAuth2 and mTLS options for remote deployments.
