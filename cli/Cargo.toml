@@ -42,6 +42,7 @@ which = "8.0"
 walkdir = "2.5"
 tar = "0.4"
 flate2 = "1.0"
+base64 = "0.22"
 
 # Internal MCP server for `gitehr mcp serve`. It is part of the gitehr binary,
 # not a separately released workspace package.
