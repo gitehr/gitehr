@@ -5,7 +5,10 @@ use anyhow::Result;
 use chrono::{DateTime, Utc};
 use clap::Subcommand;
 use serde::{Deserialize, Serialize};
-use std::{fs, path::PathBuf};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+};
 use uuid::Uuid;
 
 use super::{contributor, git};
@@ -252,9 +255,33 @@ pub fn create_journal_entry_with_documents(
     content: &str,
     documents: Vec<DocumentRef>,
 ) -> Result<()> {
+    let filename = create_journal_entry_at(
+        Path::new("."),
+        content,
+        documents,
+        contributor::get_current_contributor(),
+    )?;
+    println!("Created journal entry: {}", filename);
+    Ok(())
+}
+
+/// Create a journal entry rooted at `repo_path`, without depending on the
+/// process's current directory (the MCP server may be given a `--repo-path`
+/// that differs from cwd). Writes the entry, stages it, and commits it, then
+/// returns the entry's repo-relative filename (e.g. `journal/<name>.md`).
+///
+/// Unlike [`create_journal_entry_with_documents`], this does not print to
+/// stdout: an MCP server speaking JSON-RPC over stdio would have any stray
+/// stdout output corrupt the protocol stream.
+pub fn create_journal_entry_at(
+    repo_path: &Path,
+    content: &str,
+    documents: Vec<DocumentRef>,
+    author: Option<String>,
+) -> Result<String> {
     let entry = JournalEntry {
         timestamp: Utc::now(),
-        author: contributor::get_current_contributor(),
+        author,
         documents: if documents.is_empty() {
             None
         } else {
@@ -262,7 +289,7 @@ pub fn create_journal_entry_with_documents(
         },
     };
 
-    let filename = format!(
+    let relative_filename = format!(
         "journal/{}-{}.md",
         entry.timestamp.format("%Y%m%dT%H%M%S%.3fZ"),
         Uuid::new_v4()
@@ -271,12 +298,11 @@ pub fn create_journal_entry_with_documents(
     let yaml = serde_yaml_ng::to_string(&entry)?;
     let file_content = format!("---\n{}---\n\n{}", yaml, content);
 
-    fs::write(&filename, file_content)?;
-    println!("Created journal entry: {}", filename);
+    fs::write(repo_path.join(&relative_filename), file_content)?;
 
-    git::git_add(&filename)?;
-    let commit_message = format!("Journal entry: {}", filename);
-    git::git_commit(&commit_message)?;
+    git::git_add_in(repo_path, &relative_filename)?;
+    let commit_message = format!("Journal entry: {}", relative_filename);
+    git::git_commit_in(repo_path, &commit_message)?;
 
-    Ok(())
+    Ok(relative_filename)
 }

@@ -118,7 +118,8 @@ Returns available tools:
   "params": {
     "name": "add_journal_entry",
     "arguments": {
-      "content": "## Consultation\\n\\nPatient reports improvement in symptoms..."
+      "content": "## Consultation\\n\\nPatient reports improvement in symptoms...",
+      "author": "dr-jones"
     }
   }
 }
@@ -177,7 +178,7 @@ Only the three top-level URIs are returned by `resources/list`; the `{filename}`
 
 | Tool | Parameters | Behaviour |
 | --- | --- | --- |
-| `add_journal_entry` | `content` (string, required) — Markdown body | **Placeholder only.** Validates that `journal/` exists and returns a description of what *would* be written; it does not create a file or commit anything. See [Limitations](#limitations-current-implementation). |
+| `add_journal_entry` | `content` (string, required) — Markdown body; `author` (string, optional) — contributor ID, defaults to the target repository's active contributor | Writes `journal/{timestamp}-{uuid}.md` with proper YAML front matter, stages it, and commits it — the same entry format `gitehr journal add` produces. Rejects empty/whitespace-only content. |
 | `update_state` | `filename` (string, required), `content` (string, required) | Writes `content` verbatim to `state/{filename}`, creating `state/` if needed. Overwrites any existing file at that path. No journal entry or commit is recorded. |
 | `search_repository` | `query` (string, required) | Case-insensitive substring search across `.md` files in `journal/` and every file in `state/`. Returns matching paths as `journal/{filename}` or `state/{filename}`. |
 
@@ -243,7 +244,6 @@ This will show all MCP protocol messages in stderr.
 
 ## Limitations (Current Implementation)
 
-- **Placeholder journal creation**: The `add_journal_entry` tool currently doesn't create real journal entries or commit anything to git (needs integration with the gitehr library; see [API Reference](#tools))
 - **No prompts**: Prompt templates not yet implemented
 - **No authentication**: Stdio mode assumes local trust
 - **No encryption support**: Server refuses to operate on encrypted repos rather than decrypting them (see [Security Considerations](#security-considerations))
