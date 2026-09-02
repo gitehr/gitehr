@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
 use std::io::{self, Write};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -60,6 +60,16 @@ pub fn get_current_contributor() -> Option<String> {
     load_config()
         .ok()
         .and_then(|config| config.current_contributor)
+}
+
+/// Get the currently active contributor within `repo_path`, without relying
+/// on the process's current directory. Used by callers (like the MCP
+/// server) that operate on a repository that may differ from cwd.
+pub fn get_current_contributor_at(repo_path: &Path) -> Option<String> {
+    let config_path = repo_path.join(".gitehr/contributors.json");
+    let content = fs::read_to_string(config_path).ok()?;
+    let config: ContributorConfig = serde_json::from_str(&content).ok()?;
+    config.current_contributor
 }
 
 pub fn add_contributor(

@@ -8,6 +8,8 @@
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
+use crate::commands::{contributor, journal};
+
 /// MCP Tool definition
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Tool {
@@ -60,6 +62,10 @@ impl ToolHandler {
                         "content": {
                             "type": "string",
                             "description": "Markdown content of the journal entry"
+                        },
+                        "author": {
+                            "type": "string",
+                            "description": "Optional contributor ID (defaults to the active contributor)"
                         }
                     },
                     "required": ["content"]
@@ -121,32 +127,28 @@ impl ToolHandler {
             .get("content")
             .and_then(|v| v.as_str())
             .ok_or_else(|| anyhow::anyhow!("Missing 'content' parameter"))?;
+        let content = content.trim();
+        if content.is_empty() {
+            return Err(anyhow::anyhow!("'content' must not be empty"));
+        }
 
-        // This is a placeholder - in reality we would use the gitehr library
-        // For now, just validate that the journal directory exists
         let journal_dir = self.repo_path.join("journal");
         if !journal_dir.exists() {
             return Err(anyhow::anyhow!("Journal directory not found"));
         }
 
-        // Generate a placeholder filename
-        let timestamp = chrono::Utc::now().format("%Y%m%dT%H%M%S%.3fZ");
-        let uuid = "placeholder-uuid";
-        let filename = format!("{}-{}.md", timestamp, uuid);
+        let author = arguments
+            .get("author")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string())
+            .or_else(|| contributor::get_current_contributor_at(&self.repo_path));
 
-        // In a real implementation, we would:
-        // 1. Get the latest journal entry hash
-        // 2. Create the new entry with proper YAML front matter
-        // 3. Commit to git
-        // For now, return a success message
+        let filename =
+            journal::create_journal_entry_at(&self.repo_path, content, Vec::new(), author)?;
 
         Ok(ToolResult {
             content: vec![ToolContent::Text {
-                text: format!(
-                    "Would create journal entry: journal/{}\nContent length: {} characters\n\nNote: Full journal creation will be implemented when gitehr library is integrated.",
-                    filename,
-                    content.len()
-                ),
+                text: format!("Created journal entry: {}", filename),
             }],
             is_error: Some(false),
         })
@@ -280,6 +282,116 @@ mod tests {
                 "expected rejection for {filename:?}"
             );
         }
+    }
+
+    fn init_git_repo(dir: &std::path::Path) {
+        for args in [
+            vec!["init"],
+            vec!["config", "user.name", "Test User"],
+            vec!["config", "user.email", "test@example.com"],
+            vec!["config", "commit.gpgsign", "false"],
+        ] {
+            std::process::Command::new("git")
+                .current_dir(dir)
+                .args(&args)
+                .output()
+                .unwrap();
+        }
+    }
+
+    #[test]
+    fn test_add_journal_entry_rejects_missing_content() {
+        let handler = ToolHandler::new(PathBuf::from("."));
+        let err = handler
+            .call_tool("add_journal_entry", serde_json::json!({}))
+            .unwrap_err();
+        assert!(err.to_string().contains("Missing 'content'"));
+    }
+
+    #[test]
+    fn test_add_journal_entry_rejects_empty_content() {
+        let handler = ToolHandler::new(PathBuf::from("."));
+        let err = handler
+            .call_tool("add_journal_entry", serde_json::json!({"content": "   "}))
+            .unwrap_err();
+        assert!(err.to_string().contains("must not be empty"));
+    }
+
+    #[test]
+    fn test_add_journal_entry_writes_and_commits_at_repo_path() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::create_dir(dir.path().join("journal")).unwrap();
+        init_git_repo(dir.path());
+
+        let handler = ToolHandler::new(dir.path().to_path_buf());
+        let result = handler
+            .call_tool(
+                "add_journal_entry",
+                serde_json::json!({"content": "Test entry"}),
+            )
+            .unwrap();
+
+        let ToolContent::Text { text } = &result.content[0];
+        assert!(text.starts_with("Created journal entry: journal/"));
+
+        let entries: Vec<_> = std::fs::read_dir(dir.path().join("journal"))
+            .unwrap()
+            .collect();
+        assert_eq!(entries.len(), 1, "expected one journal entry on disk");
+
+        let log = std::process::Command::new("git")
+            .current_dir(dir.path())
+            .args(["log", "--oneline"])
+            .output()
+            .unwrap();
+        assert_eq!(
+            String::from_utf8_lossy(&log.stdout).lines().count(),
+            1,
+            "expected the entry to be committed"
+        );
+    }
+
+    #[test]
+    fn test_add_journal_entry_defaults_author_from_repo_contributors() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::create_dir(dir.path().join("journal")).unwrap();
+        std::fs::create_dir(dir.path().join(".gitehr")).unwrap();
+        std::fs::write(
+            dir.path().join(".gitehr/contributors.json"),
+            r#"{"contributors":{},"current_contributor":"dr-jones"}"#,
+        )
+        .unwrap();
+        init_git_repo(dir.path());
+
+        let handler = ToolHandler::new(dir.path().to_path_buf());
+        handler
+            .call_tool(
+                "add_journal_entry",
+                serde_json::json!({"content": "Test entry"}),
+            )
+            .unwrap();
+
+        let entry_path = std::fs::read_dir(dir.path().join("journal"))
+            .unwrap()
+            .next()
+            .unwrap()
+            .unwrap()
+            .path();
+        let content = std::fs::read_to_string(entry_path).unwrap();
+        assert!(content.contains("dr-jones"));
+    }
+
+    #[test]
+    fn test_add_journal_entry_missing_journal_dir_is_an_error() {
+        let dir = tempfile::tempdir().unwrap();
+        let handler = ToolHandler::new(dir.path().to_path_buf());
+        let err = handler
+            .call_tool(
+                "add_journal_entry",
+                serde_json::json!({"content": "Test entry"}),
+            )
+            .unwrap_err();
+        assert!(err.to_string().contains("Journal directory not found"));
     }
 
     #[test]
