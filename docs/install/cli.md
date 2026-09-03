@@ -19,7 +19,7 @@ Install a released `gitehr` binary for your operating system. Every release incl
     curl -LsSf https://github.com/gitehr/gitehr/releases/latest/download/gitehr-installer.sh | sh
     ```
 
-    **Standalone archive** - download an archive, extract it, then place `gitehr` on your `PATH`:
+    **Standalone archive** - download an archive, extract it, then place `gitehr` on your `PATH` (releases are not code-signed yet, so Gatekeeper may warn on first run; verify the [SHA256 checksums](https://github.com/gitehr/gitehr/releases/latest/download/sha256.sum)):
 
     [:material-download: Apple Silicon](https://github.com/gitehr/gitehr/releases/latest/download/gitehr-aarch64-apple-darwin.tar.xz){ .md-button }
     [:material-download: Intel](https://github.com/gitehr/gitehr/releases/latest/download/gitehr-x86_64-apple-darwin.tar.xz){ .md-button }
@@ -32,6 +32,18 @@ Install a released `gitehr` binary for your operating system. Every release incl
     brew tap pacharanero/tap
     brew install gitehr
     ```
+
+    **Arch Linux (AUR)** - a `PKGBUILD` is maintained in the repository's
+    [`dist/`](https://github.com/gitehr/gitehr/tree/main/dist) directory
+    (version and checksums refreshed from each release); use your favourite
+    AUR helper once published:
+
+    ```sh
+    yay -S gitehr
+    ```
+
+    Debian/Ubuntu `.deb` packages through an APT repository are planned
+    (roadmap R54) and need release signing infrastructure first.
 
     **Shell installer** - detects your architecture, verifies the release checksum, and installs to `~/.local/bin`:
 
@@ -46,7 +58,14 @@ Install a released `gitehr` binary for your operating system. Every release incl
 
 === ":material-microsoft-windows: Windows"
 
-    **MSI installer** (recommended)
+    **Scoop**
+
+    ```powershell
+    scoop bucket add pacharanero https://github.com/pacharanero/scoop
+    scoop install gitehr
+    ```
+
+    **MSI installer** (recommended; currently unsigned)
 
     [:material-download: Download the Windows installer](https://github.com/gitehr/gitehr/releases/latest/download/gitehr-x86_64-pc-windows-msvc.msi){ .md-button }
 
@@ -56,7 +75,7 @@ Install a released `gitehr` binary for your operating system. Every release incl
     irm https://github.com/gitehr/gitehr/releases/latest/download/gitehr-installer.ps1 | iex
     ```
 
-    **Standalone executable** - download the ZIP archive, extract `gitehr.exe`, and place it in a folder on your `PATH`:
+    **Standalone executable** - download the ZIP archive, extract `gitehr.exe`, and place it in a folder on your `PATH` (releases are not code-signed yet, so SmartScreen will warn; verify the [SHA256 checksums](https://github.com/gitehr/gitehr/releases/latest/download/sha256.sum)):
 
     [:material-download: Download the Windows ZIP](https://github.com/gitehr/gitehr/releases/latest/download/gitehr-x86_64-pc-windows-msvc.zip){ .md-button }
 

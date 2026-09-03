@@ -43,11 +43,17 @@ __pycache__/
 
 # Python packaging/build artifacts
 build/
-dist/
+/dist/
 *.egg-info/
 .eggs/
 pip-wheel-metadata/
 share/python-wheels/
+
+# NOTE: dist/ at the repo root is a TRACKED directory of packaging artefacts
+# (PKGBUILD etc.), not build output; the root-anchored /dist/ above would
+# ignore it, so it is negated here. Build outputs under python/ land in
+# python/dist/ which stays ignored.
+!dist/
 
 # Python test and coverage artifacts
 htmlcov/
