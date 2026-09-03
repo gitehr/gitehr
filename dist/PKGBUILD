@@ -1,0 +1,22 @@
+# Maintainer: Marcus Baw <marcus@bawmedical.co.uk>
+# pkgver/pkgrel/urls updated at release time; hashes come from the release
+# sha256.sum (single source of truth).
+
+pkgname=gitehr
+pkgver=0.3.6
+pkgrel=1
+pkgdesc="A Git-based Electronic Health Record system - patient-owned, local-first, plain files and git"
+arch=('x86_64' 'aarch64')
+url="https://gitehr.org"
+license=('AGPL-3.0-or-later')
+depends=('git' 'glibc')
+provides=('gitehr')
+conflicts=('gitehr')
+source_x86_64=("https://github.com/gitehr/gitehr/releases/download/v$pkgver/gitehr-x86_64-unknown-linux-gnu.tar.xz")
+source_aarch64=("https://github.com/gitehr/gitehr/releases/download/v$pkgver/gitehr-aarch64-unknown-linux-gnu.tar.xz")
+sha256sums_x86_64=('SKIP')  # replaced from the release sha256.sum
+sha256sums_aarch64=('SKIP')
+
+package() {
+    install -Dm755 gitehr "${pkgdir}/usr/bin/gitehr"
+}

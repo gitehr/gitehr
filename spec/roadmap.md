@@ -73,10 +73,10 @@ The calculator engine lives in [clincalc](https://github.com/pacharanero/clincal
 
 ## Distribution
 
-- [ ] **R54 - Publish native Linux packages:** distribute `.deb` packages through an APT repository and `.rpm` packages through an RPM repository.
-- [ ] **R55 - Publish an Arch Linux package:** maintain an AUR package for installation through `pacman` helpers.
+- [~] **R54 - Publish native Linux packages:** blocked on infrastructure decisions - an APT repository needs hosting plus GPG signing keys for `Release.gpg`/`InRelease`; the same signing step can also produce `.rpm`s. Decide hosting (GitHub Pages vs the existing server) and generate a signing key, then a small release-workflow job can publish both.
+- [~] **R55 - Publish an Arch Linux package:** a `PKGBUILD` for the AUR is maintained in `dist/PKGBUILD` (version/checksums refreshed from each release's `sha256.sum`); publishing to the AUR is blocked on creating an AUR account and pushing the package.
 - [ ] **R56 - Publish native desktop installers:** distribute signed Windows `.exe` and macOS `.dmg` installers.
-- [ ] **R57 - Publish a Scoop manifest:** maintain a Scoop manifest from verified release checksums alongside the existing Homebrew formula.
+- [x] **R57 - Publish a Scoop manifest:** [pacharanero/scoop](https://github.com/pacharanero/scoop) `bucket/gitehr.json` - `checkver`/`autoupdate` pull `gitehr-x86_64-pc-windows-msvc.zip` from releases with hashes read from the release `sha256.sum` (single source of truth), the same pattern as `bucket/sct.json`.
 
 ## Code Review Findings (2026-08-29)
 
