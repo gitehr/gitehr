@@ -10,6 +10,8 @@ use std::path::PathBuf;
 
 use crate::commands::{contributor, journal};
 
+use super::audit;
+
 /// MCP Tool definition
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Tool {
@@ -114,12 +116,29 @@ impl ToolHandler {
         name: &str,
         arguments: serde_json::Value,
     ) -> anyhow::Result<ToolResult> {
-        match name {
+        let result = match name {
             "add_journal_entry" => self.add_journal_entry(arguments),
             "update_state" => self.update_state(arguments),
             "search_repository" => self.search_repository(arguments),
-            _ => Err(anyhow::anyhow!("Unknown tool: {}", name)),
+            _ => return Err(anyhow::anyhow!("Unknown tool: {}", name)),
+        };
+
+        // Record a dedicated audit journal entry for every successful call
+        // (R33). Best-effort: never turns a successful tool call into a
+        // failure, and never runs on the error path so a tool call that
+        // fails before touching the repository (e.g. validation errors
+        // against a non-repository path) has nothing to audit.
+        if let Ok(ok_result) = &result {
+            let detail = ok_result
+                .content
+                .iter()
+                .map(|ToolContent::Text { text }| text.as_str())
+                .collect::<Vec<_>>()
+                .join("; ");
+            audit::record_tool_call(&self.repo_path, name, &detail);
         }
+
+        result
     }
 
     fn add_journal_entry(&self, arguments: serde_json::Value) -> anyhow::Result<ToolResult> {
@@ -334,10 +353,24 @@ mod tests {
         let ToolContent::Text { text } = &result.content[0];
         assert!(text.starts_with("Created journal entry: journal/"));
 
+        // One entry for the content itself, one dedicated MCP audit entry (R33).
         let entries: Vec<_> = std::fs::read_dir(dir.path().join("journal"))
             .unwrap()
             .collect();
-        assert_eq!(entries.len(), 1, "expected one journal entry on disk");
+        assert_eq!(
+            entries.len(),
+            2,
+            "expected the journal entry plus its audit entry on disk"
+        );
+        let audit_entries = entries
+            .iter()
+            .filter(|e| {
+                std::fs::read_to_string(e.as_ref().unwrap().path())
+                    .unwrap()
+                    .contains("mcp_audit:")
+            })
+            .count();
+        assert_eq!(audit_entries, 1, "expected exactly one audit entry");
 
         let log = std::process::Command::new("git")
             .current_dir(dir.path())
@@ -346,8 +379,8 @@ mod tests {
             .unwrap();
         assert_eq!(
             String::from_utf8_lossy(&log.stdout).lines().count(),
-            1,
-            "expected the entry to be committed"
+            2,
+            "expected the entry and its audit entry to each be committed"
         );
     }
 
@@ -371,14 +404,15 @@ mod tests {
             )
             .unwrap();
 
-        let entry_path = std::fs::read_dir(dir.path().join("journal"))
+        // Two files now land in journal/: the entry itself and its audit
+        // entry (R33). Find the actual content entry rather than assuming
+        // read_dir order, since the audit entry never mentions "dr-jones".
+        let content_entry = std::fs::read_dir(dir.path().join("journal"))
             .unwrap()
-            .next()
-            .unwrap()
-            .unwrap()
-            .path();
-        let content = std::fs::read_to_string(entry_path).unwrap();
-        assert!(content.contains("dr-jones"));
+            .map(|e| std::fs::read_to_string(e.unwrap().path()).unwrap())
+            .find(|content| !content.contains("mcp_audit:"))
+            .expect("expected a non-audit journal entry");
+        assert!(content_entry.contains("dr-jones"));
     }
 
     #[test]
@@ -392,6 +426,49 @@ mod tests {
             )
             .unwrap_err();
         assert!(err.to_string().contains("Journal directory not found"));
+    }
+
+    #[test]
+    fn test_update_state_writes_an_audit_entry() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::create_dir(dir.path().join("journal")).unwrap();
+        init_git_repo(dir.path());
+
+        let handler = ToolHandler::new(dir.path().to_path_buf());
+        handler
+            .call_tool(
+                "update_state",
+                serde_json::json!({"filename": "problems.md", "content": "x"}),
+            )
+            .unwrap();
+
+        let audit_entries: Vec<_> = std::fs::read_dir(dir.path().join("journal"))
+            .unwrap()
+            .map(|e| std::fs::read_to_string(e.unwrap().path()).unwrap())
+            .filter(|content| content.contains("mcp_audit:"))
+            .collect();
+        assert_eq!(audit_entries.len(), 1);
+        assert!(audit_entries[0].contains("tool: update_state"));
+    }
+
+    #[test]
+    fn test_search_repository_writes_an_audit_entry() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::create_dir(dir.path().join("journal")).unwrap();
+        init_git_repo(dir.path());
+
+        let handler = ToolHandler::new(dir.path().to_path_buf());
+        handler
+            .call_tool("search_repository", serde_json::json!({"query": "x"}))
+            .unwrap();
+
+        let audit_entries: Vec<_> = std::fs::read_dir(dir.path().join("journal"))
+            .unwrap()
+            .map(|e| std::fs::read_to_string(e.unwrap().path()).unwrap())
+            .filter(|content| content.contains("mcp_audit:"))
+            .collect();
+        assert_eq!(audit_entries.len(), 1);
+        assert!(audit_entries[0].contains("tool: search_repository"));
     }
 
     #[test]
