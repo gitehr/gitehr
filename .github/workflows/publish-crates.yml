@@ -41,11 +41,10 @@ jobs:
           persist-credentials: false
 
       - name: Install Rust stable
-        # Pinned to `master` (durable), not `stable` (force-pushed per Rust
-        # release - orphans SHAs); see the note in ci.yml.
-        uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # v1
-        with:
-          toolchain: stable
+        # Plain rustup, no third-party action - see the note in ci.yml.
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
 
       - name: Build release binary
         run: cargo build --release --locked

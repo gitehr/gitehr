@@ -31,15 +31,16 @@ jobs:
           persist-credentials: false
 
       - name: Install Rust toolchain (stable, with rustfmt and clippy)
-        # Pinned to `master`, not `stable`: dtolnay force-pushes the
-        # stable/nightly/x.y.z branches each Rust release, which orphans any
-        # SHA pinned there (zizmor's impostor-commit check). master's
-        # action.yml only changes for real action changes, so pinning it plus
-        # an explicit `toolchain:` input is the durable form.
-        uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # v1
-        with:
-          toolchain: stable
-          components: rustfmt, clippy
+        # Plain rustup, no third-party action: GitHub runners ship rustup,
+        # and the runner's rustup version never affects which Rust the code
+        # compiles with. This removes the recurring dtolnay/rust-toolchain
+        # pin-rot problem (version branches are force-pushed at every Rust
+        # release; the action's mutable v1 tag kept tripping zizmor's
+        # ref-version-mismatch audit) - there is no third-party action
+        # left to pin.
+        run: |
+          rustup toolchain install stable --profile minimal --component rustfmt,clippy
+          rustup default stable
 
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
 
@@ -77,10 +78,11 @@ jobs:
           persist-credentials: false
 
       - name: Install Rust toolchain (stable)
-        # See the durable-pin note in the first toolchain step.
-        uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # v1
-        with:
-          toolchain: stable
+        # See the note on the first toolchain step: plain rustup, no
+        # third-party action.
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
 
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
 
