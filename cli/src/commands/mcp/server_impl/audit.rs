@@ -15,12 +15,11 @@ use serde::Serialize;
 use std::path::Path;
 use uuid::Uuid;
 
-use crate::commands::git;
-
 #[derive(Debug, Serialize)]
 struct AuditFrontMatter {
     timestamp: chrono::DateTime<Utc>,
     author: &'static str,
+    mcp_draft: bool,
     mcp_audit: McpAudit,
 }
 
@@ -45,6 +44,7 @@ fn try_record(repo_path: &Path, tool: &str, detail: &str) -> Result<()> {
     let front = AuditFrontMatter {
         timestamp,
         author: "mcp-server",
+        mcp_draft: true,
         mcp_audit: McpAudit {
             method: "tools/call",
             tool: tool.to_string(),
@@ -65,8 +65,6 @@ fn try_record(repo_path: &Path, tool: &str, detail: &str) -> Result<()> {
     );
 
     std::fs::write(repo_path.join(&relative_filename), file_content)?;
-    git::git_add_in(repo_path, &relative_filename)?;
-    git::git_commit_in(repo_path, &format!("MCP audit: {tool}"))?;
     Ok(())
 }
 
@@ -104,6 +102,10 @@ mod tests {
 
         let content = std::fs::read_to_string(entries[0].as_ref().unwrap().path()).unwrap();
         assert!(content.contains("mcp_audit:"));
+        assert!(
+            content.contains("mcp_draft: true"),
+            "audit trail is also a draft (ADR-0007)"
+        );
         assert!(content.contains("tool: add_journal_entry"));
         assert!(content.contains("result: success"));
         assert!(content.contains("# MCP Audit Log"));
@@ -115,8 +117,8 @@ mod tests {
             .unwrap();
         assert_eq!(
             String::from_utf8_lossy(&log.stdout).lines().count(),
-            1,
-            "expected the audit entry to be committed"
+            0,
+            "the audit draft must not be committed (ADR-0007)"
         );
     }
 

@@ -43,6 +43,30 @@ gitehr journal show LATEST            # body of the most recent entry
 gitehr journal show LATEST^ --raw     # the previous entry, full file
 ```
 
+## gitehr journal drafts
+
+```text
+gitehr journal drafts [--approve <filename>] [--reject <filename>]
+```
+
+Reviews entries authored through MCP (e.g. by an LLM assistant). MCP write
+tools produce **uncommitted drafts** marked `mcp_draft: true` in front matter -
+they are not part of the record until a human approves them
+([ADR-0007](https://github.com/gitehr/gitehr/blob/main/spec/adr/0007-mcp-writes-are-drafts-until-approved.md)).
+
+With no flags, lists pending drafts with author and first line. `--approve`
+strips the draft marker, stages the entry (plus any pending MCP audit-trail
+drafts, so the audit trail travels with the content it describes), and commits
+it - you are the committer. `--reject` deletes the uncommitted draft; the
+record is unchanged (the record only grows, ADR-0002 - a rejected draft never
+entered it).
+
+```bash
+gitehr journal drafts                              # what's pending?
+gitehr journal drafts --approve 20260904T162345.583Z-….md
+gitehr journal drafts --reject 20260904T162345.583Z-….md
+```
+
 ## Entry references
 
 Anywhere an entry is named, you can use a relative reference instead of a full `<timestamp>-<uuid>.md` filename:

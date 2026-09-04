@@ -14,6 +14,7 @@ use uuid::Uuid;
 use super::{contributor, git};
 
 pub mod add;
+pub mod draft;
 pub mod list;
 pub mod show;
 
@@ -44,6 +45,21 @@ pub enum JournalCommands {
         #[arg(long, help = "Print only the frontmatter")]
         metadata: bool,
     },
+    #[command(aliases = ["draft", "review"], about = "Review MCP-authored drafts (ADR-0007): list, approve, or reject")]
+    Drafts {
+        #[arg(
+            long,
+            conflicts_with = "reject",
+            help = "Approve a draft by filename: strips the draft marker, stages, and commits it"
+        )]
+        approve: Option<String>,
+        #[arg(
+            long,
+            conflicts_with = "approve",
+            help = "Reject a draft by filename: deletes the uncommitted file"
+        )]
+        reject: Option<String>,
+    },
 }
 
 pub fn run(command: JournalCommands) -> Result<()> {
@@ -61,6 +77,9 @@ pub fn run(command: JournalCommands) -> Result<()> {
             raw,
             metadata,
         } => show::run(filename, raw, metadata),
+        JournalCommands::Drafts { approve, reject } => {
+            draft::run(Path::new("."), approve.as_deref(), reject.as_deref())
+        }
     }
 }
 
@@ -73,6 +92,11 @@ pub struct JournalEntry {
     pub author: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub documents: Option<Vec<DocumentRef>>,
+    /// True while an entry is a machine-authored draft (ADR-0007): written to
+    /// disk but not committed, pending human approval. Never present on a
+    /// committed entry - approval strips it.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub mcp_draft: bool,
 }
 
 /// A reference from a journal entry to a Document in the record.
@@ -287,6 +311,7 @@ pub fn create_journal_entry_at(
         } else {
             Some(documents)
         },
+        mcp_draft: false,
     };
 
     let relative_filename = format!(
@@ -305,4 +330,145 @@ pub fn create_journal_entry_at(
     git::git_commit_in(repo_path, &commit_message)?;
 
     Ok(relative_filename)
+}
+
+// ── MCP drafts (ADR-0007) ─────────────────────────────────────────────────────
+
+/// Write an MCP-authored entry as an **uncommitted draft** (ADR-0007): the
+/// file lands on disk with `mcp_draft: true` front matter, is not staged or
+/// committed, and is pending human approval through
+/// [`super::draft::run`]. Returns the draft's repo-relative filename.
+///
+/// The record's custody layer (git) stays free of machine-authored content
+/// until a human approves the draft.
+pub fn create_mcp_draft_entry(
+    repo_path: &Path,
+    content: &str,
+    author: Option<String>,
+) -> Result<String> {
+    let entry = JournalEntry {
+        timestamp: Utc::now(),
+        author,
+        documents: None,
+        mcp_draft: true,
+    };
+
+    let relative_filename = format!(
+        "journal/{}-{}.md",
+        entry.timestamp.format("%Y%m%dT%H%M%S%.3fZ"),
+        Uuid::new_v4()
+    );
+
+    let yaml = serde_yaml_ng::to_string(&entry)?;
+    let file_content = format!("---\n{}---\n\n{}", yaml, content);
+
+    fs::write(repo_path.join(&relative_filename), file_content)?;
+
+    Ok(relative_filename)
+}
+
+/// Every unapproved MCP draft in `repo_path`, oldest first.
+pub fn mcp_drafts(repo_path: &Path) -> Result<Vec<(String, ParsedEntry)>> {
+    let journal_dir = repo_path.join("journal");
+    if !journal_dir.exists() {
+        return Ok(Vec::new());
+    }
+
+    let mut drafts = Vec::new();
+    for entry in fs::read_dir(&journal_dir)? {
+        let entry = entry?;
+        let path = entry.path();
+        let Some(name) = path.file_name().and_then(|n| n.to_str()) else {
+            continue;
+        };
+        if !is_journal_entry_file(name) {
+            continue;
+        }
+        let Ok(parsed) = parse_journal_file(&path) else {
+            continue;
+        };
+        if parsed.metadata.mcp_draft {
+            drafts.push((name.to_string(), parsed));
+        }
+    }
+    drafts.sort_by(|a, b| a.0.cmp(&b.0));
+    Ok(drafts)
+}
+
+/// Accept a draft filename either bare (`<name>.md`, as `journal drafts`
+/// lists it) or repo-relative (`journal/<name>.md`, as the MCP tool reports it).
+fn draft_filename(filename: &str) -> String {
+    filename
+        .strip_prefix("journal/")
+        .unwrap_or(filename)
+        .to_string()
+}
+
+/// Approve a draft: strip `mcp_draft: true`, stage, and commit. The human
+/// approver's identity is the git committer. Any pending audit drafts (R33)
+/// are committed in the same commit, so the audit trail for an approved
+/// machine action is preserved alongside the content it describes.
+pub fn approve_mcp_draft(repo_path: &Path, filename: &str) -> Result<()> {
+    let filename = draft_filename(filename);
+    let path = repo_path.join("journal").join(&filename);
+    if !path.is_file() {
+        anyhow::bail!("Draft not found: journal/{filename}");
+    }
+
+    let parsed = parse_journal_file(&path)?;
+    let entry = JournalEntry {
+        timestamp: parsed.metadata.timestamp,
+        author: parsed.metadata.author,
+        documents: parsed.metadata.documents,
+        mcp_draft: false,
+    };
+
+    let yaml = serde_yaml_ng::to_string(&entry)?;
+    let file_content = format!("---\n{}---\n\n{}", yaml, parsed.content);
+    fs::write(&path, file_content)?;
+
+    git::git_add_in(repo_path, &format!("journal/{filename}"))?;
+
+    // Commit pending audit drafts in the same commit so the audit trail
+    // travels with the content it describes.
+    for entry in fs::read_dir(repo_path.join("journal"))? {
+        let entry = entry?;
+        let p = entry.path();
+        let Ok(content) = fs::read_to_string(&p) else {
+            continue;
+        };
+        if content.contains("mcp_audit:")
+            && content.contains("mcp_draft: true")
+            && let Some(n) = p.file_name().and_then(|n| n.to_str())
+        {
+            // The audit draft's approval state lives in its front matter:
+            // clear the marker as it is committed so it no longer lists
+            // as pending.
+            let cleared = content.replace("mcp_draft: true", "mcp_draft: false");
+            fs::write(&p, cleared)?;
+            git::git_add_in(repo_path, &format!("journal/{n}"))?;
+        }
+    }
+
+    git::git_commit_in(
+        repo_path,
+        &format!("Journal entry (approved MCP draft): journal/{filename}"),
+    )?;
+    Ok(())
+}
+
+/// Reject a draft by deleting the file. The record only grows (ADR-0002): an
+/// unapproved draft never entered the record, so deleting it loses nothing.
+pub fn reject_mcp_draft(repo_path: &Path, filename: &str) -> Result<()> {
+    let filename = draft_filename(filename);
+    let path = repo_path.join("journal").join(&filename);
+    if !path.is_file() {
+        anyhow::bail!("Draft not found: journal/{filename}");
+    }
+    let parsed = parse_journal_file(&path)?;
+    if !parsed.metadata.mcp_draft {
+        anyhow::bail!("journal/{filename} is not an unapproved MCP draft; refusing to delete it");
+    }
+    fs::remove_file(&path)?;
+    Ok(())
 }

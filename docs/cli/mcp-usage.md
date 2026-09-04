@@ -178,7 +178,7 @@ Only the three top-level URIs are returned by `resources/list`; the `{filename}`
 
 | Tool | Parameters | Behaviour |
 | --- | --- | --- |
-| `add_journal_entry` | `content` (string, required) — Markdown body; `author` (string, optional) — contributor ID, defaults to the target repository's active contributor | Writes `journal/{timestamp}-{uuid}.md` with proper YAML front matter, stages it, and commits it — the same entry format `gitehr journal add` produces. Rejects empty/whitespace-only content. |
+| `add_journal_entry` | `content` (string, required) — Markdown body; `author` (string, optional) — contributor ID, defaults to the target repository's active contributor | Writes `journal/{timestamp}-{uuid}.md` with proper YAML front matter **as an uncommitted draft** (ADR-0007): it is not staged or committed and is not part of the record until a human approves it with `gitehr journal drafts --approve`. Rejects empty/whitespace-only content. |
 | `update_state` | `filename` (string, required), `content` (string, required) | Writes `content` verbatim to `state/{filename}`, creating `state/` if needed. Overwrites any existing file at that path. No journal entry or commit is recorded. |
 | `search_repository` | `query` (string, required) | Case-insensitive substring search across `.md` files in `journal/` and every file in `state/`. Returns matching paths as `journal/{filename}` or `state/{filename}`. |
 

@@ -124,10 +124,11 @@ impl ToolHandler {
         };
 
         // Record a dedicated audit journal entry for every successful call
-        // (R33). Best-effort: never turns a successful tool call into a
-        // failure, and never runs on the error path so a tool call that
-        // fails before touching the repository (e.g. validation errors
-        // against a non-repository path) has nothing to audit.
+        // (R33), as an uncommitted draft like the tool's own writes (ADR-0007):
+        // machine-authored content never enters the custody layer directly.
+        // Best-effort: never turns a successful tool call into a failure, and
+        // never runs on the error path so a tool call that fails before
+        // touching the repository has nothing to audit.
         if let Ok(ok_result) = &result {
             let detail = ok_result
                 .content
@@ -162,12 +163,16 @@ impl ToolHandler {
             .map(|s| s.to_string())
             .or_else(|| contributor::get_current_contributor_at(&self.repo_path));
 
-        let filename =
-            journal::create_journal_entry_at(&self.repo_path, content, Vec::new(), author)?;
+        // ADR-0007: MCP writes are drafts only - no stage, no commit. A human
+        // must approve the draft (gitehr journal drafts) before it enters the
+        // record's custody layer.
+        let filename = journal::create_mcp_draft_entry(&self.repo_path, content, author)?;
 
         Ok(ToolResult {
             content: vec![ToolContent::Text {
-                text: format!("Created journal entry: {}", filename),
+                text: format!(
+                    "Draft journal entry written to {filename}. It is pending human approval (gitehr journal drafts) and is not part of the record until approved."
+                ),
             }],
             is_error: Some(false),
         })
@@ -351,27 +356,26 @@ mod tests {
             .unwrap();
 
         let ToolContent::Text { text } = &result.content[0];
-        assert!(text.starts_with("Created journal entry: journal/"));
+        assert!(
+            text.contains("pending human approval"),
+            "the tool must report the draft is uncommitted (ADR-0007), got: {text}"
+        );
 
-        // One entry for the content itself, one dedicated MCP audit entry (R33).
+        // ADR-0007: the draft lands on disk but nothing is committed - the
+        // record's custody layer stays free of machine-authored content. Two
+        // uncommitted files: the content draft plus the R33 audit draft.
         let entries: Vec<_> = std::fs::read_dir(dir.path().join("journal"))
             .unwrap()
             .collect();
         assert_eq!(
             entries.len(),
             2,
-            "expected the journal entry plus its audit entry on disk"
+            "expected the content draft plus the audit draft on disk"
         );
-        let audit_entries = entries
-            .iter()
-            .filter(|e| {
-                std::fs::read_to_string(e.as_ref().unwrap().path())
-                    .unwrap()
-                    .contains("mcp_audit:")
-            })
-            .count();
-        assert_eq!(audit_entries, 1, "expected exactly one audit entry");
-
+        for e in &entries {
+            let content = std::fs::read_to_string(e.as_ref().unwrap().path()).unwrap();
+            assert!(content.contains("mcp_draft: true"), "draft must be marked");
+        }
         let log = std::process::Command::new("git")
             .current_dir(dir.path())
             .args(["log", "--oneline"])
@@ -379,8 +383,8 @@ mod tests {
             .unwrap();
         assert_eq!(
             String::from_utf8_lossy(&log.stdout).lines().count(),
-            2,
-            "expected the entry and its audit entry to each be committed"
+            0,
+            "no draft may be committed"
         );
     }
 

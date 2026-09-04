@@ -6,9 +6,14 @@ use chrono::Utc;
 use regex::Regex;
 use serial_test::serial;
 use std::fs;
+use std::path::Path;
+use std::process::Command;
 use tempfile::tempdir;
 
-use gitehr::commands::journal::{create_journal_entry, parsed_entries, sorted_entries};
+use gitehr::commands::journal::{
+    approve_mcp_draft, create_journal_entry, create_mcp_draft_entry, mcp_drafts, parsed_entries,
+    reject_mcp_draft, sorted_entries,
+};
 
 fn setup_with_git() -> Result<tempfile::TempDir> {
     let temp_dir = tempdir()?;
@@ -150,5 +155,94 @@ fn test_timestamp_uniqueness_and_ordering() -> Result<()> {
         "All timestamps should be unique"
     );
 
+    Ok(())
+}
+
+// ── ADR-0007: MCP drafts ──────────────────────────────────────────────────────
+
+#[test]
+#[serial]
+fn mcp_draft_full_lifecycle() -> Result<()> {
+    let temp = tempdir().unwrap();
+    std::env::set_current_dir(&temp)?;
+
+    fs::create_dir_all("journal")?;
+    fs::create_dir_all(".gitehr")?;
+    fs::write(
+        ".gitehr/contributors.json",
+        r#"{"contributors":{},"current_contributor":null}"#,
+    )?;
+    Command::new("git").args(["init"]).output()?;
+    Command::new("git")
+        .args(["config", "user.name", "Dr Jones"])
+        .output()?;
+    Command::new("git")
+        .args(["config", "user.email", "jones@example.org"])
+        .output()?;
+    Command::new("git")
+        .args(["config", "commit.gpgsign", "false"])
+        .output()?;
+
+    // Write a draft (as the MCP tool would).
+    let filename = create_mcp_draft_entry(
+        Path::new("."),
+        "AI-drafted note",
+        Some("assistant-x".into()),
+    )?;
+
+    // Draft exists, is marked, and nothing is committed.
+    let drafts = mcp_drafts(Path::new("."))?;
+    assert_eq!(drafts.len(), 1, "one pending draft");
+    assert!(fs::read_to_string(&filename)?.contains("mcp_draft: true"));
+    let log = Command::new("git").args(["log", "--oneline"]).output()?;
+    assert_eq!(
+        String::from_utf8_lossy(&log.stdout).lines().count(),
+        0,
+        "draft must not be committed"
+    );
+
+    // Approve: marker stripped, staged, committed, committer is the human.
+    approve_mcp_draft(Path::new("."), &filename)?;
+    let committed = fs::read_to_string(&filename)?;
+    assert!(
+        !committed.contains("mcp_draft"),
+        "approval strips the marker"
+    );
+    let log = Command::new("git").args(["log", "--oneline"]).output()?;
+    assert_eq!(
+        String::from_utf8_lossy(&log.stdout).lines().count(),
+        1,
+        "approval commits"
+    );
+    assert!(mcp_drafts(Path::new("."))?.is_empty(), "no drafts remain");
+
+    Ok(())
+}
+
+#[test]
+#[serial]
+fn mcp_draft_reject_deletes_the_file() -> Result<()> {
+    let temp = tempdir().unwrap();
+    std::env::set_current_dir(&temp)?;
+
+    fs::create_dir_all("journal")?;
+    fs::create_dir_all(".gitehr")?;
+    Command::new("git").args(["init"]).output()?;
+
+    let filename = create_mcp_draft_entry(Path::new("."), "bad draft", None)?;
+    reject_mcp_draft(Path::new("."), &filename)?;
+
+    assert!(!Path::new(&filename).exists());
+    assert!(mcp_drafts(Path::new("."))?.is_empty());
+
+    // Refusing to delete a committed entry: write a normal entry, then reject it.
+    create_journal_entry("real entry")?;
+    let entries = parsed_entries()?;
+    let committed_name = &entries[0].filename;
+    assert!(
+        reject_mcp_draft(Path::new("."), committed_name).is_err(),
+        "reject must refuse non-draft entries"
+    );
+    assert!(Path::new("journal").join(committed_name).exists());
     Ok(())
 }
