@@ -93,7 +93,13 @@ Restart your shell after installing completions."#
         key: Option<String>,
     },
     #[command(about = "Launch the GitEHR graphical interface")]
-    Gui,
+    Gui {
+        #[arg(
+            long,
+            help = "Allow launching a bundled GUI binary from .gitehr/gitehr-gui"
+        )]
+        allow_bundled: bool,
+    },
     #[command(
         about = "Import journal entries or documents from a file or directory",
         arg_required_else_help = true
@@ -232,7 +238,7 @@ fn main() -> Result<()> {
         Commands::Demographics { command } => commands::demographics::run(command)?,
         Commands::Document { command } => commands::document::run(command)?,
         Commands::Encrypt { key } => commands::encrypt::run(key.as_deref())?,
-        Commands::Gui => commands::gui::run()?,
+        Commands::Gui { allow_bundled } => commands::gui::run(allow_bundled)?,
         Commands::Import { mode, path } => commands::import::run(mode, &path)?,
         Commands::Journal { command } => commands::journal::run(command)?,
         Commands::Mcp { command } => commands::mcp::run(command)?,

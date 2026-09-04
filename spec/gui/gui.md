@@ -39,6 +39,9 @@ Upon launching the GUI, users will be prompted to select an existing GitEHR repo
 `gitehr gui` launches a compiled GUI binary when available.
 
 Behavior:
-- Uses `.gitehr/gitehr-gui` (or `.gitehr/gitehr-gui.exe` on Windows) if present.
-- Falls back to `gitehr-gui` in PATH.
-- If no GUI binary is found, prints guidance on how to install or build it.
+- Uses `gitehr-gui` in PATH if present.
+- Falls back to `.gitehr/gitehr-gui` (or `.gitehr/gitehr-gui.exe` on Windows), but only when
+  `--allow-bundled` is passed - a repository received from another party can carry an untrusted
+  executable at that path, so it is never launched automatically (roadmap R78).
+- If no GUI binary can be launched, prints guidance on how to install or build one, or on
+  re-running with `--allow-bundled`.
