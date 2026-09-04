@@ -130,9 +130,75 @@ fn find_gui_binary_falls_back_to_path() {
 fn run_errors_when_no_binary_found() {
     let (_dir, _guard) = isolated();
 
-    let err = gui::run().expect_err("run() should fail when no GUI binary is present");
+    let err = gui::run(false).expect_err("run() should fail when no GUI binary is present");
     assert!(
         err.to_string().contains("No GitEHR GUI binary found"),
         "error should explain the failure, got: {err}"
+    );
+}
+
+/// A GitEHR repository received from another party can carry an untrusted
+/// `.gitehr/gitehr-gui`; `run()` must not launch it without an explicit
+/// `--allow-bundled` opt-in (roadmap R78).
+#[test]
+#[serial]
+#[cfg(unix)]
+fn run_refuses_bundled_binary_without_allow_bundled() {
+    let (_dir, _guard) = isolated();
+
+    fs::create_dir_all(".gitehr").unwrap();
+    let bundled = PathBuf::from(".gitehr/gitehr-gui");
+    fs::write(&bundled, "#!/bin/sh\nexit 0\n").unwrap();
+    make_executable(&bundled);
+
+    let err = gui::run(false).expect_err("run() should refuse an unallowed bundled binary");
+    assert!(
+        err.to_string().contains("--allow-bundled"),
+        "error should point at the opt-in flag, got: {err}"
+    );
+}
+
+#[test]
+#[serial]
+#[cfg(unix)]
+fn run_launches_bundled_binary_with_allow_bundled() {
+    let (_dir, _guard) = isolated();
+
+    fs::create_dir_all(".gitehr").unwrap();
+    let bundled = PathBuf::from(".gitehr/gitehr-gui");
+    fs::write(&bundled, "#!/bin/sh\nexit 0\n").unwrap();
+    make_executable(&bundled);
+
+    gui::run(true).expect("run() should launch an explicitly allowed bundled binary");
+}
+
+/// Even without `--allow-bundled`, a trusted `$PATH` install should still be
+/// usable, and must be preferred over the untrusted bundled binary.
+#[test]
+#[serial]
+#[cfg(unix)]
+fn run_prefers_path_binary_over_unallowed_bundled() {
+    let (_dir, _guard) = isolated();
+
+    fs::create_dir_all(".gitehr").unwrap();
+    let bundled = PathBuf::from(".gitehr/gitehr-gui");
+    fs::write(&bundled, "#!/bin/sh\n> ran-bundled\nexit 0\n").unwrap();
+    make_executable(&bundled);
+
+    let bin_dir = tempdir().unwrap();
+    let bin_path = bin_dir.path().join("gitehr-gui");
+    fs::write(&bin_path, "#!/bin/sh\n> ran-path\nexit 0\n").unwrap();
+    make_executable(&bin_path);
+    unsafe { std::env::set_var("PATH", bin_dir.path()) };
+
+    gui::run(false).expect("run() should launch the $PATH binary");
+
+    assert!(
+        Path::new("ran-path").exists(),
+        "the $PATH binary should have run"
+    );
+    assert!(
+        !Path::new("ran-bundled").exists(),
+        "the unallowed bundled binary must not have run"
     );
 }
