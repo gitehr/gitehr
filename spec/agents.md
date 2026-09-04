@@ -37,11 +37,14 @@
 
 ## Overnight agents - task queue
 
-When an agent session is left to pick up "suitable" work (e.g. overnight runs), start from these GitHub issues, in this order. Each is self-contained, has an existing proven pattern or spec to follow, and needs no product decisions:
+When an agent session is left to pick up "suitable" work (e.g. overnight runs), start from these tasks, in this order. Each is self-contained, has an existing proven pattern or spec to follow, and needs no product decisions:
 
 1. **#84 - Complete the typed-state primitives: medications, immunisations, family history.** Follow the shipped `allergies`/`vaccinations` typed-state pattern exactly (typed state file, subcommands, journal entry per mutation, integration tests). FHIR mappings are in the issue. Update `docs/cli/` and `spec/commands/` to match, and tick the corresponding part of R61/R84 on commit.
-2. **#83 - Problem/condition list.** Design sketch already in `spec/problem-condition-list.md`; same typed-state shape plus a lifecycle (active/inactive/resolved/entered-in-error).
+2. **#83 - Problem/condition list.** Design sketch already in `spec/problem-condition-list.md`; same typed-state shape plus a lifecycle (active/inactive/resolved/entered-in-error). Coordinate with #84 if both land the same night - separate branches, whichever merges second rebases.
+3. **R31 - MCP prompt templates** (after #84/#83): `prompts/list` currently returns an empty array and `prompts/get` errors (see `cli/src/commands/mcp/server_impl/server.rs:189-216`). Implement the five templates named in `spec/mcp.md` (soap_note, discharge_summary, referral_letter, medication_review, consultation) as static templates with variable substitution - text-only, no clinical-content generation. Follow the audit.rs / resources.rs module pattern; tests per prompt.
 
-Do NOT start these without Marcus: #86 (provenance - needs evidence-level vocabulary decisions), #88/#87 (depend on #85 primitives), #94 (external collaborator mid-experiment), #29 (awaiting the typed-error decision), #63/#81 (awaiting Marcus close/reply). #149 and #62 are ready to close if still open.
+Do NOT start these without Marcus: #86 (provenance - needs evidence-level vocabulary decisions), #88/#87 (depend on #85 primitives), #94 (external collaborator mid-experiment), #29 (typed-error architecture decision pending), #63/#81 (awaiting Marcus close/reply - comments are posted on each). #62 is closable after Marcus confirms `help` behaves consistently on his side.
+
+Distribution blockers for Marcus, not agents: R54 needs an APT hosting decision (GitHub Pages vs Hetzner) plus a GPG signing key; R55 needs the `gitehr` package created in the AUR under his account (the release job is wired and will fail loudly at `git clone` until then); R56 signing needs Apple Developer + Microsoft EV accounts.
 
 Rules of engagement for such runs: commit straight to main per repo convention, `s/lint` + `s/test` green before every push, conventional commits, and never claim a file was reviewed unless its contents actually arrived in your tool results (see memory: ACP tool results unreliable - trust `git diff` over narration).
