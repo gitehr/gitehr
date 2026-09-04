@@ -370,15 +370,90 @@ jobs:
           done
           git push
 
+  publish-aur-package:
+    needs:
+      - plan
+      - host
+    runs-on: "ubuntu-22.04"
+    env:
+      PLAN: ${{ needs.plan.outputs.val }}
+    if: ${{ !fromJson(needs.plan.outputs.val).announcement_is_prerelease || fromJson(needs.plan.outputs.val).publish_prereleases }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: dist
+      - name: Set up AUR SSH key
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.AUR_SSH_PRIVATE_KEY }}" > ~/.ssh/aur
+          chmod 600 ~/.ssh/aur
+          ssh-keyscan -t rsa aur.archlinux.org >> ~/.ssh/known_hosts 2>/dev/null
+          printf 'Host aur.archlinux.org\n  IdentityFile ~/.ssh/aur\n  User aur\n' >> ~/.ssh/config
+      - name: Publish PKGBUILD update to the AUR
+        run: |
+          set -euo pipefail
+          git config --global user.name "gitehr-release-bot"
+          git config --global user.email "release-bot@gitehr.invalid"
+          git clone "aur@aur.archlinux.org:gitehr.git" aur-gitehr
+          cd aur-gitehr
+
+          version=$(echo "$PLAN" | jq '.releases[0].app_version' --raw-output)
+          # The release sha256.sum is the single source of truth for hashes.
+          x86_64_sum=$(curl -fsSL "https://github.com/gitehr/gitehr/releases/download/v${version}/sha256.sum" \
+            | grep -E "\*?gitehr-x86_64-unknown-linux-gnu.tar.xz" | awk '{print $1}')
+          aarch64_sum=$(curl -fsSL "https://github.com/gitehr/gitehr/releases/download/v${version}/sha256.sum" \
+            | grep -E "\*?gitehr-aarch64-unknown-linux-gnu.tar.xz" | awk '{print $1}')
+
+          # Validate both sums look like sha256 hex before touching the PKGBUILD.
+          for sum in "$x86_64_sum" "$aarch64_sum"; do
+            [[ "$sum" =~ ^[0-9a-f]{64}$ ]] || { echo "Bad checksum for a source: '$sum'" >&2; exit 1; }
+          done
+
+          sed -i "s/^pkgver=.*/pkgver=${version}/" PKGBUILD
+          sed -i "s/^sha256sums_x86_64=.*/sha256sums_x86_64=('${x86_64_sum}')/" PKGBUILD
+          sed -i "s/^sha256sums_aarch64=.*/sha256sums_aarch64=('${aarch64_sum}')/" PKGBUILD
+
+          # .SRCINFO must be regenerated whenever PKGBUILD changes; makepkg
+          # is not installed on ubuntu runners, so emit it directly.
+          # (Fields and order per the AUR metadata spec.)
+          pkgdesc=$(grep '^pkgdesc=' PKGBUILD | sed 's/^pkgdesc=//; s/^"//; s/"$//')
+          pkgbase=gitehr
+          {
+            echo "pkgbase = ${pkgbase}"
+            echo "pkgname = ${pkgbase}"
+            echo "pkgver = ${version}"
+            echo "pkgrel = 1"
+            echo "pkgdesc = ${pkgdesc}"
+            echo "url = https://gitehr.org"
+            echo "arch = x86_64"
+            echo "arch = aarch64"
+            echo "license = AGPL-3.0-or-later"
+            echo "depends = git"
+            echo "depends = glibc"
+            echo "provides = gitehr"
+            echo "conflicts = gitehr"
+            echo "source_x86_64 = https://github.com/gitehr/gitehr/releases/download/v${version}/gitehr-x86_64-unknown-linux-gnu.tar.xz"
+            echo "source_aarch64 = https://github.com/gitehr/gitehr/releases/download/v${version}/gitehr-aarch64-unknown-linux-gnu.tar.xz"
+            echo "sha256sums_x86_64 = ${x86_64_sum}"
+            echo "sha256sums_aarch64 = ${aarch64_sum}"
+          } > .SRCINFO
+
+          git diff --quiet && echo "PKGBUILD already at ${version}" && exit 0
+          git add PKGBUILD .SRCINFO
+          git commit -m "Update to ${version}"
+          git push
+
   announce:
     needs:
       - plan
       - host
       - publish-homebrew-formula
+      - publish-aur-package
     # use "always() && ..." to allow us to wait for all publish jobs while
     # still allowing individual publish jobs to skip themselves (for prereleases).
     # "host" however must run to completion, no skipping allowed!
-    if: ${{ always() && needs.host.result == 'success' && (needs.publish-homebrew-formula.result == 'skipped' || needs.publish-homebrew-formula.result == 'success') }}
+    if: ${{ always() && needs.host.result == 'success' && (needs.publish-homebrew-formula.result == 'skipped' || needs.publish-homebrew-formula.result == 'success') && (needs.publish-aur-package.result == 'skipped' || needs.publish-aur-package.result == 'success') }}
     runs-on: "ubuntu-22.04"
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

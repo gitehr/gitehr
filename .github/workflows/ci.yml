@@ -31,7 +31,12 @@ jobs:
           persist-credentials: false
 
       - name: Install Rust toolchain (stable, with rustfmt and clippy)
-        uses: dtolnay/rust-toolchain@4360b52568e2003a75bf9bc1d59f33a8e3fc893c # stable
+        # Pinned to `master`, not `stable`: dtolnay force-pushes the
+        # stable/nightly/x.y.z branches each Rust release, which orphans any
+        # SHA pinned there (zizmor's impostor-commit check). master's
+        # action.yml only changes for real action changes, so pinning it plus
+        # an explicit `toolchain:` input is the durable form.
+        uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # v1
         with:
           toolchain: stable
           components: rustfmt, clippy
@@ -56,7 +61,7 @@ jobs:
           persist-credentials: false
       - uses: taiki-e/install-action@b6ff580856c41316412a0b9b60540fbc6f8c82cc # v2.86.7
         with:
-          tool: zizmor@1.27.0
+          tool: zizmor@1.29.0
           fallback: none
       - run: zizmor --strict-collection .
         env:
@@ -72,7 +77,8 @@ jobs:
           persist-credentials: false
 
       - name: Install Rust toolchain (stable)
-        uses: dtolnay/rust-toolchain@4360b52568e2003a75bf9bc1d59f33a8e3fc893c # stable
+        # See the durable-pin note in the first toolchain step.
+        uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # v1
         with:
           toolchain: stable
 
