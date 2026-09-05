@@ -43,6 +43,7 @@ walkdir = "2.5"
 tar = "0.4"
 flate2 = "1.0"
 base64 = "0.22"
+tempfile.workspace = true
 
 # Internal MCP server for `gitehr mcp serve`. It is part of the gitehr binary,
 # not a separately released workspace package.
@@ -51,7 +52,6 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 [dev-dependencies]
-tempfile.workspace = true
 regex = "1"
 serial_test = "4"
 

@@ -15,6 +15,7 @@ use commands::demographics::DemographicsCommands;
 use commands::document::DocumentCommands;
 use commands::journal::JournalCommands;
 use commands::mcp::McpCommands;
+use commands::medications::MedicationCommands;
 use commands::remote::RemoteCommands;
 use commands::state::StateCommands;
 use commands::store::StoreCommands;
@@ -122,6 +123,11 @@ Restart your shell after installing completions."#
     Mcp {
         #[command(subcommand)]
         command: McpCommands,
+    },
+    #[command(about = "Manage typed medication state", arg_required_else_help = true)]
+    Medications {
+        #[command(subcommand)]
+        command: MedicationCommands,
     },
     /// List installed plugins (gitehr-<command> executables on PATH)
     Plugins,
@@ -242,6 +248,7 @@ fn main() -> Result<()> {
         Commands::Import { mode, path } => commands::import::run(mode, &path)?,
         Commands::Journal { command } => commands::journal::run(command)?,
         Commands::Mcp { command } => commands::mcp::run(command)?,
+        Commands::Medications { command } => commands::medications::run(command)?,
         Commands::Plugins => commands::plugin::list(&builtins)?,
         Commands::Remote { command } => commands::remote::run(command)?,
         Commands::State { command } => commands::state::run(command)?,
@@ -269,6 +276,7 @@ fn bare_command_help_target(command: &str) -> Option<&'static str> {
         "import" => Some("import"),
         "journal" => Some("journal"),
         "mcp" => Some("mcp"),
+        "medications" => Some("medications"),
         "store" => Some("store"),
         "immunisations" | "immunizations" | "vaccinations" => Some("vaccinations"),
         _ => None,
@@ -348,6 +356,7 @@ fn apply_context(command: &mut Commands) -> Result<()> {
         | Commands::State { .. }
         | Commands::Demographics { .. }
         | Commands::Allergies { .. }
+        | Commands::Medications { .. }
         | Commands::Vaccinations { .. }
         | Commands::Remote { .. }
         | Commands::Encrypt { .. }

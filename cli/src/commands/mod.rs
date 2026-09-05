@@ -15,6 +15,7 @@ pub mod gui;
 pub mod import;
 pub mod journal;
 pub mod mcp;
+pub mod medications;
 pub mod plugin;
 pub mod remote;
 pub mod scaffold;

@@ -10,6 +10,7 @@ pub mod encrypt;
 pub mod gui;
 pub mod journal;
 pub mod mcp;
+pub mod medications;
 #[cfg(unix)]
 pub mod plugin;
 pub mod remote;

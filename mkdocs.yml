@@ -50,6 +50,7 @@ nav:
       - state: cli/state.md
       - demographics: cli/demographics.md
       - allergies: cli/allergies.md
+      - medications: cli/medications.md
       - vaccinations: cli/vaccinations.md
       - user: cli/user.md
       - remote: cli/remote.md
