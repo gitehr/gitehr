@@ -303,6 +303,32 @@ pub fn create_journal_entry_at(
     documents: Vec<DocumentRef>,
     author: Option<String>,
 ) -> Result<String> {
+    let relative_filename = write_journal_entry_at(repo_path, content, documents, author, false)?;
+
+    git::git_add_in(repo_path, &relative_filename)?;
+    let commit_message = format!("Journal entry: {relative_filename}");
+    git::git_commit_in(repo_path, &commit_message)?;
+
+    Ok(relative_filename)
+}
+
+pub(crate) fn write_journal_entry(content: &str) -> Result<String> {
+    write_journal_entry_at(
+        Path::new("."),
+        content,
+        Vec::new(),
+        contributor::get_current_contributor(),
+        false,
+    )
+}
+
+fn write_journal_entry_at(
+    repo_path: &Path,
+    content: &str,
+    documents: Vec<DocumentRef>,
+    author: Option<String>,
+    mcp_draft: bool,
+) -> Result<String> {
     let entry = JournalEntry {
         timestamp: Utc::now(),
         author,
@@ -311,7 +337,7 @@ pub fn create_journal_entry_at(
         } else {
             Some(documents)
         },
-        mcp_draft: false,
+        mcp_draft,
     };
 
     let relative_filename = format!(
@@ -324,10 +350,6 @@ pub fn create_journal_entry_at(
     let file_content = format!("---\n{}---\n\n{}", yaml, content);
 
     fs::write(repo_path.join(&relative_filename), file_content)?;
-
-    git::git_add_in(repo_path, &relative_filename)?;
-    let commit_message = format!("Journal entry: {}", relative_filename);
-    git::git_commit_in(repo_path, &commit_message)?;
 
     Ok(relative_filename)
 }
@@ -346,25 +368,7 @@ pub fn create_mcp_draft_entry(
     content: &str,
     author: Option<String>,
 ) -> Result<String> {
-    let entry = JournalEntry {
-        timestamp: Utc::now(),
-        author,
-        documents: None,
-        mcp_draft: true,
-    };
-
-    let relative_filename = format!(
-        "journal/{}-{}.md",
-        entry.timestamp.format("%Y%m%dT%H%M%S%.3fZ"),
-        Uuid::new_v4()
-    );
-
-    let yaml = serde_yaml_ng::to_string(&entry)?;
-    let file_content = format!("---\n{}---\n\n{}", yaml, content);
-
-    fs::write(repo_path.join(&relative_filename), file_content)?;
-
-    Ok(relative_filename)
+    write_journal_entry_at(repo_path, content, Vec::new(), author, true)
 }
 
 /// Every unapproved MCP draft in `repo_path`, oldest first.

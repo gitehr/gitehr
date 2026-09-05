@@ -472,12 +472,19 @@ export interface Medication {
   id: string;
   name: string;
   snomed_code?: SnomedCode;
-  dose: string;
-  route: string;
-  frequency: string;
-  started: string;        // ISO 8601 date
-  prescribed_by: string;
-  active: boolean;
+  dose: string | null;
+  route: string | null;
+  frequency: string | null;
+  indication: string | null;
+  prescriber: string | null;
+  supplement: boolean;
+  status: 'active' | 'stopped';
+  started: string | null;       // ISO 8601 date
+  stopped: string | null;       // ISO 8601 date
+  stopped_reason: string | null;
+  recorded_at: string;    // ISO 8601
+  recorded_by: string | null;
+  note: string | null;
 }
 
 // Allergies are stored in state/allergies.md (YAML front matter, `allergies` array).

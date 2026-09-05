@@ -5,11 +5,18 @@ use anyhow::Result;
 use chrono::{NaiveDate, Utc};
 use clap::Subcommand;
 use serde::{Deserialize, Serialize};
+use serde_yaml_ng::Value as YamlValue;
+use std::collections::BTreeMap;
 use uuid::Uuid;
 
-use super::{contributor, git, journal, typed_state};
+use super::{contributor, typed_state};
 
 const STATE_FILE: &str = "medications.md";
+const PRISTINE_STATE_FILES: &[&[u8]] = &[
+    b"",
+    b"---\nmedications: []\n---\n",
+    b"---\r\nmedications: []\r\n---\r\n",
+];
 
 #[derive(Subcommand)]
 #[allow(clippy::large_enum_variant)]
@@ -90,12 +97,16 @@ pub struct Medication {
     pub recorded_at: String,
     pub recorded_by: Option<String>,
     pub note: Option<String>,
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, YamlValue>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct MedicationsState {
     #[serde(default)]
     pub medications: Vec<Medication>,
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, YamlValue>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -175,6 +186,7 @@ pub fn add(input: MedicationInput) -> Result<Medication> {
     }
 
     let now = Utc::now();
+    let note = input.note.as_deref().and_then(cleaned_str);
     let medication = Medication {
         id: format!(
             "MED-{}-{}",
@@ -198,18 +210,17 @@ pub fn add(input: MedicationInput) -> Result<Medication> {
         stopped_reason: None,
         recorded_at: now.to_rfc3339(),
         recorded_by: contributor::get_current_contributor(),
-        note: input.note.as_deref().and_then(cleaned_str),
+        note: note.clone(),
+        extra: BTreeMap::new(),
     };
 
     let mut state = load()?;
     state.medications.push(medication.clone());
-    persist_with_journal(
-        &state,
-        input
-            .note
-            .as_deref()
-            .unwrap_or(&format!("Added medication: {}", medication.name)),
-    )?;
+    let mut journal_body = format!("Added medication: {} ({})", medication.name, medication.id);
+    if let Some(note) = note {
+        journal_body.push_str(&format!("\n\nNote: {note}"));
+    }
+    persist_with_journal(&state, &journal_body)?;
     println!("Added medication: {}", medication.id);
     Ok(medication)
 }
@@ -231,24 +242,39 @@ pub fn stop(id: &str, date: Option<&str>, reason: Option<&str>) -> Result<Medica
         .find(|medication| medication.id == id)
         .ok_or_else(|| anyhow::anyhow!("Medication not found: {}", id))?;
 
+    if medication.status == MedicationStatus::Stopped {
+        anyhow::bail!("Medication is already stopped: {id}");
+    }
+    if let Some(started) = medication.started.as_deref() {
+        let started = NaiveDate::parse_from_str(started, "%Y-%m-%d")
+            .map_err(|_| anyhow::anyhow!("Stored medication start date is invalid: {started}"))?;
+        let stopped = NaiveDate::parse_from_str(&stopped_date, "%Y-%m-%d")?;
+        if stopped < started {
+            anyhow::bail!("--date must not be before the medication start date");
+        }
+    }
+
     medication.status = MedicationStatus::Stopped;
     medication.stopped = Some(stopped_date);
     medication.stopped_reason = reason.and_then(cleaned_str);
     let changed = medication.clone();
 
-    persist_with_journal(
-        &state,
-        reason.unwrap_or(&format!("Stopped medication: {}", changed.name)),
-    )?;
+    let mut journal_body = format!(
+        "Stopped medication: {} ({}) on {}",
+        changed.name,
+        changed.id,
+        changed.stopped.as_deref().unwrap_or_default()
+    );
+    if let Some(reason) = changed.stopped_reason.as_deref() {
+        journal_body.push_str(&format!("\n\nReason: {reason}"));
+    }
+    persist_with_journal(&state, &journal_body)?;
     println!("Stopped medication: {}", changed.id);
     Ok(changed)
 }
 
 fn persist_with_journal(state: &MedicationsState, journal_body: &str) -> Result<()> {
-    let path = typed_state::write_front_matter(STATE_FILE, state)?;
-    git::git_add(&path.to_string_lossy())?;
-    journal::create_journal_entry(journal_body)?;
-    Ok(())
+    typed_state::write_with_journal(STATE_FILE, state, journal_body, PRISTINE_STATE_FILES)
 }
 
 fn validate_date(value: &str, label: &str) -> Result<()> {
@@ -272,7 +298,7 @@ fn cleaned_str(value: &str) -> Option<String> {
 
 fn print_human(medications: &[Medication]) {
     if medications.is_empty() {
-        println!("No medications recorded.");
+        println!("No active medications recorded.");
         return;
     }
 

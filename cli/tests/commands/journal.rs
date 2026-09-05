@@ -222,12 +222,8 @@ fn mcp_draft_full_lifecycle() -> Result<()> {
 #[test]
 #[serial]
 fn mcp_draft_reject_deletes_the_file() -> Result<()> {
-    let temp = tempdir().unwrap();
-    std::env::set_current_dir(&temp)?;
-
-    fs::create_dir_all("journal")?;
+    let _temp_dir = setup_with_git()?;
     fs::create_dir_all(".gitehr")?;
-    Command::new("git").args(["init"]).output()?;
 
     let filename = create_mcp_draft_entry(Path::new("."), "bad draft", None)?;
     reject_mcp_draft(Path::new("."), &filename)?;

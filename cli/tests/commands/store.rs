@@ -49,6 +49,10 @@ fn store_init_bootstraps_store_mpi_and_first_subject() -> Result<()> {
     );
     assert!(repo.join("journal").is_dir(), "journal/ should exist");
     assert!(repo.join("state").is_dir(), "state/ should exist");
+    assert_eq!(
+        fs::read_to_string(repo.join("state/medications.md"))?,
+        "---\nmedications: []\n---\n"
+    );
 
     // The MPI records the subject under its friendly name.
     assert!(fs::read_to_string("gitehr-mpi.json")?.contains("\"rex\""));

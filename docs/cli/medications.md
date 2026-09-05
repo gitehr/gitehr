@@ -1,10 +1,12 @@
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
+
 # gitehr medications
 
-Manage current and past medications (including supplements) in
-`state/medications.md`.
+Manage current and past medications, including supplements, in `state/medications.md`.
 
-This is typed state for GUI/PHR display and automation. Mutations update the
-state file and create a journal entry in the same commit.
+This is typed state for GUI/PHR display and automation. Each successful mutation updates the state file and creates a journal entry in the same isolated commit. The command refuses to overwrite a state file with uncommitted changes, and restores the previous state if the commit fails.
+
+State updates use atomic file replacement and preserve Unix mode bits. File-specific ACLs, extended attributes, and Windows file attributes are not preserved. Configure required ACLs on the `state/` directory so replacement files inherit them; other per-file metadata is unsupported.
 
 ## gitehr medications list
 
@@ -12,8 +14,7 @@ state file and create a journal entry in the same commit.
 gitehr medications list [--json] [--all]
 ```
 
-Lists active medications by default. Use `--all` to include stopped entries
-and `--json` for GUI/automation output.
+Lists active medications by default. Use `--all` to include stopped entries and `--json` for GUI/automation output.
 
 ## gitehr medications add
 
@@ -21,9 +22,7 @@ and `--json` for GUI/automation output.
 gitehr medications add --name <name> [--dose <dose>] [--route <route>] [--frequency <frequency>] [--indication <text>] [--prescriber <name>] [--started <YYYY-MM-DD>] [--supplement] [--note <text>]
 ```
 
-`--supplement` marks the entry as a supplement rather than a prescribed
-medication, so PHR/GUI views can distinguish the two. `--started`, when
-given, must be `YYYY-MM-DD`.
+`--supplement` marks the entry as a supplement rather than a prescribed medication, so PHR/GUI views can distinguish the two. `--started`, when given, must be `YYYY-MM-DD`. An optional note is appended to the generated audit narrative; it does not replace the action and medication identity.
 
 ## gitehr medications stop
 
@@ -31,8 +30,7 @@ given, must be `YYYY-MM-DD`.
 gitehr medications stop <id> [--date <YYYY-MM-DD>] [--reason <text>]
 ```
 
-Marks a medication stopped without deleting it. `--date` defaults to today
-and, when given, must be `YYYY-MM-DD`.
+Marks an active medication stopped without deleting it. `--date` defaults to today, must use `YYYY-MM-DD`, and cannot precede the medication's start date. A stopped medication cannot be stopped again because that would overwrite its original cessation details. An optional reason is appended to the generated audit narrative.
 
 Example:
 
