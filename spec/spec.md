@@ -107,6 +107,10 @@ Manages the typed allergy and adverse-reaction summary in `state/allergies.md`.
 
 Manages typed patient demographics state.
 
+### [`gitehr medications`](commands/medications.md)
+
+Manages typed medication state in `state/medications.md`.
+
 ### [`gitehr vaccinations`](commands/vaccinations.md)
 
 Manages typed vaccination and immunisation state. Aliases: `immunisations`, `immunizations`.
