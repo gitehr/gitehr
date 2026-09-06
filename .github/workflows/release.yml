@@ -50,6 +50,9 @@ on:
       HOMEBREW_TAP_TOKEN:
         description: "Token with write access to pacharanero/homebrew-tap"
         required: true
+      AUR_SSH_PRIVATE_KEY:
+        description: "SSH key used to publish package updates to the AUR"
+        required: true
   pull_request:
   push:
     tags:
