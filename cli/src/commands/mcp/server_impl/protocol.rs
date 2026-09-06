@@ -3,15 +3,51 @@
 
 //! MCP JSON-RPC 2.0 Protocol Implementation
 
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt;
+
+/// A JSON-RPC request ID, preserving the distinction between an omitted ID and
+/// an explicit null ID.
+#[derive(Debug, Clone, Default, PartialEq)]
+pub enum McpRequestId {
+    #[default]
+    Missing,
+    Value(serde_json::Value),
+}
+
+impl McpRequestId {
+    pub fn is_missing(&self) -> bool {
+        matches!(self, Self::Missing)
+    }
+}
+
+impl Serialize for McpRequestId {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        match self {
+            Self::Missing => serializer.serialize_unit(),
+            Self::Value(value) => value.serialize(serializer),
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for McpRequestId {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        serde_json::Value::deserialize(deserializer).map(Self::Value)
+    }
+}
 
 /// JSON-RPC 2.0 Request
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct McpRequest {
     pub jsonrpc: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub id: Option<serde_json::Value>,
+    #[serde(default, skip_serializing_if = "McpRequestId::is_missing")]
+    pub id: McpRequestId,
     pub method: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub params: Option<serde_json::Value>,
@@ -21,8 +57,7 @@ pub struct McpRequest {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct McpResponse {
     pub jsonrpc: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub id: Option<serde_json::Value>,
+    pub id: serde_json::Value,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub result: Option<serde_json::Value>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -98,7 +133,7 @@ impl McpError {
 }
 
 impl McpResponse {
-    pub fn success(id: Option<serde_json::Value>, result: serde_json::Value) -> Self {
+    pub fn success(id: serde_json::Value, result: serde_json::Value) -> Self {
         Self {
             jsonrpc: "2.0".to_string(),
             id,
@@ -110,7 +145,7 @@ impl McpResponse {
     pub fn error(id: Option<serde_json::Value>, error: McpError) -> Self {
         Self {
             jsonrpc: "2.0".to_string(),
-            id,
+            id: id.unwrap_or(serde_json::Value::Null),
             result: None,
             error: Some(error),
         }
@@ -122,6 +157,7 @@ impl McpResponse {
 pub enum McpMethod {
     // Initialization
     Initialize,
+    InitializedNotification,
 
     // Resource methods
     ResourcesList,
@@ -146,6 +182,7 @@ impl McpMethod {
     pub fn from_str(s: &str) -> Self {
         match s {
             "initialize" => McpMethod::Initialize,
+            "notifications/initialized" => McpMethod::InitializedNotification,
             "resources/list" => McpMethod::ResourcesList,
             "resources/read" => McpMethod::ResourcesRead,
             "tools/list" => McpMethod::ToolsList,
@@ -153,6 +190,20 @@ impl McpMethod {
             "prompts/list" => McpMethod::PromptsList,
             "prompts/get" => McpMethod::PromptsGet,
             _ => McpMethod::Unknown(s.to_string()),
+        }
+    }
+
+    pub fn log_name(&self) -> &'static str {
+        match self {
+            Self::Initialize => "initialize",
+            Self::InitializedNotification => "notifications/initialized",
+            Self::ResourcesList => "resources/list",
+            Self::ResourcesRead => "resources/read",
+            Self::ToolsList => "tools/list",
+            Self::ToolsCall => "tools/call",
+            Self::PromptsList => "prompts/list",
+            Self::PromptsGet => "prompts/get",
+            Self::Unknown(_) => "unknown",
         }
     }
 }
@@ -165,7 +216,7 @@ mod tests {
     fn test_request_serialization() {
         let request = McpRequest {
             jsonrpc: "2.0".to_string(),
-            id: Some(serde_json::json!(1)),
+            id: McpRequestId::Value(serde_json::json!(1)),
             method: "resources/list".to_string(),
             params: None,
         };
@@ -174,6 +225,19 @@ mod tests {
         let parsed: McpRequest = serde_json::from_str(&json).unwrap();
 
         assert_eq!(parsed.method, "resources/list");
+        assert_eq!(parsed.id, McpRequestId::Value(serde_json::json!(1)));
+    }
+
+    #[test]
+    fn test_request_deserialization_distinguishes_missing_and_null_ids() {
+        let missing: McpRequest =
+            serde_json::from_str(r#"{"jsonrpc":"2.0","method":"resources/list"}"#).unwrap();
+        let null: McpRequest =
+            serde_json::from_str(r#"{"jsonrpc":"2.0","id":null,"method":"resources/list"}"#)
+                .unwrap();
+
+        assert_eq!(missing.id, McpRequestId::Missing);
+        assert_eq!(null.id, McpRequestId::Value(serde_json::Value::Null));
     }
 
     #[test]
@@ -181,6 +245,10 @@ mod tests {
         let error = McpError::method_not_found("test_method");
         assert_eq!(error.code, error_codes::METHOD_NOT_FOUND);
         assert!(error.message.contains("test_method"));
+
+        let response = serde_json::to_value(McpResponse::error(None, error)).unwrap();
+        assert!(response.get("id").is_some());
+        assert!(response["id"].is_null());
     }
 
     #[test]
@@ -190,6 +258,10 @@ mod tests {
             McpMethod::ResourcesList
         );
         assert_eq!(McpMethod::from_str("tools/call"), McpMethod::ToolsCall);
+        assert_eq!(
+            McpMethod::from_str("notifications/initialized"),
+            McpMethod::InitializedNotification
+        );
         assert!(matches!(
             McpMethod::from_str("unknown/method"),
             McpMethod::Unknown(_)
