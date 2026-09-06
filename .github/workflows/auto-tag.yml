@@ -84,11 +84,12 @@ jobs:
     if: needs.tag.outputs.bumped == 'true'
     permissions:
       contents: write
-    uses: $/workflows/release.yml
+    uses: $/.github/workflows/release.yml
     with:
       tag: ${{ needs.tag.outputs.tag }}
     secrets:
       HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+      AUR_SSH_PRIVATE_KEY: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
 
   publish-crate:
     needs:
@@ -98,6 +99,6 @@ jobs:
     permissions:
       contents: read
       id-token: write
-    uses: $/workflows/publish-crates.yml
+    uses: $/.github/workflows/publish-crates.yml
     with:
       tag: ${{ needs.tag.outputs.tag }}
