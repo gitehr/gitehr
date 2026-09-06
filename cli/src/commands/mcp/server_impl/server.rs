@@ -3,6 +3,7 @@
 
 //! MCP Server Implementation
 
+use super::prompts::PromptHandler;
 use super::protocol::{McpError, McpMethod, McpRequest, McpResponse};
 use super::resources::ResourceHandler;
 use super::tools::ToolHandler;
@@ -33,6 +34,7 @@ pub struct McpServer {
     config: ServerConfig,
     resource_handler: ResourceHandler,
     tool_handler: ToolHandler,
+    prompt_handler: PromptHandler,
     initialized: bool,
 }
 
@@ -40,11 +42,13 @@ impl McpServer {
     pub fn new(config: ServerConfig) -> Self {
         let resource_handler = ResourceHandler::new(config.repo_path.clone());
         let tool_handler = ToolHandler::new(config.repo_path.clone());
+        let prompt_handler = PromptHandler::new();
 
         Self {
             config,
             resource_handler,
             tool_handler,
+            prompt_handler,
             initialized: false,
         }
     }
@@ -194,24 +198,40 @@ impl McpServer {
             return Err(McpError::invalid_request("Server not initialized"));
         }
 
-        // Placeholder for prompts - will implement later
-        Ok(serde_json::json!({
-            "prompts": []
-        }))
+        let prompts = self.prompt_handler.list_prompts();
+
+        serde_json::to_value(prompts).map_err(|e| McpError::internal_error(e.to_string()))
     }
 
     async fn handle_prompts_get(
         &self,
-        _request: &McpRequest,
+        request: &McpRequest,
     ) -> Result<serde_json::Value, McpError> {
         if !self.initialized {
             return Err(McpError::invalid_request("Server not initialized"));
         }
 
-        // Placeholder for prompts - will implement later
-        Err(McpError::method_not_found(
-            "prompts/get not yet implemented",
-        ))
+        let params = request
+            .params
+            .as_ref()
+            .ok_or_else(|| McpError::invalid_params("Missing params"))?;
+
+        let name = params
+            .get("name")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| McpError::invalid_params("Missing 'name' parameter"))?;
+
+        let arguments = params
+            .get("arguments")
+            .cloned()
+            .unwrap_or(serde_json::json!({}));
+
+        let result = self
+            .prompt_handler
+            .get_prompt(name, &arguments)
+            .map_err(|e| McpError::invalid_params(e.to_string()))?;
+
+        serde_json::to_value(result).map_err(|e| McpError::internal_error(e.to_string()))
     }
 
     /// Run the server on stdio (for local MCP clients)

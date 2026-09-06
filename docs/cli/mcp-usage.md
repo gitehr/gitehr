@@ -160,6 +160,41 @@ Returns available tools:
 
 Returns list of matching files in journal/ and state/.
 
+### Prompts (Clinical Templates)
+
+Prompts render clinical note drafting instructions with variable substitution. Unlike resources and tools, prompts never touch the repository — they only generate a text template for the LLM client to act on.
+
+#### List Prompts
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 8,
+  "method": "prompts/list"
+}
+```
+
+Returns the five available prompts: `soap_note`, `discharge_summary`, `referral_letter`, `consultation`, `medication_review`, each with its argument list.
+
+#### Get Prompt: SOAP Note
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 9,
+  "method": "prompts/get",
+  "params": {
+    "name": "soap_note",
+    "arguments": {
+      "chief_complaint": "chest pain",
+      "specialty": "cardiology"
+    }
+  }
+}
+```
+
+Returns a `description` and a `messages` array containing one `user` message whose text is the drafting instruction (Subjective/Objective/Assessment/Plan headings, tailored to the arguments given).
+
 ## API Reference
 
 ### Resources
@@ -181,6 +216,18 @@ Only the three top-level URIs are returned by `resources/list`; the `{filename}`
 | `add_journal_entry` | `content` (string, required) — Markdown body; `author` (string, optional) — contributor ID, defaults to the target repository's active contributor | Writes `journal/{timestamp}-{uuid}.md` with proper YAML front matter **as an uncommitted draft** (ADR-0007): it is not staged or committed and is not part of the record until a human approves it with `gitehr journal drafts --approve`. Rejects empty/whitespace-only content. |
 | `update_state` | `filename` (string, required), `content` (string, required) | Writes `content` verbatim to `state/{filename}`, creating `state/` if needed. Overwrites any existing file at that path. No journal entry or commit is recorded. |
 | `search_repository` | `query` (string, required) | Case-insensitive substring search across `.md` files in `journal/` and every file in `state/`. Returns matching paths as `journal/{filename}` or `state/{filename}`. |
+
+### Prompts
+
+| Prompt | Required arguments | Optional arguments |
+| --- | --- | --- |
+| `soap_note` | `chief_complaint` | `specialty` |
+| `discharge_summary` | `diagnosis` | `admission_date`, `discharge_date` |
+| `referral_letter` | `specialty`, `reason` | `urgency` |
+| `consultation` | `chief_complaint` | — |
+| `medication_review` | — | `focus` |
+
+Each prompt returns a `description` and a single `user` message of type `text` containing the drafting instruction — it does not read or write repository data.
 
 ## Integration with Claude Desktop
 
@@ -245,7 +292,6 @@ This will show all MCP protocol messages in stderr.
 
 ## Limitations (Current Implementation)
 
-- **No prompts**: Prompt templates not yet implemented
 - **No authentication**: Stdio mode assumes local trust
 - **No encryption support**: Server refuses to operate on encrypted repos rather than decrypting them (see [Security Considerations](#security-considerations))
 - **No client identity in audit entries**: audit entries record the operation and result, but not client name/version, token, or IP, since MCP authentication (R32) does not exist yet
