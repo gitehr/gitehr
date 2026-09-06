@@ -4,6 +4,7 @@
 //! Internal MCP server implementation for `gitehr mcp serve`.
 
 mod audit;
+mod prompts;
 mod protocol;
 mod resources;
 mod server;

@@ -23,6 +23,7 @@ pub struct Tool {
 
 /// Tool call result
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ToolResult {
     pub content: Vec<ToolContent>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -486,10 +487,7 @@ mod tests {
 
         let json = serde_json::to_value(&result).unwrap();
         assert_eq!(json["content"][0]["type"], "text");
-        // The skip_serializing_if means false is omitted from JSON
-        // Let's test it's either false or absent
-        if let Some(is_error) = json.get("isError") {
-            assert_eq!(is_error, &serde_json::json!(false));
-        }
+        assert_eq!(json["isError"], false);
+        assert!(json.get("is_error").is_none());
     }
 }

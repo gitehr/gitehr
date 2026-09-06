@@ -13,6 +13,7 @@ use crate::commands::document::{DOCUMENT_ROOTS, MANIFEST_FILENAME};
 
 /// MCP Resource
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Resource {
     pub uri: String,
     pub name: String,
@@ -45,6 +46,7 @@ pub struct ResourcesRead {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ResourceReadContent {
     pub uri: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -422,11 +424,13 @@ mod tests {
             mime_type: Some("application/json".to_string()),
         };
 
-        let json = serde_json::to_string(&resource).unwrap();
-        let parsed: Resource = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_value(&resource).unwrap();
+        let parsed: Resource = serde_json::from_value(json.clone()).unwrap();
 
         assert_eq!(parsed.uri, "gitehr://repo/test/journal");
         assert_eq!(parsed.name, "Journal");
+        assert_eq!(json["mimeType"], "application/json");
+        assert!(json.get("mime_type").is_none());
     }
 
     #[test]
