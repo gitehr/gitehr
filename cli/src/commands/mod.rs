@@ -3,6 +3,7 @@
 
 pub mod allergies;
 pub mod completions;
+pub mod conditions;
 pub mod config;
 pub mod context;
 pub mod contributor;

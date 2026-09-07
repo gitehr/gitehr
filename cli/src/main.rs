@@ -10,6 +10,7 @@ mod config;
 mod utils;
 
 use commands::allergies::AllergyCommands;
+use commands::conditions::ConditionCommands;
 use commands::config::ConfigCommands;
 use commands::demographics::DemographicsCommands;
 use commands::document::DocumentCommands;
@@ -40,6 +41,14 @@ enum Commands {
     Allergies {
         #[command(subcommand)]
         command: AllergyCommands,
+    },
+    #[command(
+        about = "Manage typed condition and problem-list state",
+        arg_required_else_help = true
+    )]
+    Conditions {
+        #[command(subcommand)]
+        command: ConditionCommands,
     },
     #[command(
         about = "Generate shell completions",
@@ -231,6 +240,7 @@ fn main() -> Result<()> {
 
     match cli.command {
         Commands::Allergies { command } => commands::allergies::run(command)?,
+        Commands::Conditions { command } => commands::conditions::run(command)?,
         Commands::Completions {
             command,
             shell,
@@ -271,6 +281,7 @@ fn bare_command_help_target(command: &str) -> Option<&'static str> {
         "allergies" => Some("allergies"),
         "attach" | "document" => Some("document"),
         "completions" => Some("completions"),
+        "conditions" => Some("conditions"),
         "config" => Some("config"),
         "demographics" => Some("demographics"),
         "import" => Some("import"),
@@ -356,6 +367,7 @@ fn apply_context(command: &mut Commands) -> Result<()> {
         | Commands::State { .. }
         | Commands::Demographics { .. }
         | Commands::Allergies { .. }
+        | Commands::Conditions { .. }
         | Commands::Medications { .. }
         | Commands::Vaccinations { .. }
         | Commands::Remote { .. }

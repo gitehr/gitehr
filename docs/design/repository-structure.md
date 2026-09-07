@@ -54,6 +54,7 @@ documents:
 Mutable, current clinical summaries. Examples:
 
 - `allergies.md`
+- `conditions.md`
 - `medications.md`
 - `demographics.md`
 - `about-me.md`
