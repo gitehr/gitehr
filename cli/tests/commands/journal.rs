@@ -242,3 +242,72 @@ fn mcp_draft_reject_deletes_the_file() -> Result<()> {
     assert!(Path::new("journal").join(committed_name).exists());
     Ok(())
 }
+
+#[cfg(unix)]
+#[test]
+fn journal_writes_refuse_live_and_dangling_directory_symlinks() -> Result<()> {
+    use gitehr::commands::journal::create_journal_entry_at;
+    use std::os::unix::fs::symlink;
+    for dangling in [false, true] {
+        let temp = tempdir()?;
+        let outside = temp.path().join("outside");
+        if !dangling {
+            fs::create_dir(&outside)?;
+        }
+        symlink(&outside, temp.path().join("journal"))?;
+        let error = create_mcp_draft_entry(temp.path(), "draft", None).unwrap_err();
+        assert!(error.to_string().contains("symlink"));
+        let error = create_journal_entry_at(temp.path(), "entry", Vec::new(), None).unwrap_err();
+        assert!(error.to_string().contains("symlink"));
+        if !dangling {
+            assert_eq!(fs::read_dir(&outside)?.count(), 0);
+        } else {
+            assert!(!outside.exists());
+        }
+    }
+    Ok(())
+}
+
+#[cfg(unix)]
+#[test]
+fn journal_atomic_publication_preserves_normal_creation_permissions() -> Result<()> {
+    use std::os::unix::fs::PermissionsExt;
+    let temp = tempdir()?;
+    fs::create_dir(temp.path().join("journal"))?;
+    let reference = temp.path().join("journal/reference.txt");
+    fs::write(&reference, "reference")?;
+    let filename = create_mcp_draft_entry(temp.path(), "draft", None)?;
+    assert_eq!(
+        fs::metadata(temp.path().join(filename))?
+            .permissions()
+            .mode(),
+        fs::metadata(reference)?.permissions().mode()
+    );
+    Ok(())
+}
+
+#[cfg(target_os = "linux")]
+#[test]
+#[serial]
+fn journal_partial_write_failure_leaves_no_entry_or_temporary_file() -> Result<()> {
+    let _temp_dir = setup_with_git()?;
+    fs::create_dir(".gitehr")?;
+    // Limit only the child and ignore SIGXFSZ so write_all gets EFBIG after a prefix.
+    let output = Command::new("bash")
+        .args([
+            "-c",
+            "trap '' XFSZ; ulimit -f 1; exec \"$@\"",
+            "journal-write-test",
+        ])
+        .args([env!("CARGO_BIN_EXE_gitehr"), "journal", "add"])
+        .arg("Clinical narrative. ".repeat(1024))
+        .output()?;
+    assert_eq!(output.status.code(), Some(1));
+    assert!(String::from_utf8_lossy(&output.stderr).contains("Failed to write journal entry"));
+    assert!(String::from_utf8_lossy(&output.stderr).contains("File too large"));
+    assert_eq!(fs::read_dir("journal")?.count(), 0);
+    let staged = Command::new("git").args(["ls-files", "--stage"]).output()?;
+    assert!(staged.status.success());
+    assert!(staged.stdout.is_empty());
+    Ok(())
+}

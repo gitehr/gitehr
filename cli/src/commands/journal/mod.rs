@@ -1,17 +1,18 @@
 // SPDX-FileCopyrightText: 2026 Marcus Baw and Baw Medical Ltd
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
 use clap::Subcommand;
 use serde::{Deserialize, Serialize};
 use std::{
     fs,
+    io::Write,
     path::{Path, PathBuf},
 };
 use uuid::Uuid;
 
-use super::{contributor, git};
+use super::{contributor, git, typed_state};
 
 pub mod add;
 pub mod draft;
@@ -349,7 +350,30 @@ fn write_journal_entry_at(
     let yaml = serde_yaml_ng::to_string(&entry)?;
     let file_content = format!("---\n{}---\n\n{}", yaml, content);
 
-    fs::write(repo_path.join(&relative_filename), file_content)?;
+    // Resolve the explicitly selected repository root before checking paths within it.
+    let path = repo_path.canonicalize()?.join(&relative_filename);
+    typed_state::refuse_symlinked_path(&path)?;
+    let mut builder = tempfile::Builder::new();
+    builder.prefix(".gitehr-journal-");
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        // Match fs::write's creation mode; the OS still applies umask/default ACLs.
+        builder.permissions(fs::Permissions::from_mode(0o666));
+    }
+    let mut temporary = builder.tempfile_in(path.parent().unwrap())?;
+    temporary
+        .write_all(file_content.as_bytes())
+        .with_context(|| format!("Failed to write journal entry {}", path.display()))?;
+    temporary
+        .as_file()
+        .sync_all()
+        .with_context(|| format!("Failed to sync journal entry {}", path.display()))?;
+    // Failed writes leave only a temporary file, removed on drop, never a partial entry.
+    temporary
+        .persist_noclobber(&path)
+        .map_err(|error| error.error)
+        .with_context(|| format!("Failed to publish journal entry {}", path.display()))?;
 
     Ok(relative_filename)
 }

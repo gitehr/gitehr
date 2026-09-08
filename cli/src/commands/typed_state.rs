@@ -25,12 +25,15 @@ where
     T: DeserializeOwned + Default,
 {
     let path = state_path(filename);
-    if !path.exists() {
-        return Ok(T::default());
-    }
-
-    let content = fs::read_to_string(&path)
-        .with_context(|| format!("Failed to read state file {}", path.display()))?;
+    refuse_symlinked_path(&path)?;
+    let content = match fs::read_to_string(&path) {
+        Ok(content) => content,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(T::default()),
+        Err(error) => {
+            return Err(error)
+                .with_context(|| format!("Failed to read state file {}", path.display()));
+        }
+    };
     if content.trim().is_empty() {
         return Ok(T::default());
     }
@@ -183,16 +186,21 @@ fn remove_if_present(path: &Path) -> Result<()> {
     }
 }
 
-fn refuse_symlinked_path(path: &Path) -> Result<()> {
+pub(crate) fn refuse_symlinked_path(path: &Path) -> Result<()> {
     for candidate in path
         .ancestors()
         .take_while(|candidate| *candidate != Path::new(""))
     {
-        if candidate
-            .symlink_metadata()
-            .is_ok_and(|metadata| metadata.file_type().is_symlink())
-        {
-            anyhow::bail!("Refusing to write through symlink {}", candidate.display());
+        match candidate.symlink_metadata() {
+            Ok(metadata) if metadata.file_type().is_symlink() => {
+                anyhow::bail!("Refusing to access through symlink {}", candidate.display());
+            }
+            Ok(_) => {}
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+            Err(error) => {
+                return Err(error)
+                    .with_context(|| format!("Failed to inspect path {}", candidate.display()));
+            }
         }
     }
     Ok(())
@@ -207,11 +215,48 @@ fn markdown_body(content: &str) -> Option<&str> {
 }
 
 fn split_front_matter(content: &str) -> Option<(&str, &str)> {
-    if let Some(rest) = content.strip_prefix("---\n") {
-        let end = rest.find("\n---")?;
-        return Some((&rest[..end], &rest[end + 4..]));
+    let rest = content
+        .strip_prefix("---\n")
+        .or_else(|| content.strip_prefix("---\r\n"))?;
+    let mut offset = 0;
+    for line in rest.split_inclusive('\n') {
+        if line.trim_end_matches(['\r', '\n', ' ', '\t']) == "---" {
+            // Keep the closing delimiter's whitespace and newline with the body.
+            return Some((&rest[..offset], &rest[offset + 3..]));
+        }
+        offset += line.len();
     }
-    let rest = content.strip_prefix("---\r\n")?;
-    let end = rest.find("\r\n---")?;
-    Some((&rest[..end], &rest[end + 5..]))
+    None
+}
+
+#[cfg(test)]
+mod tests {
+    use super::split_front_matter;
+
+    #[test]
+    fn front_matter_requires_a_whole_delimiter_line() {
+        for newline in ["\n", "\r\n"] {
+            let yaml = format!("conditions: []{newline}---source: imported{newline}");
+            let body = format!("{newline}{newline}Clinical notes{newline}");
+            let content = format!("---{newline}{yaml}---{body}");
+            assert_eq!(
+                split_front_matter(&content),
+                Some((yaml.as_str(), body.as_str()))
+            );
+            assert_eq!(split_front_matter(&format!("---{newline}{yaml}")), None);
+            assert_eq!(
+                split_front_matter(&format!("---{newline}---{body}")),
+                Some(("", body.as_str()))
+            );
+            assert_eq!(
+                split_front_matter(&format!("---{newline}{yaml}---")),
+                Some((yaml.as_str(), ""))
+            );
+        }
+        assert_eq!(split_front_matter("conditions: []\n"), None);
+        assert_eq!(
+            split_front_matter("---\nconditions: []\n---invalid\n"),
+            None
+        );
+    }
 }

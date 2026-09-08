@@ -9,7 +9,8 @@ All subcommands require the current directory to be a GitEHR repository.
 `gitehr state` is the raw file-level interface. GUI-facing and automation-facing
 clinical state should prefer typed commands such as
 [`gitehr demographics`](demographics.md), [`gitehr allergies`](allergies.md),
-and [`gitehr medications`](medications.md), which validate their fields, emit
+[`gitehr medications`](medications.md), and [`gitehr conditions`](conditions.md),
+which validate their fields, emit
 stable JSON, and create companion journal entries for mutations.
 
 ### `gitehr state list`

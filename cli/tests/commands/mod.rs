@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 pub mod allergies;
+pub mod conditions;
 pub mod config;
 pub mod contributor;
 pub mod demographics;
