@@ -6,7 +6,7 @@ use chrono::{NaiveDate, Utc};
 use clap::{Subcommand, ValueEnum};
 use serde::{Deserialize, Serialize};
 use serde_yaml_ng::Value as YamlValue;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use uuid::Uuid;
 
 use super::{contributor, typed_state};
@@ -25,9 +25,15 @@ pub enum ConditionCommands {
     List {
         #[arg(long, help = "Emit JSON for GUI or automation callers")]
         json: bool,
-        #[arg(long, help = "Include resolved and inactive conditions")]
+        #[arg(
+            long,
+            help = "Include all statuses, including inactive, resolved, refuted, and entered-in-error"
+        )]
         all: bool,
-        #[arg(long, help = "Show only active problem-list items")]
+        #[arg(
+            long,
+            help = "Filter by problem-list-item category (combine with --all for history)"
+        )]
         problems: bool,
     },
     #[command(about = "Add a condition or problem-list item")]
@@ -191,7 +197,6 @@ pub struct Condition {
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct ConditionsState {
-    #[serde(default)]
     pub conditions: Vec<Condition>,
     #[serde(flatten)]
     pub extra: BTreeMap<String, YamlValue>,
@@ -270,11 +275,30 @@ pub fn run(command: ConditionCommands) -> Result<()> {
 }
 
 pub fn load() -> Result<ConditionsState> {
-    typed_state::read_front_matter(STATE_FILE)
+    typed_state::ensure_gitehr_repository()?;
+    let state: ConditionsState = typed_state::read_front_matter(STATE_FILE)?;
+    let mut ids = BTreeSet::new();
+    for condition in &state.conditions {
+        require_text(&condition.id, "Stored condition id")?;
+        require_text(&condition.name, "Stored condition name")?;
+        if !ids.insert(&condition.id) {
+            anyhow::bail!(
+                "Duplicate condition id in state/{STATE_FILE}: {}",
+                condition.id
+            );
+        }
+    }
+    Ok(state)
 }
 
-fn is_current(status: ClinicalStatus) -> bool {
-    !matches!(status, ClinicalStatus::Inactive | ClinicalStatus::Resolved)
+fn is_current(condition: &Condition) -> bool {
+    !matches!(
+        condition.clinical_status,
+        ClinicalStatus::Inactive | ClinicalStatus::Resolved
+    ) && !matches!(
+        condition.verification_status,
+        VerificationStatus::Refuted | VerificationStatus::EnteredInError
+    )
 }
 
 pub fn list(all: bool, problems_only: bool) -> Result<Vec<Condition>> {
@@ -282,7 +306,7 @@ pub fn list(all: bool, problems_only: bool) -> Result<Vec<Condition>> {
     Ok(state
         .conditions
         .into_iter()
-        .filter(|condition| all || is_current(condition.clinical_status))
+        .filter(|condition| all || is_current(condition))
         .filter(|condition| !problems_only || condition.category == Category::ProblemListItem)
         .collect())
 }
@@ -326,6 +350,11 @@ pub fn add(input: ConditionInput) -> Result<Condition> {
     if let Some(note) = note {
         journal_body.push_str(&format!("\n\nNote: {note}"));
     }
+    // Keep the original assertion reconstructable from the immutable journal.
+    journal_body.push_str(&format!(
+        "\n\nRecorded condition state:\n\n```yaml\n{}```",
+        serde_yaml_ng::to_string(&condition)?
+    ));
     persist_with_journal(&state, &journal_body)?;
     println!("Recorded condition: {}", condition.id);
     Ok(condition)
@@ -350,6 +379,15 @@ pub fn resolve(id: &str, date: Option<&str>, reason: Option<&str>) -> Result<Con
 
     if condition.clinical_status == ClinicalStatus::Resolved {
         anyhow::bail!("Condition is already resolved: {id}");
+    }
+    if matches!(
+        condition.verification_status,
+        VerificationStatus::Refuted | VerificationStatus::EnteredInError
+    ) {
+        anyhow::bail!(
+            "Cannot resolve a {} condition: {id}",
+            condition.verification_status
+        );
     }
     if let Some(onset) = condition.onset.as_deref()
         && let Ok(onset) = NaiveDate::parse_from_str(onset, "%Y-%m-%d")
@@ -394,8 +432,11 @@ fn persist_with_journal(state: &ConditionsState, journal_body: &str) -> Result<(
 }
 
 fn validate_date(value: &str, label: &str) -> Result<()> {
-    NaiveDate::parse_from_str(value, "%Y-%m-%d")
+    let date = NaiveDate::parse_from_str(value, "%Y-%m-%d")
         .map_err(|_| anyhow::anyhow!("{} must use YYYY-MM-DD format", label))?;
+    if value.len() != 10 || date.format("%Y-%m-%d").to_string() != value {
+        anyhow::bail!("{} must use YYYY-MM-DD format", label);
+    }
     Ok(())
 }
 
@@ -414,7 +455,7 @@ fn cleaned_str(value: &str) -> Option<String> {
 
 fn print_human(conditions: &[Condition]) {
     if conditions.is_empty() {
-        println!("No current conditions recorded.");
+        println!("No conditions match this view.");
         return;
     }
 
@@ -430,8 +471,13 @@ fn print_human(conditions: &[Condition]) {
             location.push_str(&format!(" [{}]", laterality));
         }
         println!(
-            "{}  {} ({}, {}){}",
-            condition.id, condition.name, condition.clinical_status, condition.category, location
+            "{}  {} ({}, {}, {}){}",
+            condition.id,
+            condition.name,
+            condition.clinical_status,
+            condition.verification_status,
+            condition.category,
+            location
         );
     }
 }

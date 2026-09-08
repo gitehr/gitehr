@@ -1,12 +1,12 @@
 # Problem / Condition list
 
-*Status: proposal (draft). Surfaced from maintaining a real personal health record in parallel with GitEHR (see note at the end). Relates to #10 (base information model) and to the existing `state/` typed-state pattern (`allergies`, `demographics`).*
+*Status: historical proposal, implemented in v1 using representation (A), a single `state/conditions.md`. The [shipped command specification](commands/conditions.md) is authoritative for current fields, filtering, validation, and lifecycle behaviour. The original rationale and proposals below are retained as design history, not a description of current implementation. Surfaced from maintaining a real personal health record in parallel with GitEHR (see note at the end). Relates to #10 (base information model) and to the existing `state/` typed-state pattern (`allergies`, `demographics`).*
 
-## Why this is the priority gap
+## Original priority gap
 
-GitEHR ships typed-state for allergies and demographics, an immutable journal, documents/imaging, the store/MPI model, import, MCP, and a calculator library in waiting. The single most important *clinical* primitive of any health record - "what health states does this person have, and which are a current concern" - has no structured home. A `Condition` type is sketched in `DESIGN.md`, but it is not shipped: there is no `state/conditions.md` in the folder template, no command, and no lifecycle. A problem today exists only as free text inside a journal entry.
+At the time of this proposal, GitEHR shipped typed-state for allergies and demographics, an immutable journal, documents/imaging, the store/MPI model, import, MCP, and a calculator library in waiting. The single most important *clinical* primitive of any health record - "what health states does this person have, and which are a current concern" - had no structured home. A `Condition` type was sketched in `DESIGN.md`, but had not shipped: there was no `state/conditions.md` in the folder template, no command, and no lifecycle. A problem existed only as free text inside a journal entry.
 
-That blocks three things at once:
+That blocked three things at once:
 
 - A usable summary. The problem list is the first thing any clinician reads; without it there is no current-state clinical view.
 - The calculators. `clincalc` is built and validated, but many scores are condition-gated (current diagnoses, treated-hypertension status, etc.). No structured conditions, no automatic scores.

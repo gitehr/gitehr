@@ -8,7 +8,8 @@ use std::path::Path;
 use std::process::Command;
 
 use gitehr::commands::conditions::{
-    Category, ClinicalStatus, ConditionInput, VerificationStatus, add, list, resolve, show,
+    Category, ClinicalStatus, ConditionInput, ConditionsState, Laterality, VerificationStatus, add,
+    list, load, resolve, show,
 };
 use gitehr::commands::journal::parsed_entries;
 
@@ -18,17 +19,21 @@ fn setup_with_git() -> Result<tempfile::TempDir> {
     fs::create_dir(".gitehr")?;
     fs::create_dir("journal")?;
     fs::create_dir("state")?;
-    std::process::Command::new("git").args(["init"]).output()?;
-    std::process::Command::new("git")
-        .args(["config", "user.name", "Test User"])
-        .output()?;
-    std::process::Command::new("git")
-        .args(["config", "user.email", "test@example.com"])
-        .output()?;
-    std::process::Command::new("git")
-        .args(["config", "commit.gpgsign", "false"])
-        .output()?;
+    git(&["init"])?;
+    git(&["config", "user.name", "Test User"])?;
+    git(&["config", "user.email", "test@example.com"])?;
+    git(&["config", "commit.gpgsign", "false"])?;
     Ok(temp_dir)
+}
+
+fn git(args: &[&str]) -> Result<Vec<u8>> {
+    let output = Command::new("git").args(args).output()?;
+    anyhow::ensure!(
+        output.status.success(),
+        "git {args:?}: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    Ok(output.stdout)
 }
 
 fn condition_input() -> ConditionInput {
@@ -95,7 +100,7 @@ fn condition_add_writes_active_state_and_journal_entry() -> Result<()> {
 
 #[test]
 #[serial]
-fn condition_add_rejects_malformed_onset_is_stored_as_free_text() -> Result<()> {
+fn condition_add_preserves_free_text_onset() -> Result<()> {
     // onset is free text and is not strictly validated as a date.
     let _temp_dir = setup_with_git()?;
 
@@ -172,7 +177,7 @@ fn condition_resolve_hides_from_default_list_but_keeps_history() -> Result<()> {
     resolve(
         &condition.id,
         Some("2026-06-30"),
-        Some("Achieved remission via lifestyle change"),
+        Some("Diagnosis recorded as resolved after review"),
     )?;
 
     assert!(list(false, false)?.is_empty());
@@ -182,7 +187,7 @@ fn condition_resolve_hides_from_default_list_but_keeps_history() -> Result<()> {
     assert_eq!(all[0].abatement.as_deref(), Some("2026-06-30"));
     assert_eq!(
         all[0].abatement_reason.as_deref(),
-        Some("Achieved remission via lifestyle change")
+        Some("Diagnosis recorded as resolved after review")
     );
 
     let entries = parsed_entries()?;
@@ -193,7 +198,7 @@ fn condition_resolve_hides_from_default_list_but_keeps_history() -> Result<()> {
             condition.id
         )) && entry
             .content
-            .contains("Reason: Achieved remission via lifestyle change")
+            .contains("Reason: Diagnosis recorded as resolved after review")
     }));
 
     Ok(())
@@ -436,5 +441,418 @@ fn condition_add_refuses_symlinked_state_file() -> Result<()> {
     assert!(fs::symlink_metadata("state")?.file_type().is_symlink());
     assert_eq!(fs::read_to_string("outside/conditions.md")?, original);
     assert_eq!(fs::read_dir("journal")?.count(), 0);
+    Ok(())
+}
+
+#[test]
+#[serial]
+fn condition_list_filters_every_status_verification_and_category_combination() -> Result<()> {
+    // spec/problem-condition-list.md: a problem is a possible current concern,
+    // not a refuted assertion or a record entered in error.
+    let _temp_dir = setup_with_git()?;
+    let original = add(condition_input())?;
+    let mut state = ConditionsState::default();
+    let mut current_ids = Vec::new();
+    let mut problem_ids = Vec::new();
+    let mut all_problem_ids = Vec::new();
+    for (status, current) in [
+        (ClinicalStatus::Active, true),
+        (ClinicalStatus::Recurrence, true),
+        (ClinicalStatus::Relapse, true),
+        (ClinicalStatus::Remission, true),
+        (ClinicalStatus::Inactive, false),
+        (ClinicalStatus::Resolved, false),
+    ] {
+        for (verification, plausible) in [
+            (VerificationStatus::Unconfirmed, true),
+            (VerificationStatus::Provisional, true),
+            (VerificationStatus::Differential, true),
+            (VerificationStatus::Confirmed, true),
+            (VerificationStatus::Refuted, false),
+            (VerificationStatus::EnteredInError, false),
+        ] {
+            for category in [Category::ProblemListItem, Category::EncounterDiagnosis] {
+                let mut condition = original.clone();
+                condition.id = format!("COND-{status}-{verification}-{category}");
+                condition.clinical_status = status;
+                condition.verification_status = verification;
+                condition.category = category;
+                if category == Category::ProblemListItem {
+                    all_problem_ids.push(condition.id.clone());
+                }
+                if current && plausible {
+                    current_ids.push(condition.id.clone());
+                    if category == Category::ProblemListItem {
+                        problem_ids.push(condition.id.clone());
+                    }
+                }
+                state.conditions.push(condition);
+            }
+        }
+    }
+    fs::write("state/conditions.md", serde_yaml_ng::to_string(&state)?)?;
+    for (all, problems, expected) in [
+        (false, false, current_ids),
+        (false, true, problem_ids),
+        (true, true, all_problem_ids),
+        (
+            true,
+            false,
+            state.conditions.iter().map(|c| c.id.clone()).collect(),
+        ),
+    ] {
+        let actual: Vec<_> = list(all, problems)?.into_iter().map(|c| c.id).collect();
+        assert_eq!(actual, expected, "all={all}, problems={problems}");
+    }
+    Ok(())
+}
+
+#[test]
+#[serial]
+fn condition_journal_preserves_the_complete_original_assertion() -> Result<()> {
+    let _temp_dir = setup_with_git()?;
+    let condition = add(ConditionInput {
+        name: "Knee pain".to_string(),
+        code: None,
+        verification: VerificationStatus::Differential,
+        onset: Some("childhood".to_string()),
+        body_site: Some("knee".to_string()),
+        laterality: Some(Laterality::Left),
+        note: Some("Diagnosis under investigation".to_string()),
+        ..condition_input()
+    })?;
+    let entries = parsed_entries()?;
+    let yaml = entries[0].content.split("```yaml\n").nth(1).unwrap();
+    let yaml = yaml.strip_suffix("```").unwrap();
+    let recorded: gitehr::commands::conditions::Condition = serde_yaml_ng::from_str(yaml)?;
+    assert_eq!(
+        serde_json::to_value(recorded)?,
+        serde_json::to_value(condition)?
+    );
+    Ok(())
+}
+
+#[test]
+#[serial]
+fn condition_resolve_rejects_noncanonical_and_impossible_dates_without_mutation() -> Result<()> {
+    let _temp_dir = setup_with_git()?;
+    let condition = add(condition_input())?;
+    let before = fs::read("state/conditions.md")?;
+    let head = git(&["rev-parse", "HEAD"])?;
+    for date in [
+        "2026-6-3",
+        "2026-06-3",
+        "2026-6-03",
+        "2026-02-29",
+        "2026-13-01",
+        " 2026-06-03",
+        "+2026-06-03",
+        "2026-06-03 ",
+        "2026-06-03T00:00:00Z",
+    ] {
+        let error = resolve(&condition.id, Some(date), None).unwrap_err();
+        assert!(error.to_string().contains("YYYY-MM-DD"), "{date}: {error}");
+        assert_eq!(fs::read("state/conditions.md")?, before);
+        assert_eq!(git(&["rev-parse", "HEAD"])?, head);
+        assert!(git(&["status", "--porcelain"])?.is_empty());
+        assert_eq!(parsed_entries()?.len(), 1);
+    }
+    resolve(&condition.id, Some("2024-02-29"), None)?;
+    Ok(())
+}
+
+#[test]
+#[serial]
+fn condition_resolve_refuses_refuted_and_erroneous_assertions() -> Result<()> {
+    let _temp_dir = setup_with_git()?;
+    for verification in [
+        VerificationStatus::Refuted,
+        VerificationStatus::EnteredInError,
+    ] {
+        let condition = add(ConditionInput {
+            verification,
+            ..condition_input()
+        })?;
+        let before = fs::read("state/conditions.md")?;
+        let head = git(&["rev-parse", "HEAD"])?;
+        let error = resolve(&condition.id, Some("2026-06-30"), None).unwrap_err();
+        assert!(error.to_string().contains("Cannot resolve"));
+        assert_eq!(fs::read("state/conditions.md")?, before);
+        assert_eq!(git(&["rev-parse", "HEAD"])?, head);
+        assert_eq!(show(&condition.id)?.verification_status, verification);
+    }
+    Ok(())
+}
+
+#[test]
+#[serial]
+fn condition_load_rejects_missing_array_invalid_yaml_and_ambiguous_records() -> Result<()> {
+    let _temp_dir = setup_with_git()?;
+    let condition = add(condition_input())?;
+    let duplicate = ConditionsState {
+        conditions: vec![condition.clone(), condition.clone()],
+        ..Default::default()
+    };
+    let mut unnamed = condition.clone();
+    unnamed.name = " \t ".to_string();
+    let mut no_id = condition.clone();
+    no_id.id = " ".to_string();
+    let invalid = [
+        "---\ncondition: []\n---\n".to_string(),
+        "---\nconditions: [\n---\n".to_string(),
+        "---\nconditions: null\n---\n".to_string(),
+        serde_yaml_ng::to_string(&duplicate)?,
+        serde_yaml_ng::to_string(&ConditionsState {
+            conditions: vec![unnamed],
+            ..Default::default()
+        })?,
+        serde_yaml_ng::to_string(&ConditionsState {
+            conditions: vec![no_id],
+            ..Default::default()
+        })?,
+    ];
+    for content in invalid {
+        fs::write("state/conditions.md", &content)?;
+        assert!(load().is_err(), "{content}");
+        assert!(list(true, false).is_err());
+        assert!(show(&condition.id).is_err());
+        assert!(add(condition_input()).is_err());
+        assert!(resolve(&condition.id, None, None).is_err());
+        assert_eq!(fs::read_to_string("state/conditions.md")?, content);
+        assert_eq!(parsed_entries()?.len(), 1);
+    }
+    Ok(())
+}
+
+#[test]
+#[serial]
+fn condition_resolve_failure_restores_existing_state_and_unrelated_index() -> Result<()> {
+    let _temp_dir = setup_with_git()?;
+    let condition = add(condition_input())?;
+    let before = fs::read("state/conditions.md")?;
+    let head = git(&["rev-parse", "HEAD"])?;
+    fs::write("unrelated.txt", "keep staged")?;
+    git(&["add", "unrelated.txt"])?;
+    let index = git(&["ls-files", "--stage"])?;
+    git(&["config", "user.name", ""])?;
+    assert!(resolve(&condition.id, Some("2026-06-30"), None).is_err());
+    assert_eq!(fs::read("state/conditions.md")?, before);
+    assert_eq!(git(&["rev-parse", "HEAD"])?, head);
+    assert_eq!(git(&["ls-files", "--stage"])?, index);
+    assert_eq!(parsed_entries()?.len(), 1);
+    Ok(())
+}
+
+#[test]
+#[serial]
+fn condition_mutation_refuses_dirty_state_without_changing_files_or_index() -> Result<()> {
+    let _temp_dir = setup_with_git()?;
+    let condition = add(condition_input())?;
+    let original = fs::read_to_string("state/conditions.md")?;
+    let head = git(&["rev-parse", "HEAD"])?;
+    for staged in [false, true] {
+        let dirty = format!("{original}\nUncommitted clinical context\n");
+        fs::write("state/conditions.md", &dirty)?;
+        if staged {
+            git(&["add", "state/conditions.md"])?;
+        }
+        let index = git(&["ls-files", "--stage"])?;
+        for result in [add(condition_input()), resolve(&condition.id, None, None)] {
+            assert!(
+                result
+                    .unwrap_err()
+                    .to_string()
+                    .contains("uncommitted changes")
+            );
+        }
+        assert_eq!(fs::read_to_string("state/conditions.md")?, dirty);
+        assert_eq!(git(&["rev-parse", "HEAD"])?, head);
+        assert_eq!(git(&["ls-files", "--stage"])?, index);
+        assert_eq!(parsed_entries()?.len(), 1);
+    }
+    Ok(())
+}
+
+#[test]
+#[serial]
+fn condition_cli_preserves_verification_in_text_and_emits_clean_json() -> Result<()> {
+    let _temp_dir = setup_with_git()?;
+    let condition = add(ConditionInput {
+        verification: VerificationStatus::Provisional,
+        ..condition_input()
+    })?;
+    let text = Command::new(env!("CARGO_BIN_EXE_gitehr"))
+        .args(["conditions", "list"])
+        .output()?;
+    assert!(text.status.success());
+    assert!(
+        String::from_utf8_lossy(&text.stdout).contains("active, provisional, problem-list-item")
+    );
+    let json = Command::new(env!("CARGO_BIN_EXE_gitehr"))
+        .args(["conditions", "list", "--json"])
+        .output()?;
+    assert!(json.status.success());
+    let rows: serde_json::Value = serde_json::from_slice(&json.stdout)?;
+    assert_eq!(rows[0], serde_json::to_value(&condition)?);
+    let shown = Command::new(env!("CARGO_BIN_EXE_gitehr"))
+        .args(["conditions", "show", &condition.id, "--json"])
+        .output()?;
+    assert!(shown.status.success());
+    assert_eq!(
+        serde_json::from_slice::<serde_json::Value>(&shown.stdout)?,
+        rows[0]
+    );
+    let help = Command::new(env!("CARGO_BIN_EXE_gitehr"))
+        .args(["conditions", "list", "--help"])
+        .output()?;
+    assert!(help.status.success());
+    let help = String::from_utf8_lossy(&help.stdout);
+    assert!(help.contains("refuted, and entered-in-error"));
+    assert!(help.contains("Filter by problem-list-item category"));
+    Ok(())
+}
+
+#[cfg(unix)]
+#[test]
+#[serial]
+fn condition_reads_and_mutations_refuse_live_and_dangling_state_symlinks() -> Result<()> {
+    use std::os::unix::fs::symlink;
+    for directory in [false, true] {
+        for dangling in [false, true] {
+            let _temp_dir = setup_with_git()?;
+            fs::create_dir("outside")?;
+            let original = "---\nconditions: []\n---\n";
+            if !dangling {
+                fs::write("outside/conditions.md", original)?;
+            }
+            if directory {
+                fs::remove_dir("state")?;
+                symlink(if dangling { "missing" } else { "outside" }, "state")?;
+            } else {
+                symlink("../outside/conditions.md", "state/conditions.md")?;
+            }
+            assert!(load().unwrap_err().to_string().contains("symlink"));
+            assert!(
+                list(true, false)
+                    .unwrap_err()
+                    .to_string()
+                    .contains("symlink")
+            );
+            assert!(
+                show("COND-test")
+                    .unwrap_err()
+                    .to_string()
+                    .contains("symlink")
+            );
+            assert!(
+                add(condition_input())
+                    .unwrap_err()
+                    .to_string()
+                    .contains("symlink")
+            );
+            assert!(
+                resolve("COND-test", None, None)
+                    .unwrap_err()
+                    .to_string()
+                    .contains("symlink")
+            );
+            assert_eq!(fs::read_dir("journal")?.count(), 0);
+            if !dangling {
+                assert_eq!(fs::read_to_string("outside/conditions.md")?, original);
+            } else {
+                assert!(!Path::new("outside/conditions.md").exists());
+            }
+        }
+    }
+    Ok(())
+}
+
+#[cfg(unix)]
+#[test]
+#[serial]
+fn condition_journal_symlink_failure_restores_state_and_index() -> Result<()> {
+    use std::os::unix::fs::symlink;
+    let _temp_dir = setup_with_git()?;
+    let condition = add(condition_input())?;
+    let original = fs::read("state/conditions.md")?;
+    let head = git(&["rev-parse", "HEAD"])?;
+    fs::write("unrelated.txt", "keep staged")?;
+    git(&["add", "unrelated.txt"])?;
+    let index = git(&["ls-files", "--stage"])?;
+    fs::rename("journal", "original-journal")?;
+    fs::create_dir("outside")?;
+    symlink("outside", "journal")?;
+    for result in [add(condition_input()), resolve(&condition.id, None, None)] {
+        assert!(result.unwrap_err().to_string().contains("symlink"));
+    }
+    assert_eq!(fs::read("state/conditions.md")?, original);
+    assert_eq!(git(&["rev-parse", "HEAD"])?, head);
+    assert_eq!(git(&["ls-files", "--stage"])?, index);
+    assert_eq!(fs::read_dir("outside")?.count(), 0);
+    assert_eq!(fs::read_dir("original-journal")?.count(), 1);
+    Ok(())
+}
+
+#[test]
+#[serial]
+fn condition_front_matter_preserves_delimiter_prefixed_yaml_keys_and_exact_body() -> Result<()> {
+    for newline in ["\n", "\r\n"] {
+        for closing_suffix in ["", " \t"] {
+            let _temp_dir = setup_with_git()?;
+            let body = format!(
+                "{closing_suffix}{newline}{newline}# Clinical context{newline}---not a delimiter{newline}"
+            );
+            let original =
+                format!("---{newline}conditions: []{newline}---source: imported{newline}---{body}");
+            fs::write("state/conditions.md", &original)?;
+            git(&["add", "state/conditions.md"])?;
+            git(&["commit", "-m", "Seed condition state"])?;
+            assert_eq!(load()?.extra["---source"].as_str(), Some("imported"));
+            add(condition_input())?;
+            let content = fs::read_to_string("state/conditions.md")?;
+            assert!(content.ends_with(&format!("---{body}")));
+            assert_eq!(load()?.extra["---source"].as_str(), Some("imported"));
+        }
+    }
+    Ok(())
+}
+
+#[cfg(target_os = "linux")]
+#[test]
+#[serial]
+fn condition_partial_journal_write_failure_rolls_back_state_and_index() -> Result<()> {
+    let _temp_dir = setup_with_git()?;
+    add(condition_input())?;
+    let original = fs::read("state/conditions.md")?;
+    let head = git(&["rev-parse", "HEAD"])?;
+    fs::write("unrelated.txt", "keep staged")?;
+    git(&["add", "unrelated.txt"])?;
+    let index = git(&["ls-files", "--stage"])?;
+    // State contains the note once (<8 KiB); the journal includes both the
+    // narrative and the snapshot (>8 KiB), so only the journal write fails.
+    let output = Command::new("bash")
+        .args([
+            "-c",
+            "trap '' XFSZ; ulimit -f 8; exec \"$@\"",
+            "condition-write-test",
+        ])
+        .args([
+            env!("CARGO_BIN_EXE_gitehr"),
+            "conditions",
+            "add",
+            "--name",
+            "Test condition",
+            "--note",
+        ])
+        .arg("n".repeat(6000))
+        .output()?;
+    assert_eq!(output.status.code(), Some(1));
+    assert!(String::from_utf8_lossy(&output.stderr).contains("Failed to write journal entry"));
+    assert!(String::from_utf8_lossy(&output.stderr).contains("File too large"));
+    assert_eq!(fs::read("state/conditions.md")?, original);
+    assert_eq!(git(&["rev-parse", "HEAD"])?, head);
+    assert_eq!(git(&["ls-files", "--stage"])?, index);
+    assert_eq!(fs::read_dir("journal")?.count(), 1);
+    assert_eq!(fs::read_dir("state")?.count(), 1);
     Ok(())
 }

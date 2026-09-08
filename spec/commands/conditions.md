@@ -12,7 +12,11 @@ A **condition** is any recorded health state - symptomatic or not, concerning or
 
 `state/conditions.md` is YAML front matter with a top-level `conditions` array. Each entry is one condition. A Markdown body and unrecognised YAML fields are preserved when the typed command updates a record, allowing later provenance, coding, and import fields to coexist with the v1 model.
 
+All subcommands reject non-empty YAML without the `conditions` array, malformed records, blank or whitespace-only stored IDs or names, and duplicate IDs before filtering or mutation. Missing or empty state files and empty front matter are treated as empty state; invalid populated state is not silently treated as empty.
+
 Updates atomically replace the state file and preserve Unix mode bits. File-specific ACLs, extended attributes, and Windows file attributes are not preserved. Configure required ACLs on the `state/` directory so replacement files inherit them; other per-file metadata is unsupported.
+
+The shared persistence path requires one writer per patient worktree: no transaction-wide lock protects the load/modify/commit sequence, and concurrent writers can lose updates or interfere with rollback. Ordinary write/commit failures are rolled back; crash recovery and concurrent-writer coordination remain follow-up work.
 
 Minimum useful record:
 
@@ -85,11 +89,11 @@ gitehr conditions resolve <id> [--date <YYYY-MM-DD>] [--reason <text>]
 gitehr conditions show <id> [--json]
 ```
 
-`list` hides `inactive` and `resolved` entries by default (a condition is "current" while `clinical_status` is `active`, `recurrence`, `relapse`, or `remission`). `--all` includes every status. `--problems` further restricts to `category = problem-list-item`, giving the problem-list projection described in [`problem-condition-list.md`](../problem-condition-list.md).
+`list` shows current conditions by default: `clinical_status` is `active`, `recurrence`, `relapse`, or `remission`, and `verification_status` is neither `refuted` nor `entered-in-error`. `--all` includes every clinical and verification status. `--problems` only adds the category filter `category = problem-list-item`: alone it shows current problems; combined with `--all` it includes their history too.
 
-`add` writes `state/conditions.md` and a journal entry in one commit. `--status` defaults to `active`, `--verification` to `unconfirmed`, `--category` to `problem-list-item`.
+`add` writes `state/conditions.md` and a journal entry in one commit. `--name` must not be blank or whitespace-only. `--status` defaults to `active`, `--verification` to `unconfirmed`, `--category` to `problem-list-item`. The journal contains the action, condition identity, optional note, and a complete YAML snapshot of the newly recorded condition so the original assertion remains reconstructable independently of later state changes.
 
-`resolve` never deletes a condition entry. It changes the current state row and writes a journal entry, preserving prior belief in Git history. `--date` defaults to today, must use `YYYY-MM-DD` when given, and (when the stored `onset` itself parses as a clean `YYYY-MM-DD` date) cannot precede it. Repeated resolution is rejected so the original abatement date and reason cannot be overwritten.
+`resolve` never deletes a condition entry. It sets `clinical_status` to `resolved`, records abatement details, and writes a journal entry, preserving prior belief in Git history. `--date` defaults to today (UTC), must be a valid calendar date in exact, zero-padded `YYYY-MM-DD` format when given, and cannot precede the stored `onset` when that parses as a `YYYY-MM-DD` date. Repeated resolution is rejected so the original abatement date and reason cannot be overwritten. Resolving a condition with `verification_status` of `refuted` or `entered-in-error` is also rejected.
 
 `show` finds a condition by id across every status, not only current ones, and prints its full recorded detail.
 
