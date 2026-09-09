@@ -35,9 +35,9 @@ This mirrors the split GitEHR already has (`gitehr import` ingests; something el
 | Demographics | `gitehr demographics set` | typed state |
 | Allergies | `state/allergies.md` (typed) | one entry each + journal narrative |
 | Immunisations | `state/vaccinations.md` (typed) | reuse the existing `fhir_r4` embedding of `Immunization` |
-| Medications | `state/medications.md` | gated on the typed medications command landing; until then journal + documents |
-| Problems / diagnoses | `state/conditions.md` | gated on [`problem-condition-list.md`](problem-condition-list.md); imported as review candidates, never silently confirmed |
-| Test results | journal entries (+ future `state/observations`) | FHIR `Observation` |
+| Medications | `state/medications.md` | typed command available; importer and source mapping remain planned |
+| Problems / diagnoses | `state/conditions.md` | [typed command](commands/conditions.md) available; imported as review candidates, never silently confirmed |
+| Test results | `state/observations.md` plus source Documents/journal | [typed command](commands/observations.md) available; FHIR mapping remains planned and must preserve details outside the v1 model |
 | Documents / letters | `documents/` via the document workflow | linked from a journal entry |
 | Consultations | journal entries | Medical Markdown where the source text supports it |
 
@@ -84,7 +84,7 @@ The exact schema is deferred pending the format fork below.
 1. Specify the extraction bundle format (FHIR R4 + manifest, including the seen/count fidelity contract).
 2. Implement the importer for the categories that have a home today: `allergies`, `vaccinations`, `demographics`, `documents`, and journal entries. Idempotent, provenance-stamped, acquisition-linked.
 3. Build the extraction agent (Skill or plugin - see fork) driving the NHS App web UI with local-only auth.
-4. Extend the importer to `conditions` / `medications` / `observations` as those typed-state commands land.
+4. Extend the importer to the available `conditions` / `medications` / `observations` typed-state commands, preserving source status, measurement time, and details that their v1 models cannot represent.
 5. Turva hazards: mis-map, stale data, wrong-patient, silent-drop.
 
 ## Open forks (decide before building)

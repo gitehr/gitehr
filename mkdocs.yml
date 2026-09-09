@@ -52,6 +52,7 @@ nav:
       - allergies: cli/allergies.md
       - conditions: cli/conditions.md
       - medications: cli/medications.md
+      - observations: cli/observations.md
       - vaccinations: cli/vaccinations.md
       - user: cli/user.md
       - remote: cli/remote.md

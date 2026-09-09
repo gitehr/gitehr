@@ -2,7 +2,7 @@
 
 # GitEHR Roadmap
 
-Legend: `[x]` done, `[~]` in progress, `[ ]` not started. This roadmap lists outstanding work only. Every item has a stable reference code: use it in discussion, commits, and decision notes (for example, `implements R12`).
+Legend: `[x]` done, `[~]` in progress, `[ ]` not started. This roadmap tracks outstanding work and completed milestones. Every item has a stable reference code: use it in discussion, commits, and decision notes (for example, `implements R12`).
 
 ## Import and Acquisition
 
@@ -13,9 +13,11 @@ Legend: `[x]` done, `[~]` in progress, `[ ]` not started. This roadmap lists out
 - [ ] **R58 - Complete NHS App recon and extraction agent v0:** complete the authenticated-session recon checklist, then build the browser-extension extractor with passive capture, DOM fallback, consent/provenance display, and a downloadable import bundle.
 - [x] **R59 - Publish a patient-mediated extraction position statement:** explain the local-first, own-data, adversarial-interoperability, and safety posture for portal extraction. Published as [`docs/design/patient-mediated-extraction.md`](../docs/design/patient-mediated-extraction.md).
 - [ ] **R60 - Add provenance and acquisition tracking:** add reusable fact provenance plus an acquisition/SAR register, typed commands, audit entries, and SAR-letter generation (see [`record-provenance-and-acquisition.md`](record-provenance-and-acquisition.md)).
-- [~] **R61 - Add typed Conditions, medications, and observations state:** provide audited mutations and safe import targets, including a problem-list projection over Conditions (see [`problem-condition-list.md`](problem-condition-list.md)). Medications shipped (`gitehr medications`, [`docs/cli/medications.md`](../docs/cli/medications.md)); Conditions shipped as representation (A), a single `state/conditions.md` (`gitehr conditions`, [`docs/cli/conditions.md`](../docs/cli/conditions.md), [`spec/commands/conditions.md`](commands/conditions.md)); observations remains outstanding.
+- [x] **R61 - Add typed Conditions, medications, and observations state:** provide audited mutations and safe import targets, including a problem-list projection over Conditions (see [`problem-condition-list.md`](problem-condition-list.md)). Medications shipped (`gitehr medications`, [`docs/cli/medications.md`](../docs/cli/medications.md)); Conditions shipped as representation (A), a single `state/conditions.md` (`gitehr conditions`, [`docs/cli/conditions.md`](../docs/cli/conditions.md), [`spec/commands/conditions.md`](commands/conditions.md)); Observations shipped as a single `state/observations.md` (`gitehr observations`, [`docs/cli/observations.md`](../docs/cli/observations.md), [`spec/commands/observations.md`](commands/observations.md)).
 - [ ] **R62 - Demonstrate QRISK3 end to end:** derive inputs from imported structured data, calculate through clincalc, and record the result with version, inputs, and citation.
 - [ ] **R72 - Prototype local research-use imaging derivation:** preserve source DICOM as an immutable Document, run explicitly non-diagnostic local models into provenance-bearing derived artifacts, require visual QC, and prohibit automatic clinical-State promotion (see [`local-imaging-model-playbook.md`](local-imaging-model-playbook.md)).
+
+R61 completion covers the v1 typed-state commands and audited mutations, not a lossless FHIR import target or GUI workflow. Source-resource preservation, provenance/acquisition, and import mapping remain R4/R60 and the interoperability workstream; GUI integration remains R63. Observation values and codes are free text, and panels, reference ranges, and absent-value results need further modelling before structured import.
 
 ## Repository and Commands
 
