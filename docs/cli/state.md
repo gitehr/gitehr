@@ -3,8 +3,9 @@
 Manage the mutable clinical state files under `state/`. State holds current information that changes over time: medications, allergies, problems, vitals, demographics. Compare with [`gitehr journal`](journal.md), which is append-only.
 
 `gitehr state` is the raw file-level interface. Prefer typed commands such as
-[`gitehr demographics`](demographics.md) and [`gitehr allergies`](allergies.md)
-and [`gitehr vaccinations`](vaccinations.md) for GUI-facing or
+[`gitehr demographics`](demographics.md), [`gitehr allergies`](allergies.md),
+[`gitehr conditions`](conditions.md), [`gitehr medications`](medications.md),
+[`gitehr observations`](observations.md), and [`gitehr vaccinations`](vaccinations.md) for GUI-facing or
 automation-facing clinical state.
 
 All subcommands require the current directory to be a GitEHR repository.

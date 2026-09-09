@@ -34,7 +34,11 @@ pub enum ObservationCommands {
     Add {
         #[arg(long, help = "Observation display name, e.g. \"Blood pressure\"")]
         name: String,
-        #[arg(long, help = "Recorded value, e.g. \"128/82\" or \"37.1\"")]
+        #[arg(
+            long,
+            allow_negative_numbers = true,
+            help = "Recorded value, e.g. \"128/82\" or \"37.1\""
+        )]
         value: String,
         #[arg(long, help = "Unit of measurement, e.g. mmHg")]
         unit: Option<String>,
@@ -58,7 +62,7 @@ pub enum ObservationCommands {
     Correct {
         #[arg(help = "Observation id")]
         id: String,
-        #[arg(long, help = "Corrected value")]
+        #[arg(long, allow_negative_numbers = true, help = "Corrected value")]
         value: String,
         #[arg(long, help = "Corrected unit; keeps the previous unit if omitted")]
         unit: Option<String>,
@@ -161,6 +165,7 @@ pub struct Observation {
     pub effective_at: Option<String>,
     pub previous_value: Option<String>,
     pub previous_unit: Option<String>,
+    pub previous_interpretation: Option<String>,
     pub correction_reason: Option<String>,
     pub recorded_at: String,
     pub recorded_by: Option<String>,
@@ -258,6 +263,10 @@ pub fn load() -> Result<ObservationsState> {
         require_text(&observation.id, "Stored observation id")?;
         require_text(&observation.name, "Stored observation name")?;
         require_text(&observation.value, "Stored observation value")?;
+        require_text(&observation.recorded_at, "Stored observation recorded_at")?;
+        if let Some(value) = observation.previous_value.as_deref() {
+            require_text(value, "Stored observation previous_value")?;
+        }
         if !ids.insert(&observation.id) {
             anyhow::bail!(
                 "Duplicate observation id in state/{STATE_FILE}: {}",
@@ -291,6 +300,11 @@ pub fn add(input: ObservationInput) -> Result<Observation> {
     typed_state::ensure_gitehr_repository()?;
     let name = require_text(&input.name, "--name")?;
     let value = require_text(&input.value, "--value")?;
+    let effective = input
+        .effective
+        .as_deref()
+        .map(|value| require_text(value, "--effective"))
+        .transpose()?;
 
     let now = Utc::now();
     let note = input.note.as_deref().and_then(cleaned_str);
@@ -312,14 +326,13 @@ pub fn add(input: ObservationInput) -> Result<Observation> {
         unit: input.unit.as_deref().and_then(cleaned_str),
         interpretation: input.interpretation.as_deref().and_then(cleaned_str),
         effective_at: Some(
-            input
-                .effective
-                .as_deref()
-                .and_then(cleaned_str)
+            effective
+                .map(str::to_string)
                 .unwrap_or_else(|| now.to_rfc3339()),
         ),
         previous_value: None,
         previous_unit: None,
+        previous_interpretation: None,
         correction_reason: None,
         recorded_at: now.to_rfc3339(),
         recorded_by: contributor::get_current_contributor(),
@@ -362,7 +375,12 @@ pub fn correct(
         .find(|observation| observation.id == id)
         .ok_or_else(|| anyhow::anyhow!("Observation not found: {}", id))?;
 
-    if observation.status == ObservationStatus::Corrected {
+    if observation.status == ObservationStatus::Corrected
+        || observation.previous_value.is_some()
+        || observation.previous_unit.is_some()
+        || observation.previous_interpretation.is_some()
+        || observation.correction_reason.is_some()
+    {
         anyhow::bail!("Observation is already corrected: {id}");
     }
     if matches!(
@@ -372,14 +390,23 @@ pub fn correct(
         anyhow::bail!("Cannot correct a {} observation: {id}", observation.status);
     }
 
+    let new_unit = match unit {
+        Some(unit) => Some(require_text(unit, "--unit")?.to_string()),
+        None => observation.unit.clone(),
+    };
+    if new_value == observation.value && new_unit == observation.unit {
+        anyhow::bail!("Correction must change the observation value or unit: {id}");
+    }
+
+    let previous = observation.clone();
     let previous_value = observation.value.clone();
     let previous_unit = observation.unit.clone();
     observation.previous_value = Some(previous_value.clone());
     observation.previous_unit = previous_unit.clone();
+    // An interpretation of the old result must not silently describe the new one.
+    observation.previous_interpretation = observation.interpretation.take();
     observation.value = new_value.clone();
-    if let Some(unit) = unit {
-        observation.unit = cleaned_str(unit);
-    }
+    observation.unit = new_unit;
     observation.correction_reason = reason.and_then(cleaned_str);
     observation.status = ObservationStatus::Corrected;
     let changed = observation.clone();
@@ -403,6 +430,11 @@ pub fn correct(
     if let Some(reason) = changed.correction_reason.as_deref() {
         journal_body.push_str(&format!("\n\nReason: {reason}"));
     }
+    journal_body.push_str(&format!(
+        "\n\nPrevious observation state:\n\n```yaml\n{}```\n\nCorrected observation state:\n\n```yaml\n{}```",
+        serde_yaml_ng::to_string(&previous)?,
+        serde_yaml_ng::to_string(&changed)?
+    ));
     persist_with_journal(&state, &journal_body)?;
     println!("Corrected observation: {}", changed.id);
     Ok(changed)
@@ -452,8 +484,14 @@ fn print_human(observations: &[Observation]) {
             .map(|category| format!(", {category}"))
             .unwrap_or_default();
         println!(
-            "{}  {}: {}{} ({}{})",
-            observation.id, observation.name, observation.value, unit, observation.status, category
+            "{}  {}: {}{} ({}{})  effective: {}",
+            observation.id,
+            observation.name,
+            observation.value,
+            unit,
+            observation.status,
+            category,
+            observation.effective_at.as_deref().unwrap_or("unknown")
         );
     }
 }
@@ -483,6 +521,9 @@ fn print_show(observation: &Observation) {
     }
     if let Some(previous_unit) = observation.previous_unit.as_deref() {
         println!("previous_unit: {previous_unit}");
+    }
+    if let Some(previous_interpretation) = observation.previous_interpretation.as_deref() {
+        println!("previous_interpretation: {previous_interpretation}");
     }
     if let Some(reason) = observation.correction_reason.as_deref() {
         println!("correction_reason: {reason}");

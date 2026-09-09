@@ -56,6 +56,7 @@ Mutable, current clinical summaries. Examples:
 - `allergies.md`
 - `conditions.md`
 - `medications.md`
+- `observations.md` - recorded measurements, including historical readings; not just the latest value
 - `demographics.md`
 - `about-me.md`
 
