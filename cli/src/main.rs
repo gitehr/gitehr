@@ -17,6 +17,7 @@ use commands::document::DocumentCommands;
 use commands::journal::JournalCommands;
 use commands::mcp::McpCommands;
 use commands::medications::MedicationCommands;
+use commands::observations::ObservationCommands;
 use commands::remote::RemoteCommands;
 use commands::state::StateCommands;
 use commands::store::StoreCommands;
@@ -137,6 +138,14 @@ Restart your shell after installing completions."#
     Medications {
         #[command(subcommand)]
         command: MedicationCommands,
+    },
+    #[command(
+        about = "Manage typed observation state (vitals, labs, and similar measurements)",
+        arg_required_else_help = true
+    )]
+    Observations {
+        #[command(subcommand)]
+        command: ObservationCommands,
     },
     /// List installed plugins (gitehr-<command> executables on PATH)
     Plugins,
@@ -259,6 +268,7 @@ fn main() -> Result<()> {
         Commands::Journal { command } => commands::journal::run(command)?,
         Commands::Mcp { command } => commands::mcp::run(command)?,
         Commands::Medications { command } => commands::medications::run(command)?,
+        Commands::Observations { command } => commands::observations::run(command)?,
         Commands::Plugins => commands::plugin::list(&builtins)?,
         Commands::Remote { command } => commands::remote::run(command)?,
         Commands::State { command } => commands::state::run(command)?,
@@ -288,6 +298,7 @@ fn bare_command_help_target(command: &str) -> Option<&'static str> {
         "journal" => Some("journal"),
         "mcp" => Some("mcp"),
         "medications" => Some("medications"),
+        "observations" => Some("observations"),
         "store" => Some("store"),
         "immunisations" | "immunizations" | "vaccinations" => Some("vaccinations"),
         _ => None,
@@ -369,6 +380,7 @@ fn apply_context(command: &mut Commands) -> Result<()> {
         | Commands::Allergies { .. }
         | Commands::Conditions { .. }
         | Commands::Medications { .. }
+        | Commands::Observations { .. }
         | Commands::Vaccinations { .. }
         | Commands::Remote { .. }
         | Commands::Encrypt { .. }

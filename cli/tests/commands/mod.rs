@@ -12,6 +12,7 @@ pub mod gui;
 pub mod journal;
 pub mod mcp;
 pub mod medications;
+pub mod observations;
 #[cfg(unix)]
 pub mod plugin;
 pub mod remote;

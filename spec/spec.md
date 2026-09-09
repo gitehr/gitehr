@@ -107,9 +107,17 @@ Manages the typed allergy and adverse-reaction summary in `state/allergies.md`.
 
 Manages typed patient demographics state.
 
+### [`gitehr conditions`](commands/conditions.md)
+
+Manages typed condition and problem-list state in `state/conditions.md`.
+
 ### [`gitehr medications`](commands/medications.md)
 
 Manages typed medication state in `state/medications.md`.
+
+### [`gitehr observations`](commands/observations.md)
+
+Manages typed observation state (vital signs, laboratory results, and similar measurements) in `state/observations.md`.
 
 ### [`gitehr vaccinations`](commands/vaccinations.md)
 

@@ -2,7 +2,7 @@
 
 # `gitehr conditions`
 
-Status: implemented v1, representation (A) from [`problem-condition-list.md`](../problem-condition-list.md): a single `state/conditions.md` file. Observations remain outstanding under [R61](../roadmap.md).
+Status: implemented v1, representation (A) from [`problem-condition-list.md`](../problem-condition-list.md): a single `state/conditions.md` file. Observations shipped separately as [`gitehr observations`](observations.md), completing [R61](../roadmap.md).
 
 `gitehr conditions` manages typed condition and problem-list state in `state/conditions.md`. It follows the same pattern as `gitehr allergies` and `gitehr medications`: the state file is the current queryable view; the journal entry written with each mutation is the audit narrative.
 

@@ -25,6 +25,7 @@ Each command has its own page. Subcommands are sections within the parent comman
 | [`gitehr allergies`](allergies.md) | Typed allergy/adverse-reaction state for clinical warning displays |
 | [`gitehr conditions`](conditions.md) | Typed condition and problem-list state for clinical summaries |
 | [`gitehr medications`](medications.md) | Typed medication state for prescribing and PHR display |
+| [`gitehr observations`](observations.md) | Typed observation state (vitals, labs) for clinical summaries |
 | [`gitehr vaccinations`](vaccinations.md) | Typed vaccination/immunisation state with optional FHIR R4 payloads |
 | [`gitehr user`](user.md) | Manage contributors and the active author |
 | [`gitehr remote`](remote.md) | Named remote repositories for sync |
