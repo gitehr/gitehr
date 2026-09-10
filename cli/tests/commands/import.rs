@@ -60,23 +60,25 @@ fn setup_with_git() -> Result<(tempfile::TempDir, EnvGuard)> {
 }
 
 /// Points `GITEHR_CONFIG` at a fresh config file in its own directory
-/// containing the given TOML body (empty string for "no config file").
-fn write_config(body: &str) {
+/// containing the given TOML body (empty string for "no config file"). The
+/// returned `TempDir` owns the config file, so the caller must keep it alive
+/// for the duration of the test.
+#[must_use]
+fn write_config(body: &str) -> tempfile::TempDir {
     let config_dir = tempdir().unwrap();
     let config_path = config_dir.path().join("config.toml");
     if !body.is_empty() {
         fs::write(&config_path, body).unwrap();
     }
     unsafe { std::env::set_var(CONFIG_ENV, &config_path) };
-    // Leak the tempdir so it outlives the config file reference for the test.
-    std::mem::forget(config_dir);
+    config_dir
 }
 
 #[test]
 #[serial]
 fn import_documents_accepts_any_format_without_configured_whitelist() -> Result<()> {
     let (_temp_dir, _guard) = setup_with_git()?;
-    write_config("");
+    let _config_dir = write_config("");
 
     let source = tempdir()?;
     fs::write(source.path().join("scan.pdf"), b"pdf content")?;
@@ -93,7 +95,7 @@ fn import_documents_accepts_any_format_without_configured_whitelist() -> Result<
 #[serial]
 fn import_documents_filters_by_configured_whitelist() -> Result<()> {
     let (_temp_dir, _guard) = setup_with_git()?;
-    write_config("document_whitelist = [\"pdf\", \"jpg\"]\n");
+    let _config_dir = write_config("document_whitelist = [\"pdf\", \"jpg\"]\n");
 
     let source = tempdir()?;
     fs::write(source.path().join("scan.pdf"), b"pdf content")?;
@@ -112,7 +114,7 @@ fn import_documents_filters_by_configured_whitelist() -> Result<()> {
 #[serial]
 fn import_documents_whitelist_rejects_extensionless_files() -> Result<()> {
     let (_temp_dir, _guard) = setup_with_git()?;
-    write_config("document_whitelist = [\"pdf\"]\n");
+    let _config_dir = write_config("document_whitelist = [\"pdf\"]\n");
 
     let source = tempdir()?;
     fs::write(source.path().join("README"), b"no extension")?;
@@ -120,5 +122,60 @@ fn import_documents_whitelist_rejects_extensionless_files() -> Result<()> {
     import_run(ImportMode::Documents, source.path())?;
 
     assert!(!PathBuf::from("documents/README").exists());
+    Ok(())
+}
+
+#[test]
+#[serial]
+fn import_documents_refuses_an_unusable_whitelist_rather_than_skipping_everything() -> Result<()> {
+    let (_temp_dir, _guard) = setup_with_git()?;
+    let _config_dir = write_config("document_whitelist = [\"*.pdf\"]\n");
+
+    let source = tempdir()?;
+    fs::write(source.path().join("scan.pdf"), b"pdf content")?;
+
+    let error = import_run(ImportMode::Documents, source.path())
+        .expect_err("an unmatchable whitelist entry must not silently skip every document");
+    assert!(
+        error.to_string().contains("not a bare file extension"),
+        "unexpected error: {error}"
+    );
+    assert!(!PathBuf::from("documents/scan.pdf").exists());
+    Ok(())
+}
+
+#[test]
+#[serial]
+fn import_documents_refuses_an_empty_whitelist() -> Result<()> {
+    let (_temp_dir, _guard) = setup_with_git()?;
+    let _config_dir = write_config("document_whitelist = []\n");
+
+    let source = tempdir()?;
+    fs::write(source.path().join("scan.pdf"), b"pdf content")?;
+
+    let error = import_run(ImportMode::Documents, source.path())
+        .expect_err("an empty whitelist must be reported, not treated as 'reject everything'");
+    assert!(
+        error.to_string().contains("would reject every document"),
+        "unexpected error: {error}"
+    );
+    assert!(!PathBuf::from("documents/scan.pdf").exists());
+    Ok(())
+}
+
+#[test]
+#[serial]
+fn import_documents_accepts_whitelist_entries_written_with_a_leading_dot() -> Result<()> {
+    let (_temp_dir, _guard) = setup_with_git()?;
+    let _config_dir = write_config("document_whitelist = [\".PDF\"]\n");
+
+    let source = tempdir()?;
+    fs::write(source.path().join("scan.pdf"), b"pdf content")?;
+    fs::write(source.path().join("notes.txt"), b"text content")?;
+
+    import_run(ImportMode::Documents, source.path())?;
+
+    assert!(PathBuf::from("documents/scan.pdf").exists());
+    assert!(!PathBuf::from("documents/notes.txt").exists());
     Ok(())
 }

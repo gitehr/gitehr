@@ -56,13 +56,14 @@ fn collect_files(source: &Path) -> Vec<PathBuf> {
 
 /// Whether `file`'s extension (case-insensitive) appears in `allowed`.
 /// `allowed` entries are already normalised (lowercase, no leading dot) by
-/// `config::configured_document_whitelist`. A file with no extension never
-/// matches.
+/// `config::configured_document_whitelist`, so the file's extension is
+/// lowercased the same way rather than compared ASCII-only. A file with no
+/// extension never matches.
 fn matches_whitelist(file: &Path, allowed: &[String]) -> bool {
     file.extension()
         .and_then(|ext| ext.to_str())
-        .map(|ext| allowed.iter().any(|a| a.eq_ignore_ascii_case(ext)))
-        .unwrap_or(false)
+        .map(|ext| ext.to_lowercase())
+        .is_some_and(|ext| allowed.contains(&ext))
 }
 
 fn is_hidden(entry: &DirEntry) -> bool {

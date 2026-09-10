@@ -20,7 +20,9 @@ document_whitelist = ["pdf", "jpg", "png"]
 
 `GITEHR_STORE_PATH` overrides `store_path` for the current process.
 
-`document_whitelist` is an optional list of file extensions (without the leading dot; matched case-insensitively) that [`gitehr import --mode documents`](import.md) will accept. When absent, any file format is accepted, matching the pre-whitelist behaviour.
+`document_whitelist` is an optional list of file extensions (a leading dot is allowed and stripped; matched case-insensitively) that [`gitehr import --mode documents`](import.md) will accept. When absent, any file format is accepted, matching the pre-whitelist behaviour.
+
+A configured whitelist must be usable. An empty list, or an entry that is not a bare extension - blank, `.`, a glob such as `*.pdf`, a compound suffix such as `tar.gz`, or anything containing a path separator or whitespace - is a configuration error naming the file and the offending entry. Such an entry can never match `Path::extension`, so accepting it would silently skip every document the setting was meant to admit while reporting only a skip count.
 
 ## Commands
 
