@@ -9,6 +9,7 @@ pub mod demographics;
 pub mod document;
 pub mod encrypt;
 pub mod gui;
+pub mod import;
 pub mod journal;
 pub mod mcp;
 pub mod medications;

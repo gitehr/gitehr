@@ -28,7 +28,7 @@ gitehr import --mode journal ./20260614T101500Z-1a2b3c4d-....md
 
 Imports documents of **any** format. Each file is copied into `documents/` and given its own journal entry whose body is just a markdown link to the document - there is no `documents:` front matter, so the entry is a lightweight pointer the GUI can choose to follow.
 
-- Any file format is accepted (no filtering yet).
+- Any file format is accepted by default. Set `document_whitelist` in [`gitehr config`](config.md) to restrict imports to specific extensions (case-insensitive); files that don't match are skipped and counted like any other skip reason.
 - A file already present in `documents/` is skipped.
 
 ```bash

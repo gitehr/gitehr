@@ -9,6 +9,7 @@ use walkdir::{DirEntry, WalkDir};
 
 use super::git;
 use super::journal::{self, is_journal_entry_file, parse_journal_file};
+use crate::config;
 
 #[derive(Copy, Clone, Debug, ValueEnum)]
 pub enum ImportMode {
@@ -51,6 +52,17 @@ fn collect_files(source: &Path) -> Vec<PathBuf> {
         .filter(|e| e.file_type().is_file())
         .map(DirEntry::into_path)
         .collect()
+}
+
+/// Whether `file`'s extension (case-insensitive) appears in `allowed`.
+/// `allowed` entries are already normalised (lowercase, no leading dot) by
+/// `config::configured_document_whitelist`. A file with no extension never
+/// matches.
+fn matches_whitelist(file: &Path, allowed: &[String]) -> bool {
+    file.extension()
+        .and_then(|ext| ext.to_str())
+        .map(|ext| allowed.iter().any(|a| a.eq_ignore_ascii_case(ext)))
+        .unwrap_or(false)
 }
 
 fn is_hidden(entry: &DirEntry) -> bool {
@@ -111,11 +123,15 @@ fn import_journal(files: &[PathBuf]) -> Result<()> {
     Ok(())
 }
 
-/// Copy each file into `documents/` (any format) and create a journal entry
-/// whose body is just a markdown link to the document — no `documents:`
-/// frontmatter. Files already present in `documents/` are skipped.
+/// Copy each file into `documents/` and create a journal entry whose body is
+/// just a markdown link to the document — no `documents:` frontmatter. Files
+/// already present in `documents/` are skipped. When a `document_whitelist`
+/// is configured (see `spec/commands/config.md`), only files whose extension
+/// appears in it are imported; with no whitelist configured, any format is
+/// accepted.
 fn import_documents(files: &[PathBuf]) -> Result<()> {
     fs::create_dir_all("documents")?;
+    let whitelist = config::configured_document_whitelist()?;
     let mut imported = 0usize;
     let mut skipped = 0usize;
 
@@ -124,6 +140,14 @@ fn import_documents(files: &[PathBuf]) -> Result<()> {
             skipped += 1;
             continue;
         };
+
+        if let Some(allowed) = &whitelist
+            && !matches_whitelist(file, allowed)
+        {
+            println!("Skipping (format not in whitelist): {}", filename);
+            skipped += 1;
+            continue;
+        }
 
         let dest = PathBuf::from("documents").join(filename);
         if dest.exists() {

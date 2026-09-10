@@ -8,7 +8,7 @@ Legend: `[x]` done, `[~]` in progress, `[ ]` not started. This roadmap tracks ou
 
 - [ ] **R1 - Add offline OCR for imported documents:** when importing a scan or photo with `--mode documents`, write searchable derived text alongside the original without sending clinical images to a cloud service. The original remains canonical.
 - [ ] **R2 - Add further import modes:** add modes only when a concrete need arises, beginning with an imaging-scanned mode if required.
-- [ ] **R3 - Add a configured document-format whitelist:** once the config format can express it, let `--mode documents` accept only configured file formats.
+- [x] **R3 - Add a configured document-format whitelist:** `document_whitelist` in `gitehr config` ([`spec/commands/config.md`](commands/config.md)) lists accepted extensions; `--mode documents` filters against it when set, and accepts any format when it is unset (`cli/src/commands/import.rs`, `cli/src/config.rs`).
 - [ ] **R4 - Specify and implement NHS App import:** define the FHIR R4 extraction bundle, category-fidelity manifest, provenance/acquisition seed, and idempotent source keys, then build the local-only importer.
 - [ ] **R58 - Complete NHS App recon and extraction agent v0:** complete the authenticated-session recon checklist, then build the browser-extension extractor with passive capture, DOM fallback, consent/provenance display, and a downloadable import bundle.
 - [x] **R59 - Publish a patient-mediated extraction position statement:** explain the local-first, own-data, adversarial-interoperability, and safety posture for portal extraction. Published as [`docs/design/patient-mediated-extraction.md`](../docs/design/patient-mediated-extraction.md).

@@ -23,6 +23,12 @@ const STORE_MARKER: &str = "gitehr-mpi.json";
 pub struct AppConfig {
     #[serde(default)]
     pub store_path: Option<PathBuf>,
+    /// File extensions (without the leading dot, case-insensitive) that
+    /// `gitehr import --mode documents` will accept. `None` (the field is
+    /// absent from the TOML) accepts any format, matching the pre-whitelist
+    /// behaviour.
+    #[serde(default)]
+    pub document_whitelist: Option<Vec<String>>,
 }
 
 pub fn config_path() -> Result<PathBuf> {
@@ -79,6 +85,19 @@ pub fn configured_store_path() -> Result<Option<PathBuf>> {
 
     let config = load()?;
     config.store_path.as_deref().map(absolute_path).transpose()
+}
+
+/// The configured document-format whitelist, normalised to lowercase
+/// extensions with no leading dot. `None` means no whitelist is configured,
+/// so `--mode documents` should accept any format.
+pub fn configured_document_whitelist() -> Result<Option<Vec<String>>> {
+    let config = load()?;
+    Ok(config.document_whitelist.map(|extensions| {
+        extensions
+            .iter()
+            .map(|ext| ext.trim_start_matches('.').to_lowercase())
+            .collect()
+    }))
 }
 
 pub fn set_store_path(path: &Path) -> Result<PathBuf> {

@@ -15,9 +15,12 @@ Current TOML schema:
 
 ```toml
 store_path = "/home/marcus/gitehr-store"
+document_whitelist = ["pdf", "jpg", "png"]
 ```
 
 `GITEHR_STORE_PATH` overrides `store_path` for the current process.
+
+`document_whitelist` is an optional list of file extensions (without the leading dot; matched case-insensitively) that [`gitehr import --mode documents`](import.md) will accept. When absent, any file format is accepted, matching the pre-whitelist behaviour.
 
 ## Commands
 
