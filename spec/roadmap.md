@@ -4,6 +4,8 @@
 
 Legend: `[x]` done, `[~]` in progress, `[ ]` not started. This roadmap tracks outstanding work and completed milestones. Every item has a stable reference code: use it in discussion, commits, and decision notes (for example, `implements R12`).
 
+See the [primary intent and improvement review (2026-09-07)](primary-intent-review.md) for an assessment of preservation, clinical safety, acquisition, and usability gaps, with proposed priorities and links to related roadmap items. Its recommendations are review input, not yet adopted implementation commitments.
+
 ## Import and Acquisition
 
 - [ ] **R1 - Add offline OCR for imported documents:** when importing a scan or photo with `--mode documents`, write searchable derived text alongside the original without sending clinical images to a cloud service. The original remains canonical.
