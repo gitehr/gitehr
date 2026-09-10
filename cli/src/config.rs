@@ -23,6 +23,12 @@ const STORE_MARKER: &str = "gitehr-mpi.json";
 pub struct AppConfig {
     #[serde(default)]
     pub store_path: Option<PathBuf>,
+    /// File extensions (without the leading dot, case-insensitive) that
+    /// `gitehr import --mode documents` will accept. `None` (the field is
+    /// absent from the TOML) accepts any format, matching the pre-whitelist
+    /// behaviour.
+    #[serde(default)]
+    pub document_whitelist: Option<Vec<String>>,
 }
 
 pub fn config_path() -> Result<PathBuf> {
@@ -81,6 +87,54 @@ pub fn configured_store_path() -> Result<Option<PathBuf>> {
     config.store_path.as_deref().map(absolute_path).transpose()
 }
 
+/// The configured document-format whitelist, normalised to lowercase
+/// extensions with no leading dot. `None` means no whitelist is configured,
+/// so `--mode documents` should accept any format.
+///
+/// An unusable whitelist is an error rather than a filter that silently
+/// matches nothing: a typo here would otherwise skip every document the
+/// setting was meant to admit, and the import would report only a skip count.
+pub fn configured_document_whitelist() -> Result<Option<Vec<String>>> {
+    let config = load()?;
+    let path = config_path()?;
+    config
+        .document_whitelist
+        .map(|extensions| normalise_document_whitelist(extensions, &path))
+        .transpose()
+}
+
+fn normalise_document_whitelist(extensions: Vec<String>, path: &Path) -> Result<Vec<String>> {
+    if extensions.is_empty() {
+        bail!(
+            "document_whitelist in {} is empty, which would reject every document. \
+             Remove the field to accept any format.",
+            path.display()
+        );
+    }
+
+    extensions
+        .iter()
+        .map(|entry| {
+            let extension = entry.trim().trim_start_matches('.').to_lowercase();
+            // `Path::extension` yields the final component only, so anything
+            // that is not a bare extension can never match a file.
+            if extension.is_empty()
+                || extension
+                    .chars()
+                    .any(|c| c == '.' || c == '*' || c == '/' || c == '\\' || c.is_whitespace())
+            {
+                bail!(
+                    "document_whitelist in {} contains {:?}, which is not a bare file extension. \
+                     Use entries like \"pdf\" or \"jpg\" (a leading dot is allowed).",
+                    path.display(),
+                    entry
+                );
+            }
+            Ok(extension)
+        })
+        .collect()
+}
+
 pub fn set_store_path(path: &Path) -> Result<PathBuf> {
     let store_path = absolute_path(path)?;
     if !store_path.join(STORE_MARKER).exists() {
@@ -133,4 +187,41 @@ fn home_dir() -> Result<PathBuf> {
     }
 
     bail!("Cannot determine home directory for GitEHR config path")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::normalise_document_whitelist;
+    use std::path::Path;
+
+    fn normalise(entries: &[&str]) -> anyhow::Result<Vec<String>> {
+        let entries = entries.iter().map(|e| e.to_string()).collect();
+        normalise_document_whitelist(entries, Path::new("/tmp/config.toml"))
+    }
+
+    #[test]
+    fn accepts_bare_extensions_with_or_without_a_leading_dot() {
+        assert_eq!(
+            normalise(&["pdf", ".JPG", " png "]).unwrap(),
+            vec!["pdf", "jpg", "png"]
+        );
+    }
+
+    #[test]
+    fn rejects_entries_that_could_never_match_a_file_extension() {
+        // Each of these would otherwise silently reject every document.
+        for entry in ["", ".", "*", "*.pdf", "tar.gz", "scans/pdf", "p df"] {
+            let error = normalise(&[entry]).expect_err(entry);
+            assert!(
+                error.to_string().contains("not a bare file extension"),
+                "{entry:?} produced: {error}"
+            );
+        }
+    }
+
+    #[test]
+    fn rejects_an_empty_whitelist_rather_than_matching_nothing() {
+        let error = normalise(&[]).expect_err("empty whitelist");
+        assert!(error.to_string().contains("would reject every document"));
+    }
 }

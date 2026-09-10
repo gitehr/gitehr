@@ -26,7 +26,12 @@ The file is TOML:
 
 ```toml
 store_path = "/home/marcus/gitehr-store"
+document_whitelist = ["pdf", "jpg", "png"]
 ```
+
+`document_whitelist` is optional and restricts [`gitehr import --mode documents`](import.md) to the listed file extensions (case-insensitive; a leading dot is allowed). Leave it unset to accept any format.
+
+Each entry must be a bare extension such as `pdf`. An empty list, or an entry that could never match a file extension - blank, `.`, a glob such as `*.pdf`, a compound suffix such as `tar.gz`, or anything containing a path separator or whitespace - is reported as a configuration error rather than quietly skipping every document.
 
 Environment overrides:
 

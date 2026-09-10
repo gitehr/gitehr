@@ -28,10 +28,15 @@ pub fn run(command: ConfigCommands) -> Result<()> {
         ConfigCommands::Show => {
             let config_path = config::config_path()?;
             let store_path = config::configured_store_path()?;
+            let document_whitelist = config::configured_document_whitelist()?;
             println!("config_path: {}", config_path.display());
             match store_path {
                 Some(path) => println!("store_path: {}", path.display()),
                 None => println!("store_path: <unset>"),
+            }
+            match document_whitelist {
+                Some(extensions) => println!("document_whitelist: {}", extensions.join(", ")),
+                None => println!("document_whitelist: <unset> (any format accepted)"),
             }
         }
         ConfigCommands::SetStore { path } => {
