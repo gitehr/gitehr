@@ -104,7 +104,7 @@ s/demo-store --output /tmp/demo
 
 It prints the Store path on stdout, so `cd $(s/demo-store)` works. Every invocation sets `GITEHR_STORE_PATH`, and the script refuses to build inside your configured Store or to delete a directory that is not a GitEHR Store.
 
-All the data is invented; NHS numbers come from the reserved 999 test range and each record says so in its first journal entry.
+All the data is invented, and deliberately impossible. People are named for a personality trait plus a British animal - Stoical Pipistrelle and her son Intrepid, seen by Dr Candid Kestrel - and live on a street named for a native plant, in a Leeds postcode district that does not exist, with NHS numbers from the reserved 999 range. The hospital is fictional too. Nobody is called this, so no demo record can be mistaken for a real person, and each record says so in its first journal entry. The scheme is borrowed from an Australian synthetic dataset whose patients are called things like "Resilient Brushtail Possum" of Eucalyptus Avenue.
 
 Two things to know before using it for a demo:
 

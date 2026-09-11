@@ -12,9 +12,17 @@
 # a small number of clinically coherent records: a multi-year adult record and
 # a child record, with typed state, documents, and several contributors.
 #
-# Everything here is invented. Names are fictional and NHS numbers use the
-# 999 range NHS England reserves for test data, so nothing can collide with a
-# real patient. Every record's first journal entry says so.
+# Everything here is invented, and deliberately impossible. People are named
+# for a personality trait plus a British animal (Stoical Pipistrelle), live on
+# a street named for a native plant, in a Leeds postcode district that does
+# not exist, and carry NHS numbers from the 999 range reserved for test data.
+# Clinicians and the hospital are named the same way. Nobody is called this,
+# so no demo record can be mistaken for - or confused with - a real person.
+# Every record's first journal entry says so too.
+#
+# The naming scheme is borrowed from an Australian synthetic dataset that
+# names its patients things like "Resilient Brushtail Possum" of Eucalyptus
+# Avenue.
 #
 # Two behaviours worth knowing before filming:
 #
@@ -181,8 +189,10 @@ def _wrap(text, width):
 
 SYNTHETIC_NOTICE = (
     "SYNTHETIC DEMONSTRATION RECORD. Every clinical detail in this record is "
-    "invented for demonstration and testing. The person described does not "
-    "exist and the NHS number is from the reserved 999 test range."
+    "invented for demonstration and testing. Nobody is called this, the "
+    "address is in a Leeds postcode district that does not exist, the "
+    "hospital is fictional, and the NHS number is from the reserved 999 test "
+    "range. The person described does not exist."
 )
 
 
@@ -205,14 +215,14 @@ def at(year, month, day, hour=9, minute=0):
 
 
 CONTRIBUTORS = [
-    ("dr-okafor", "Dr Amara Okafor", "General Practitioner"),
-    ("dr-lindqvist", "Dr Erik Lindqvist", "Consultant Diabetologist"),
-    ("nurse-hale", "Priya Hale", "Practice Nurse"),
+    ("dr-kestrel", "Dr Candid Kestrel", "General Practitioner"),
+    ("dr-heron", "Dr Methodical Heron", "Consultant Diabetologist"),
+    ("nurse-otter", "Diligent Otter", "Practice Nurse"),
 ]
 
 
 def build_adult(gitehr, repo, work_dir):
-    """Rosalind Vance, born 1968: hypertension, type 2 diabetes, an
+    """Stoical Pipistrelle, born 1968: hypertension, type 2 diabetes, an
     appendicectomy in 2017, and a penicillin allergy that the record is
     expected to carry safely across every later prescribing decision."""
 
@@ -220,15 +230,15 @@ def build_adult(gitehr, repo, work_dir):
         "demographics",
         "set",
         "--full-name",
-        "Rosalind Vance",
+        "Stoical Pipistrelle",
         "--preferred-name",
-        "Ros",
+        "Stoic",
         "--date-of-birth",
         "1968-04-22",
         "--nhs-number",
-        nhs_number("rosalind"),
+        nhs_number("stoical-pipistrelle"),
         "--address",
-        "14 Ashgrove Terrace, Leeds, LS6 2QP",
+        "14 Blackthorn Rise, Leeds, LS99 1AA",
         "--note",
         "Registered at practice; demographics confirmed by patient.",
         cwd=repo,
@@ -334,7 +344,7 @@ def build_adult(gitehr, repo, work_dir):
             "--started",
             started,
             "--prescriber",
-            "Dr Amara Okafor",
+            "Dr Candid Kestrel",
             cwd=repo,
         )
 
@@ -427,7 +437,7 @@ def build_adult(gitehr, repo, work_dir):
     entries = [
         (
             at(2017, 6, 11, 22, 40),
-            "dr-lindqvist",
+            "dr-heron",
             f"{SYNTHETIC_NOTICE}\n\n"
             "Admitted via A&E with 18 hours of periumbilical pain migrating to the "
             "right iliac fossa, anorexia and low-grade fever. Tender with guarding "
@@ -437,7 +447,7 @@ def build_adult(gitehr, repo, work_dir):
         ),
         (
             at(2017, 6, 12, 11, 15),
-            "dr-lindqvist",
+            "dr-heron",
             "Laparoscopic appendicectomy overnight. Acutely inflamed appendix, not "
             "perforated. Uncomplicated. Eating and drinking, pain controlled on "
             "simple analgesia. Home today with district nurse review of wounds at "
@@ -445,7 +455,7 @@ def build_adult(gitehr, repo, work_dir):
         ),
         (
             at(2019, 5, 14, 10, 20),
-            "dr-okafor",
+            "dr-kestrel",
             "Attended for a new-patient check. BP 162/98 today, repeated after five "
             "minutes seated: 158/96. No headache, visual disturbance or chest pain. "
             "Non-smoker. Ambulatory monitoring arranged before committing to "
@@ -453,7 +463,7 @@ def build_adult(gitehr, repo, work_dir):
         ),
         (
             at(2019, 6, 2, 9, 30),
-            "dr-okafor",
+            "dr-kestrel",
             "Ambulatory monitoring confirms sustained hypertension (daytime average "
             "154/94). Discussed lifestyle measures and treatment options. Starting "
             "ramipril 5mg daily. Renal function and electrolytes before and two "
@@ -461,13 +471,13 @@ def build_adult(gitehr, repo, work_dir):
         ),
         (
             at(2019, 9, 3, 11, 45),
-            "nurse-hale",
+            "nurse-otter",
             "BP review: 138/84. Tolerating ramipril, no cough. Bloods stable. "
             "Pleased with progress; walking most days. Six-month recall.",
         ),
         (
             at(2021, 2, 8, 9, 15),
-            "dr-okafor",
+            "dr-kestrel",
             "Routine bloods show HbA1c 53 mmol/mol, confirming type 2 diabetes. "
             "Asymptomatic - no polyuria, polydipsia or weight loss. Discussed "
             "diagnosis at length; understandably upset but engaged. Referred to "
@@ -476,14 +486,14 @@ def build_adult(gitehr, repo, work_dir):
         ),
         (
             at(2021, 3, 15, 14, 0),
-            "dr-lindqvist",
+            "dr-heron",
             "Diabetes clinic. Tolerating metformin 1g twice daily after titration. "
             "QRISK3 places her above the treatment threshold; atorvastatin 20mg "
             "started after discussion of absolute benefit. Retinal screening clear.",
         ),
         (
             at(2022, 1, 16, 8, 50),
-            "dr-okafor",
+            "dr-kestrel",
             "Five days of productive cough, now breathless on climbing stairs. "
             "Temperature 37.9, crackles at the right base, saturations 96% on air. "
             "Community-acquired pneumonia, CRB-65 score 0, suitable for treatment "
@@ -492,14 +502,14 @@ def build_adult(gitehr, repo, work_dir):
         ),
         (
             at(2022, 1, 23, 16, 30),
-            "nurse-hale",
+            "nurse-otter",
             "Telephone review: cough much improved, back at work, chest clear on "
             "her own account. Course completed. Chest film in six weeks as she is "
             "over 50.",
         ),
         (
             at(2022, 11, 2, 10, 5),
-            "dr-okafor",
+            "dr-kestrel",
             "Six weeks of fatigue. Haemoglobin 98 g/L with ferritin 8 - iron "
             "deficiency anaemia. No overt bleeding; periods stopped in 2016. "
             "Coeliac screen sent and two-week-wait lower GI referral made, given "
@@ -507,14 +517,14 @@ def build_adult(gitehr, repo, work_dir):
         ),
         (
             at(2023, 3, 7, 9, 40),
-            "dr-okafor",
+            "dr-kestrel",
             "Colonoscopy showed diverticulosis only, no sinister findings. "
             "Haemoglobin recovered to 126 g/L. Continue iron for three further "
             "months, then recheck.",
         ),
         (
             at(2023, 9, 19, 15, 10),
-            "dr-okafor",
+            "dr-kestrel",
             "Right knee pain on stairs and after gardening, worse through the day, "
             "no locking or giving way. Crepitus with a reduced range of movement. "
             "Clinically osteoarthritis. Referred to physiotherapy; topical NSAID "
@@ -523,13 +533,13 @@ def build_adult(gitehr, repo, work_dir):
         ),
         (
             at(2024, 10, 9, 12, 0),
-            "nurse-hale",
+            "nurse-otter",
             "Autumn vaccination appointment: influenza and COVID-19 booster given, "
             "left deltoid, no immediate reaction. Waited 15 minutes.",
         ),
         (
             at(2026, 3, 10, 9, 25),
-            "dr-okafor",
+            "dr-kestrel",
             "Annual diabetes and hypertension review. HbA1c 43, BP 126/78, weight "
             "down a further 1.6kg. Feet intact with normal pulses and sensation. "
             "Retinal screening up to date. Delighted with her progress - walking "
@@ -542,9 +552,9 @@ def build_adult(gitehr, repo, work_dir):
     letter = os.path.join(work_dir, "discharge-summary-2017.pdf")
     write_pdf(
         letter,
-        "Leeds General Infirmary - Discharge Summary",
+        "Bramblewick Royal Infirmary - Discharge Summary",
         [
-            "Patient: Rosalind Vance    NHS number: (synthetic test record)",
+            "Patient: Stoical Pipistrelle    NHS number: (synthetic test record)",
             "Admitted: 11 June 2017    Discharged: 12 June 2017",
             "Procedure: Laparoscopic appendicectomy.",
             "Diagnosis: Acute appendicitis, non-perforated.",
@@ -561,7 +571,7 @@ def build_adult(gitehr, repo, work_dir):
         "--title",
         "Discharge summary appendicectomy",
         "--message",
-        "Discharge summary from Leeds General Infirmary following "
+        "Discharge summary from Bramblewick Royal Infirmary following "
         "laparoscopic appendicectomy in June 2017, added to the record by the "
         "patient after requesting a copy of her hospital notes.",
         cwd=repo,
@@ -569,7 +579,7 @@ def build_adult(gitehr, repo, work_dir):
 
 
 def build_child(gitehr, repo, work_dir):
-    """Theo Vance, born 2019: eczema, viral wheeze becoming asthma, and a
+    """Intrepid Pipistrelle, born 2019: eczema, viral wheeze becoming asthma, and a
     childhood immunisation history - the parent-held record that paediatric
     research recruitment would actually reach."""
 
@@ -577,13 +587,13 @@ def build_child(gitehr, repo, work_dir):
         "demographics",
         "set",
         "--full-name",
-        "Theo Vance",
+        "Intrepid Pipistrelle",
         "--date-of-birth",
         "2019-08-30",
         "--nhs-number",
-        nhs_number("theo"),
+        nhs_number("intrepid-pipistrelle"),
         "--address",
-        "14 Ashgrove Terrace, Leeds, LS6 2QP",
+        "14 Blackthorn Rise, Leeds, LS99 1AA",
         "--note",
         "Record held by parent. Demographics from the personal child health record.",
         cwd=repo,
@@ -688,7 +698,7 @@ def build_child(gitehr, repo, work_dir):
     entries = [
         (
             at(2019, 8, 30, 4, 12),
-            "dr-lindqvist",
+            "dr-heron",
             f"{SYNTHETIC_NOTICE}\n\n"
             "Born at 39+2 by spontaneous vaginal delivery. Birth weight 3.41kg. "
             "Apgars 9 and 10. Newborn examination normal. Breastfeeding "
@@ -696,7 +706,7 @@ def build_child(gitehr, repo, work_dir):
         ),
         (
             at(2020, 11, 4, 16, 20),
-            "dr-okafor",
+            "dr-kestrel",
             "Dry, itchy patches in the elbow and knee creases for several weeks, "
             "worse in the cold. Sleep disturbed by scratching two or three nights a "
             "week. Atopic eczema. Generous emollient demonstrated to mum, with a "
@@ -705,7 +715,7 @@ def build_child(gitehr, repo, work_dir):
         ),
         (
             at(2023, 11, 12, 21, 5),
-            "dr-lindqvist",
+            "dr-heron",
             "Attended the children's emergency department with wheeze and a cough "
             "on the third day of a cold. Saturations 94% on air, mild recession, "
             "responded well to ten puffs of salbutamol via a spacer. Observed for "
@@ -714,7 +724,7 @@ def build_child(gitehr, repo, work_dir):
         ),
         (
             at(2024, 2, 26, 10, 30),
-            "dr-okafor",
+            "dr-kestrel",
             "Fourth episode of interval wheeze, now with a night cough between "
             "colds and symptoms on running. Given the pattern, the atopy and the "
             "family history, this is asthma rather than recurrent viral wheeze. "
@@ -724,7 +734,7 @@ def build_child(gitehr, repo, work_dir):
         ),
         (
             at(2024, 3, 18, 9, 50),
-            "nurse-hale",
+            "nurse-otter",
             "Asthma review. Diary shows symptoms four nights in the past fortnight "
             "and salbutamol most days. Starting beclometasone 50mcg twice daily via "
             "spacer. Technique good. Action plan updated and a copy given to "
@@ -732,7 +742,7 @@ def build_child(gitehr, repo, work_dir):
         ),
         (
             at(2026, 1, 14, 15, 40),
-            "nurse-hale",
+            "nurse-otter",
             "Annual asthma review. No night symptoms since the autumn, no time off "
             "school, salbutamol used twice in three months. Running and swimming "
             "without limitation. Peak flow 180 L/min. Technique still good. "
@@ -818,30 +828,30 @@ def main():
 
     eprint(f"Building demo Store in {store_root}")
 
-    gitehr("store", "init", "rosalind", cwd=store_root)
-    gitehr("store", "add", "theo", cwd=store_root)
+    gitehr("store", "init", "stoical", cwd=store_root)
+    gitehr("store", "add", "intrepid", cwd=store_root)
 
-    for subject, identifier in [("rosalind", "rosalind"), ("theo", "theo")]:
+    for subject in ("stoical", "intrepid"):
         repo = os.path.join(store_root, subject)
         for user_id, name, role in CONTRIBUTORS:
             gitehr("user", "add", user_id, name, "--role", role, cwd=repo)
         gitehr("user", "activate", CONTRIBUTORS[0][0], cwd=repo)
 
     with tempfile.TemporaryDirectory() as work:
-        adult_work = os.path.join(work, "rosalind")
-        child_work = os.path.join(work, "theo")
+        adult_work = os.path.join(work, "stoical")
+        child_work = os.path.join(work, "intrepid")
         os.makedirs(adult_work)
         os.makedirs(child_work)
 
-        eprint("  rosalind: hypertension, type 2 diabetes, 2017 appendicectomy")
-        build_adult(gitehr, os.path.join(store_root, "rosalind"), adult_work)
+        eprint("  stoical:  Stoical Pipistrelle - hypertension, type 2 diabetes, 2017 appendicectomy")
+        build_adult(gitehr, os.path.join(store_root, "stoical"), adult_work)
 
-        eprint("  theo: eczema, asthma, childhood immunisations")
-        build_child(gitehr, os.path.join(store_root, "theo"), child_work)
+        eprint("  intrepid: Intrepid Pipistrelle - eczema, asthma, childhood immunisations")
+        build_child(gitehr, os.path.join(store_root, "intrepid"), child_work)
 
     eprint("")
     eprint("Done. To look around:")
-    eprint(f"  cd {store_root}/rosalind && {binary} status")
+    eprint(f"  cd {store_root}/stoical && {binary} status")
     eprint(f"  GITEHR_STORE_PATH={store_root} {binary} gui")
     eprint("")
     eprint(
