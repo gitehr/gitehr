@@ -44,3 +44,6 @@ node_modules/
 .DS_Store
 *.swp
 *.swo
+
+# Python bytecode from the s/ scripts
+__pycache__/
