@@ -88,6 +88,13 @@ export const config = {
       execSync(`"${cliBinary}" journal add "Initial test entry for E2E testing"`, { cwd: testRepoPath, stdio: 'inherit', shell: true });
       execSync(`"${cliBinary}" allergies add --agent Penicillin --reaction anaphylaxis --severity high`, { cwd: testRepoPath, stdio: 'inherit', shell: true });
 
+      // Typed state the record view summarises, so the state cards are
+      // asserted against real CLI output rather than an empty record.
+      execSync(`"${cliBinary}" conditions add --name "Essential hypertension" --onset 2019-05-14 --verification confirmed`, { cwd: testRepoPath, stdio: 'inherit', shell: true });
+      execSync(`"${cliBinary}" medications add --name Ramipril --dose 5mg --frequency "once daily"`, { cwd: testRepoPath, stdio: 'inherit', shell: true });
+      execSync(`"${cliBinary}" observations add --name "Blood pressure" --value 138/84 --unit mmHg --category vital-signs --effective 2019-09-03`, { cwd: testRepoPath, stdio: 'inherit', shell: true });
+      execSync(`"${cliBinary}" vaccinations add --vaccine "Influenza (inactivated)" --date 2025-10-14`, { cwd: testRepoPath, stdio: 'inherit', shell: true });
+
       writeFileSync(fixtureFile(), JSON.stringify({ testStorePath, testRepoPath }));
     }
   },

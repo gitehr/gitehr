@@ -10,6 +10,7 @@ import {
   Divider,
   Group,
   Loader,
+  SimpleGrid,
   Stack,
   Text,
   Textarea,
@@ -27,6 +28,10 @@ import {
   IconPaperclip,
   IconSearch,
   IconPlus,
+  IconStethoscope,
+  IconPill,
+  IconActivityHeartbeat,
+  IconVaccine,
 } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
 import gitehrLogo from "./assets/gitehr-logo.svg";
@@ -37,6 +42,10 @@ import {
   getConfiguredStore,
   getCurrentDir,
   getActiveAllergies,
+  getActiveMedications,
+  getProblemList,
+  getRecentObservations,
+  getVaccinations,
   getDemographics,
   getJournalEntries,
   isGitehrRepo,
@@ -47,6 +56,10 @@ import {
   initStoreRoot,
   addStoreSubject,
   type JournalEntryInfo,
+  type MedicationInfo,
+  type ConditionInfo,
+  type ObservationInfo,
+  type VaccinationInfo,
   type JournalDocumentInfo,
   type MpiInfo,
   type MpiIdentifier,
@@ -149,6 +162,82 @@ function DocumentPreview({ document }: { document: JournalDocumentInfo }) {
   );
 }
 
+/** How many rows a current-state card shows before summarising the rest. */
+const STATE_CARD_ROWS = 6;
+
+interface StateRow {
+  key: string;
+  primary: string;
+  secondary?: string | null;
+}
+
+/**
+ * One typed-state summary: problems, medications, observations, vaccinations.
+ *
+ * "Nothing recorded" and "not loaded yet" are different clinical statements,
+ * so the card never claims the former while the record is still loading. It
+ * is also explicit about rows it is not showing, for the same reason the
+ * journal count is.
+ */
+function StateCard({
+  title,
+  icon,
+  color,
+  rows,
+  loading,
+}: {
+  title: string;
+  icon: React.ReactNode;
+  color: string;
+  rows: StateRow[];
+  loading: boolean;
+}) {
+  const visible = rows.slice(0, STATE_CARD_ROWS);
+  const hidden = rows.length - visible.length;
+
+  return (
+    <Card radius="md" className="panel-card state-card">
+      <Group justify="space-between" mb="sm">
+        <Group gap="xs">
+          <ThemeIcon variant="light" color={color}>
+            {icon}
+          </ThemeIcon>
+          <Text fw={600}>{title}</Text>
+        </Group>
+        {!loading && <Badge variant="outline">{rows.length}</Badge>}
+      </Group>
+
+      {loading ? (
+        <Center py="sm">
+          <Loader size="sm" />
+        </Center>
+      ) : rows.length === 0 ? (
+        <Text size="sm" c="dimmed">
+          None recorded
+        </Text>
+      ) : (
+        <Stack gap={6}>
+          {visible.map((row) => (
+            <Box key={row.key}>
+              <Text size="sm">{row.primary}</Text>
+              {row.secondary && (
+                <Text size="xs" c="dimmed">
+                  {row.secondary}
+                </Text>
+              )}
+            </Box>
+          ))}
+          {hidden > 0 && (
+            <Text size="xs" c="dimmed">
+              +{hidden} more not shown
+            </Text>
+          )}
+        </Stack>
+      )}
+    </Card>
+  );
+}
+
 /** Journal entries fetched per page. */
 const PAGE_SIZE = 25;
 
@@ -160,6 +249,10 @@ function App() {
   // The journal spans years; the view holds a page of it, and `entryTotal`
   // is what lets the count describe the record rather than the page.
   const [entryTotal, setEntryTotal] = useState(0);
+  const [problems, setProblems] = useState<ConditionInfo[]>([]);
+  const [medications, setMedications] = useState<MedicationInfo[]>([]);
+  const [observations, setObservations] = useState<ObservationInfo[]>([]);
+  const [vaccinations, setVaccinations] = useState<VaccinationInfo[]>([]);
   const [loadingOlder, setLoadingOlder] = useState(false);
   const [demographics, setDemographics] = useState<PatientDemographics | null>(null);
   const [allergies, setAllergies] = useState<AllergyInfo[]>([]);
@@ -320,19 +413,39 @@ function App() {
     setError(null);
     setDemographics(null);
     setAllergies([]);
+    setProblems([]);
+    setMedications([]);
+    setObservations([]);
+    setVaccinations([]);
     try {
       // Refetching keeps whatever the reader has already paged back to, so
       // adding an entry does not throw them to the top of the timeline.
       const limit = Math.max(PAGE_SIZE, keepLoaded ? entries.length : 0);
-      const [journalPage, demographicsData, allergiesData] = await Promise.all([
+      const [
+        journalPage,
+        demographicsData,
+        allergiesData,
+        problemsData,
+        medicationsData,
+        observationsData,
+        vaccinationsData,
+      ] = await Promise.all([
         getJournalEntries(repoPath, { limit, reverse: true }),
         getDemographics(repoPath),
         getActiveAllergies(repoPath),
+        getProblemList(repoPath),
+        getActiveMedications(repoPath),
+        getRecentObservations(repoPath),
+        getVaccinations(repoPath),
       ]);
       setEntries(journalPage.entries);
       setEntryTotal(journalPage.total);
       setDemographics(mapDemographics(demographicsData));
       setAllergies(allergiesData);
+      setProblems(problemsData);
+      setMedications(medicationsData);
+      setObservations(observationsData);
+      setVaccinations(vaccinationsData);
     } catch (err) {
       console.error("Failed to fetch data:", err);
       setError(
@@ -773,7 +886,84 @@ function App() {
               </Badge>
             </Group>
 
-            <Card radius="md" className="panel-card">
+            <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
+              <StateCard
+                title="Problems"
+                icon={<IconStethoscope size={18} />}
+                color="grape"
+                loading={loading}
+                rows={problems.map((condition) => ({
+                  key: condition.id,
+                  primary: condition.name,
+                  secondary: [
+                    condition.clinical_status,
+                    condition.verification_status,
+                    condition.onset ? `onset ${condition.onset}` : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" \u00b7 "),
+                }))}
+              />
+              <StateCard
+                title="Medications"
+                icon={<IconPill size={18} />}
+                color="indigo"
+                loading={loading}
+                rows={medications.map((medication) => ({
+                  key: medication.id,
+                  primary: [medication.name, medication.dose]
+                    .filter(Boolean)
+                    .join(" "),
+                  secondary: [medication.frequency, medication.indication]
+                    .filter(Boolean)
+                    .join(" \u00b7 "),
+                }))}
+              />
+              <StateCard
+                title="Observations"
+                icon={<IconActivityHeartbeat size={18} />}
+                color="teal"
+                loading={loading}
+                rows={[...observations]
+                  .sort((a, b) =>
+                    (b.effective_at || "").localeCompare(a.effective_at || "")
+                  )
+                  .map((observation) => ({
+                    key: observation.id,
+                    primary: `${observation.name}: ${observation.value}${
+                      observation.unit ? ` ${observation.unit}` : ""
+                    }`,
+                    secondary: [
+                      observation.effective_at,
+                      observation.interpretation,
+                    ]
+                      .filter(Boolean)
+                      .join(" \u00b7 "),
+                  }))}
+              />
+              <StateCard
+                title="Vaccinations"
+                icon={<IconVaccine size={18} />}
+                color="orange"
+                loading={loading}
+                rows={[...vaccinations]
+                  .sort((a, b) => b.date.localeCompare(a.date))
+                  .map((vaccination) => ({
+                    key: vaccination.id,
+                    primary: vaccination.vaccine,
+                    secondary: [
+                      vaccination.date,
+                      vaccination.dose_sequence
+                        ? `dose ${vaccination.dose_sequence}`
+                        : null,
+                    ]
+                      .filter(Boolean)
+                      .join(" \u00b7 "),
+                  }))}
+              />
+            </SimpleGrid>
+
+            <Card radius="md" className="panel-card journal-panel">
               <Group justify="space-between" mb="md">
                 <Group gap="xs">
                   <ThemeIcon variant="light" color="teal">

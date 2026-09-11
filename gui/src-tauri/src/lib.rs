@@ -392,6 +392,49 @@ fn get_active_allergies(
     })
 }
 
+// The typed-state readers below are deliberately the same "current view" the
+// CLI shows by default: active medications, current problems, current
+// observations, and completed vaccinations. Entries the record has moved on
+// from - stopped, resolved, refuted, entered in error - are still in the
+// record and reachable from the CLI, but showing them in a summary would
+// present superseded clinical belief as current.
+
+#[tauri::command]
+fn get_active_medications(
+    repo_path: String,
+) -> Result<Vec<gitehr::commands::medications::Medication>, String> {
+    with_repo_dir(&repo_path, || {
+        gitehr::commands::medications::list(false).map_err(|e| e.to_string())
+    })
+}
+
+#[tauri::command]
+fn get_problem_list(
+    repo_path: String,
+) -> Result<Vec<gitehr::commands::conditions::Condition>, String> {
+    with_repo_dir(&repo_path, || {
+        gitehr::commands::conditions::list(false, true).map_err(|e| e.to_string())
+    })
+}
+
+#[tauri::command]
+fn get_recent_observations(
+    repo_path: String,
+) -> Result<Vec<gitehr::commands::observations::Observation>, String> {
+    with_repo_dir(&repo_path, || {
+        gitehr::commands::observations::list(false, None).map_err(|e| e.to_string())
+    })
+}
+
+#[tauri::command]
+fn get_vaccinations(
+    repo_path: String,
+) -> Result<Vec<gitehr::commands::vaccinations::Vaccination>, String> {
+    with_repo_dir(&repo_path, || {
+        gitehr::commands::vaccinations::list(false).map_err(|e| e.to_string())
+    })
+}
+
 #[tauri::command]
 fn add_journal_entry(repo_path: String, content: String) -> Result<String, String> {
     with_repo_dir(&repo_path, || {
@@ -520,6 +563,10 @@ pub fn run() {
             update_state_file,
             get_demographics,
             get_active_allergies,
+            get_active_medications,
+            get_problem_list,
+            get_recent_observations,
+            get_vaccinations,
             add_journal_entry,
             add_documents,
             get_contributors,

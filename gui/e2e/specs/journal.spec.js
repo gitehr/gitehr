@@ -43,11 +43,27 @@ describe('GitEHR Store and Record View', () => {
     });
 
     it('should display the Journal card with the pre-seeded entry', async () => {
-      const journalCard = await $('.panel-card');
+      const journalCard = await $('.journal-panel');
       await journalCard.waitForDisplayed({ timeout: 10000 });
       const text = await journalCard.getText();
       expect(text).toContain('Journal');
       expect(text).toContain('Initial test entry');
+    });
+
+    it('should summarise the typed state the CLI holds', async () => {
+      await browser.waitUntil(async () => (await $$('.state-card')).length === 4, {
+        timeout: 10000,
+        timeoutMsg: 'expected problem, medication, observation and vaccination cards',
+      });
+
+      let text = '';
+      for (const card of await $$('.state-card')) {
+        text += `${await card.getText()}\n`;
+      }
+      expect(text).toContain('Essential hypertension');
+      expect(text).toContain('Ramipril');
+      expect(text).toContain('Blood pressure');
+      expect(text).toContain('Influenza');
     });
 
     it('should show the entry input textarea and Add button', async () => {
@@ -87,12 +103,12 @@ describe('GitEHR Store and Record View', () => {
     // Last, because paging the whole journal onto the screen pushes the entry
     // box out of view for anything that runs afterwards.
     it('should say how much of the journal it is showing, and page back', async () => {
-      const journalCard = await $('.panel-card');
+      const journalCard = await $('.journal-panel');
       await journalCard.waitForDisplayed({ timeout: 10000 });
 
       // The record is longer than one page, so the count has to describe the
       // journal rather than the page: "25 of 29 entries", not "25 entries".
-      const badge = await $('.panel-card .mantine-Badge-label');
+      const badge = await $('.journal-panel .mantine-Badge-label');
       await badge.waitForDisplayed({ timeout: 10000 });
       expect(await badge.getHTML()).toContain(' of ');
 

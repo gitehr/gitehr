@@ -75,6 +75,93 @@ export interface AllergyInfo {
   note: string | null;
 }
 
+export interface MedicationInfo {
+  id: string;
+  name: string;
+  dose: string | null;
+  route: string | null;
+  frequency: string | null;
+  indication: string | null;
+  prescriber: string | null;
+  supplement: boolean;
+  status: "active" | "stopped";
+  started: string | null;
+  stopped: string | null;
+  stopped_reason: string | null;
+  recorded_at: string;
+  recorded_by: string | null;
+  note: string | null;
+}
+
+export interface ConditionInfo {
+  id: string;
+  name: string;
+  clinical_status:
+    | "active"
+    | "recurrence"
+    | "relapse"
+    | "inactive"
+    | "remission"
+    | "resolved";
+  verification_status:
+    | "unconfirmed"
+    | "provisional"
+    | "differential"
+    | "confirmed"
+    | "refuted"
+    | "entered-in-error";
+  category: "problem-list-item" | "encounter-diagnosis";
+  onset: string | null;
+  abatement: string | null;
+  abatement_reason: string | null;
+  body_site: string | null;
+  laterality: "left" | "right" | "bilateral" | "midline" | null;
+  code: string | null;
+  severity: string | null;
+  recorded_at: string;
+  recorded_by: string | null;
+  note: string | null;
+}
+
+export interface ObservationInfo {
+  id: string;
+  name: string;
+  code: string | null;
+  category: string | null;
+  status: string;
+  value: string;
+  unit: string | null;
+  interpretation: string | null;
+  effective_at: string | null;
+  previous_value: string | null;
+  previous_unit: string | null;
+  previous_interpretation: string | null;
+  correction_reason: string | null;
+  recorded_at: string;
+  recorded_by: string | null;
+  note: string | null;
+}
+
+export interface VaccinationInfo {
+  id: string;
+  status: "completed" | "entered-in-error";
+  vaccine: string;
+  date: string;
+  dose_sequence: number | null;
+  target_disease: string[];
+  anatomical_site: string | null;
+  route: string | null;
+  product: string | null;
+  manufacturer: string | null;
+  batch_number: string | null;
+  performer: string | null;
+  recorded_at: string;
+  recorded_by: string | null;
+  entered_in_error_at: string | null;
+  entered_in_error_reason: string | null;
+  note: string | null;
+}
+
 export interface MpiPatientInfo {
   patient_id: string;
   repo_path: string;
@@ -171,6 +258,36 @@ export async function getDemographics(
 
 export async function getActiveAllergies(repoPath: string): Promise<AllergyInfo[]> {
   return invoke<AllergyInfo[]>("get_active_allergies", { repoPath });
+}
+
+/**
+ * Typed current state. Each of these returns the same default view as the
+ * CLI: what the record currently holds to be true, not what it once held.
+ * Stopped, resolved and erroneous entries stay in the record but out of the
+ * summary.
+ */
+export async function getActiveMedications(
+  repoPath: string
+): Promise<MedicationInfo[]> {
+  return invoke<MedicationInfo[]>("get_active_medications", { repoPath });
+}
+
+export async function getProblemList(
+  repoPath: string
+): Promise<ConditionInfo[]> {
+  return invoke<ConditionInfo[]>("get_problem_list", { repoPath });
+}
+
+export async function getRecentObservations(
+  repoPath: string
+): Promise<ObservationInfo[]> {
+  return invoke<ObservationInfo[]>("get_recent_observations", { repoPath });
+}
+
+export async function getVaccinations(
+  repoPath: string
+): Promise<VaccinationInfo[]> {
+  return invoke<VaccinationInfo[]>("get_vaccinations", { repoPath });
 }
 
 export async function updateStateFile(
