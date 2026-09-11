@@ -39,6 +39,7 @@ Re-run without --encrypt to create an unencrypted archive."
         "imaging",
         "documents",
         "openehr",
+        "fhir",
         ".gitehr",
     ];
 
