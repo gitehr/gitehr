@@ -1,0 +1,858 @@
+#!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 Marcus Baw and Baw Medical Ltd
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# Build a synthetic GitEHR Store for demos, screenshots, and manual testing.
+#
+#   s/demo-store                      # build .private/demo-store
+#   s/demo-store --output /tmp/demo   # somewhere else
+#   s/demo-store --force              # replace an existing demo store
+#
+# Unlike `s/generate`, which creates bulk repos for benchmarking, this builds
+# a small number of clinically coherent records: a multi-year adult record and
+# a child record, with typed state, documents, and several contributors.
+#
+# Everything here is invented. Names are fictional and NHS numbers use the
+# 999 range NHS England reserves for test data, so nothing can collide with a
+# real patient. Every record's first journal entry says so.
+#
+# Two behaviours worth knowing before filming:
+#
+# - Journal entries are backdated through `gitehr import --mode journal`,
+#   which preserves each entry's original filename and timestamp, so the
+#   timeline really does span years.
+# - Typed-state mutations (conditions, medications, ...) write their own
+#   journal entries, and those commands have no way to record an entry at the
+#   time the event clinically happened - they are stamped "now". A freshly
+#   built demo store therefore has ~30 entries dated today sitting on top of
+#   the backdated history. The same limitation will apply to importing a real
+#   record (roadmap R4), so it is worth fixing rather than working around.
+
+import argparse
+import os
+import random
+import shutil
+import subprocess
+import sys
+import tempfile
+import uuid
+import zlib
+from datetime import datetime, timedelta, timezone
+
+
+def eprint(*args):
+    print(*args, file=sys.stderr)
+
+
+# ── process helpers ──────────────────────────────────────────────────────────
+
+
+class Gitehr:
+    """Runs the gitehr binary against the demo store and nowhere else.
+
+    Every invocation carries GITEHR_STORE_PATH, so a misconfigured shell or a
+    developer's own configured Store cannot be written to by accident.
+    """
+
+    def __init__(self, binary, store_root):
+        self.binary = binary
+        self.env = dict(os.environ, GITEHR_STORE_PATH=str(store_root))
+
+    def __call__(self, *args, cwd=None):
+        result = subprocess.run(
+            [self.binary, *[str(a) for a in args]],
+            cwd=cwd,
+            env=self.env,
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode != 0:
+            eprint(f"gitehr {' '.join(str(a) for a in args)}")
+            eprint(result.stdout.strip())
+            eprint(result.stderr.strip())
+            raise SystemExit(f"gitehr exited {result.returncode}")
+        return result.stdout
+
+
+def configured_store_path(binary):
+    """The developer's real Store, so the demo can refuse to overwrite it."""
+    try:
+        output = subprocess.run(
+            [binary, "config", "show"], capture_output=True, text=True, check=True
+        ).stdout
+    except (subprocess.CalledProcessError, OSError):
+        return None
+    for line in output.splitlines():
+        if line.startswith("store_path:"):
+            value = line.split(":", 1)[1].strip()
+            return None if value.startswith("<") else os.path.realpath(value)
+    return None
+
+
+# ── synthetic identifiers and documents ──────────────────────────────────────
+
+
+def nhs_number(seed):
+    """A checksum-valid NHS number in the 999 test range.
+
+    Real-looking identifiers make a better demo, and the 999 prefix keeps them
+    unmistakably synthetic.
+    """
+    rng = random.Random(seed)
+    while True:
+        digits = [9, 9, 9] + [rng.randint(0, 9) for _ in range(6)]
+        total = sum(d * (10 - i) for i, d in enumerate(digits))
+        check = 11 - (total % 11)
+        if check == 11:
+            check = 0
+        if check == 10:
+            continue
+        digits.append(check)
+        return "".join(str(d) for d in digits)
+
+
+def write_pdf(path, title, paragraphs):
+    """Write a one-page PDF, so the GUI's document preview has real content.
+
+    Hand-rolled rather than pulling in a PDF library for a demo fixture: the
+    file only has to be a valid PDF a viewer will render.
+    """
+
+    def escape(text):
+        return text.replace("\\", r"\\").replace("(", r"\(").replace(")", r"\)")
+
+    lines = [f"BT /F1 14 Tf 72 760 Td ({escape(title)}) Tj ET"]
+    y = 730
+    for paragraph in paragraphs:
+        for chunk in _wrap(paragraph, 88):
+            lines.append(f"BT /F1 10 Tf 72 {y} Td ({escape(chunk)}) Tj ET")
+            y -= 14
+        y -= 8
+    stream = "\n".join(lines).encode("latin-1", "replace")
+
+    objects = [
+        b"<< /Type /Catalog /Pages 2 0 R >>",
+        b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+        b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] "
+        b"/Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
+        b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+        b"<< /Length "
+        + str(len(stream)).encode()
+        + b" >>\nstream\n"
+        + stream
+        + b"\nendstream",
+    ]
+
+    out = bytearray(b"%PDF-1.4\n")
+    offsets = []
+    for number, body in enumerate(objects, start=1):
+        offsets.append(len(out))
+        out += f"{number} 0 obj\n".encode() + body + b"\nendobj\n"
+
+    xref_at = len(out)
+    out += f"xref\n0 {len(objects) + 1}\n".encode()
+    out += b"0000000000 65535 f \n"
+    for offset in offsets:
+        out += f"{offset:010d} 00000 n \n".encode()
+    out += (
+        f"trailer\n<< /Size {len(objects) + 1} /Root 1 0 R >>\n"
+        f"startxref\n{xref_at}\n%%EOF\n"
+    ).encode()
+
+    with open(path, "wb") as handle:
+        handle.write(bytes(out))
+
+
+def _wrap(text, width):
+    words, line, out = text.split(), "", []
+    for word in words:
+        candidate = f"{line} {word}".strip()
+        if len(candidate) > width and line:
+            out.append(line)
+            line = word
+        else:
+            line = candidate
+    if line:
+        out.append(line)
+    return out
+
+
+# ── record building ──────────────────────────────────────────────────────────
+
+SYNTHETIC_NOTICE = (
+    "SYNTHETIC DEMONSTRATION RECORD. Every clinical detail in this record is "
+    "invented for demonstration and testing. The person described does not "
+    "exist and the NHS number is from the reserved 999 test range."
+)
+
+
+def write_journal_entries(entries, target_dir):
+    """Lay out backdated journal entries for `gitehr import --mode journal`.
+
+    The import preserves each entry's filename and front matter verbatim, so
+    this is the only way to build a record whose history predates today.
+    """
+    for when, author, body in entries:
+        stamp = when.astimezone(timezone.utc).strftime("%Y%m%dT%H%M%S.%f")[:-3] + "Z"
+        name = f"{stamp}-{uuid.uuid4()}.md"
+        front = f"---\ntimestamp: {when.astimezone(timezone.utc).isoformat().replace('+00:00', 'Z')}\nauthor: {author}\n---\n\n"
+        with open(os.path.join(target_dir, name), "w", encoding="utf-8") as handle:
+            handle.write(front + body.strip() + "\n")
+
+
+def at(year, month, day, hour=9, minute=0):
+    return datetime(year, month, day, hour, minute, tzinfo=timezone.utc)
+
+
+CONTRIBUTORS = [
+    ("dr-okafor", "Dr Amara Okafor", "General Practitioner"),
+    ("dr-lindqvist", "Dr Erik Lindqvist", "Consultant Diabetologist"),
+    ("nurse-hale", "Priya Hale", "Practice Nurse"),
+]
+
+
+def build_adult(gitehr, repo, work_dir):
+    """Rosalind Vance, born 1968: hypertension, type 2 diabetes, an
+    appendicectomy in 2017, and a penicillin allergy that the record is
+    expected to carry safely across every later prescribing decision."""
+
+    gitehr(
+        "demographics",
+        "set",
+        "--full-name",
+        "Rosalind Vance",
+        "--preferred-name",
+        "Ros",
+        "--date-of-birth",
+        "1968-04-22",
+        "--nhs-number",
+        nhs_number("rosalind"),
+        "--address",
+        "14 Ashgrove Terrace, Leeds, LS6 2QP",
+        "--note",
+        "Registered at practice; demographics confirmed by patient.",
+        cwd=repo,
+    )
+
+    gitehr(
+        "allergies",
+        "add",
+        "--agent",
+        "Penicillin",
+        "--reaction",
+        "Widespread urticarial rash 24 hours after first dose",
+        "--severity",
+        "high",
+        "--note",
+        "Reported 2003, amoxicillin for sinusitis. Avoid all penicillins.",
+        cwd=repo,
+    )
+    gitehr(
+        "allergies",
+        "add",
+        "--agent",
+        "Elastoplast adhesive",
+        "--reaction",
+        "Contact dermatitis at dressing site",
+        "--severity",
+        "low",
+        cwd=repo,
+    )
+
+    conditions = [
+        ("Essential hypertension", "2019-05-14", "snomed:59621000", "confirmed", None),
+        ("Type 2 diabetes mellitus", "2021-02-08", "snomed:44054006", "confirmed", None),
+        ("Osteoarthritis of right knee", "2023-09-19", "snomed:239873007", "confirmed", "right"),
+        ("Iron deficiency anaemia", "2022-11-02", "snomed:87522002", "confirmed", None),
+    ]
+    for name, onset, code, verification, laterality in conditions:
+        args = [
+            "conditions",
+            "add",
+            "--name",
+            name,
+            "--onset",
+            onset,
+            "--code",
+            code,
+            "--verification",
+            verification,
+        ]
+        if laterality:
+            args += ["--body-site", "Knee", "--laterality", laterality]
+        gitehr(*args, cwd=repo)
+
+    # An acute condition that has since resolved: the problem list should not
+    # carry it, but the record must still hold it.
+    gitehr(
+        "conditions",
+        "add",
+        "--name",
+        "Acute appendicitis",
+        "--onset",
+        "2017-06-11",
+        "--code",
+        "snomed:74400008",
+        "--verification",
+        "confirmed",
+        "--category",
+        "encounter-diagnosis",
+        cwd=repo,
+    )
+    appendicitis = _latest_id(gitehr, repo, "conditions")
+    gitehr(
+        "conditions",
+        "resolve",
+        appendicitis,
+        "--date",
+        "2017-06-12",
+        "--reason",
+        "Laparoscopic appendicectomy, uncomplicated recovery.",
+        cwd=repo,
+    )
+
+    medications = [
+        ("Ramipril", "5mg", "oral", "once daily", "Essential hypertension", "2019-06-02"),
+        ("Metformin", "1g", "oral", "twice daily", "Type 2 diabetes mellitus", "2021-02-20"),
+        ("Atorvastatin", "20mg", "oral", "once at night", "Cardiovascular risk", "2021-03-15"),
+        ("Ferrous fumarate", "210mg", "oral", "twice daily", "Iron deficiency anaemia", "2022-11-09"),
+    ]
+    for name, dose, route, frequency, indication, started in medications:
+        gitehr(
+            "medications",
+            "add",
+            "--name",
+            name,
+            "--dose",
+            dose,
+            "--route",
+            route,
+            "--frequency",
+            frequency,
+            "--indication",
+            indication,
+            "--started",
+            started,
+            "--prescriber",
+            "Dr Amara Okafor",
+            cwd=repo,
+        )
+
+    # Doxycycline, not amoxicillin: the penicillin allergy above is real and
+    # the demo record must not contradict itself in front of a clinician.
+    gitehr(
+        "medications",
+        "add",
+        "--name",
+        "Doxycycline",
+        "--dose",
+        "100mg",
+        "--route",
+        "oral",
+        "--frequency",
+        "once daily",
+        "--indication",
+        "Lower respiratory tract infection (penicillin allergy)",
+        "--started",
+        "2022-01-16",
+        cwd=repo,
+    )
+    doxycycline = _latest_id(gitehr, repo, "medications")
+    gitehr(
+        "medications",
+        "stop",
+        doxycycline,
+        "--date",
+        "2022-01-23",
+        "--reason",
+        "Seven-day course completed; symptoms resolved.",
+        cwd=repo,
+    )
+
+    observations = [
+        ("Blood pressure", "162/98", "mmHg", "vital-signs", "2019-05-14", "high"),
+        ("Blood pressure", "138/84", "mmHg", "vital-signs", "2019-09-03", None),
+        ("HbA1c", "53", "mmol/mol", "laboratory", "2021-02-08", "high"),
+        ("HbA1c", "48", "mmol/mol", "laboratory", "2021-08-17", "high"),
+        ("HbA1c", "44", "mmol/mol", "laboratory", "2023-04-11", None),
+        ("HbA1c", "43", "mmol/mol", "laboratory", "2026-03-10", None),
+        ("Body weight", "88.4", "kg", "vital-signs", "2021-02-08", None),
+        ("Body weight", "81.2", "kg", "vital-signs", "2023-04-11", None),
+        ("Body weight", "79.6", "kg", "vital-signs", "2026-03-10", None),
+        ("Haemoglobin", "98", "g/L", "laboratory", "2022-11-02", "low"),
+        ("Haemoglobin", "126", "g/L", "laboratory", "2023-03-07", None),
+        ("Blood pressure", "126/78", "mmHg", "vital-signs", "2026-03-10", "normal"),
+    ]
+    for name, value, unit, category, effective, interpretation in observations:
+        args = [
+            "observations",
+            "add",
+            "--name",
+            name,
+            "--value",
+            value,
+            "--unit",
+            unit,
+            "--category",
+            category,
+            "--effective",
+            effective,
+        ]
+        if interpretation:
+            args += ["--interpretation", interpretation]
+        gitehr(*args, cwd=repo)
+
+    for vaccine, date, disease in [
+        ("Influenza (inactivated)", "2024-10-09", "Influenza"),
+        ("COVID-19 mRNA booster", "2024-10-09", "COVID-19"),
+        ("Influenza (inactivated)", "2025-10-14", "Influenza"),
+        ("Pneumococcal polysaccharide", "2023-11-21", "Pneumococcal disease"),
+    ]:
+        gitehr(
+            "vaccinations",
+            "add",
+            "--vaccine",
+            vaccine,
+            "--date",
+            date,
+            "--target-disease",
+            disease,
+            "--site",
+            "Left deltoid",
+            "--route",
+            "Intramuscular",
+            cwd=repo,
+        )
+
+    entries = [
+        (
+            at(2017, 6, 11, 22, 40),
+            "dr-lindqvist",
+            f"{SYNTHETIC_NOTICE}\n\n"
+            "Admitted via A&E with 18 hours of periumbilical pain migrating to the "
+            "right iliac fossa, anorexia and low-grade fever. Tender with guarding "
+            "at McBurney's point. WCC 14.2, CRP 68. For laparoscopic appendicectomy "
+            "tonight.\n\nPenicillin allergy documented - prophylaxis adjusted "
+            "accordingly.",
+        ),
+        (
+            at(2017, 6, 12, 11, 15),
+            "dr-lindqvist",
+            "Laparoscopic appendicectomy overnight. Acutely inflamed appendix, not "
+            "perforated. Uncomplicated. Eating and drinking, pain controlled on "
+            "simple analgesia. Home today with district nurse review of wounds at "
+            "day 5.",
+        ),
+        (
+            at(2019, 5, 14, 10, 20),
+            "dr-okafor",
+            "Attended for a new-patient check. BP 162/98 today, repeated after five "
+            "minutes seated: 158/96. No headache, visual disturbance or chest pain. "
+            "Non-smoker. Ambulatory monitoring arranged before committing to "
+            "treatment.",
+        ),
+        (
+            at(2019, 6, 2, 9, 30),
+            "dr-okafor",
+            "Ambulatory monitoring confirms sustained hypertension (daytime average "
+            "154/94). Discussed lifestyle measures and treatment options. Starting "
+            "ramipril 5mg daily. Renal function and electrolytes before and two "
+            "weeks after starting.",
+        ),
+        (
+            at(2019, 9, 3, 11, 45),
+            "nurse-hale",
+            "BP review: 138/84. Tolerating ramipril, no cough. Bloods stable. "
+            "Pleased with progress; walking most days. Six-month recall.",
+        ),
+        (
+            at(2021, 2, 8, 9, 15),
+            "dr-okafor",
+            "Routine bloods show HbA1c 53 mmol/mol, confirming type 2 diabetes. "
+            "Asymptomatic - no polyuria, polydipsia or weight loss. Discussed "
+            "diagnosis at length; understandably upset but engaged. Referred to "
+            "structured education, retinal screening and podiatry. Will start "
+            "metformin after a fortnight of dietary change.",
+        ),
+        (
+            at(2021, 3, 15, 14, 0),
+            "dr-lindqvist",
+            "Diabetes clinic. Tolerating metformin 1g twice daily after titration. "
+            "QRISK3 places her above the treatment threshold; atorvastatin 20mg "
+            "started after discussion of absolute benefit. Retinal screening clear.",
+        ),
+        (
+            at(2022, 1, 16, 8, 50),
+            "dr-okafor",
+            "Five days of productive cough, now breathless on climbing stairs. "
+            "Temperature 37.9, crackles at the right base, saturations 96% on air. "
+            "Community-acquired pneumonia, CRB-65 score 0, suitable for treatment "
+            "at home.\n\nPenicillin allergy - amoxicillin avoided. Doxycycline 100mg "
+            "daily for seven days. Safety-netted clearly.",
+        ),
+        (
+            at(2022, 1, 23, 16, 30),
+            "nurse-hale",
+            "Telephone review: cough much improved, back at work, chest clear on "
+            "her own account. Course completed. Chest film in six weeks as she is "
+            "over 50.",
+        ),
+        (
+            at(2022, 11, 2, 10, 5),
+            "dr-okafor",
+            "Six weeks of fatigue. Haemoglobin 98 g/L with ferritin 8 - iron "
+            "deficiency anaemia. No overt bleeding; periods stopped in 2016. "
+            "Coeliac screen sent and two-week-wait lower GI referral made, given "
+            "age and unexplained deficiency. Ferrous fumarate started.",
+        ),
+        (
+            at(2023, 3, 7, 9, 40),
+            "dr-okafor",
+            "Colonoscopy showed diverticulosis only, no sinister findings. "
+            "Haemoglobin recovered to 126 g/L. Continue iron for three further "
+            "months, then recheck.",
+        ),
+        (
+            at(2023, 9, 19, 15, 10),
+            "dr-okafor",
+            "Right knee pain on stairs and after gardening, worse through the day, "
+            "no locking or giving way. Crepitus with a reduced range of movement. "
+            "Clinically osteoarthritis. Referred to physiotherapy; topical NSAID "
+            "and a discussion about weight and activity rather than an early "
+            "X-ray.",
+        ),
+        (
+            at(2024, 10, 9, 12, 0),
+            "nurse-hale",
+            "Autumn vaccination appointment: influenza and COVID-19 booster given, "
+            "left deltoid, no immediate reaction. Waited 15 minutes.",
+        ),
+        (
+            at(2026, 3, 10, 9, 25),
+            "dr-okafor",
+            "Annual diabetes and hypertension review. HbA1c 43, BP 126/78, weight "
+            "down a further 1.6kg. Feet intact with normal pulses and sensation. "
+            "Retinal screening up to date. Delighted with her progress - walking "
+            "group three times a week. No change to treatment.",
+        ),
+    ]
+    write_journal_entries(entries, work_dir)
+    gitehr("import", "--mode", "journal", work_dir, cwd=repo)
+
+    letter = os.path.join(work_dir, "discharge-summary-2017.pdf")
+    write_pdf(
+        letter,
+        "Leeds General Infirmary - Discharge Summary",
+        [
+            "Patient: Rosalind Vance    NHS number: (synthetic test record)",
+            "Admitted: 11 June 2017    Discharged: 12 June 2017",
+            "Procedure: Laparoscopic appendicectomy.",
+            "Diagnosis: Acute appendicitis, non-perforated.",
+            "Allergies: PENICILLIN - urticarial rash. Antibiotic prophylaxis adjusted.",
+            "Recovery uncomplicated. Discharged on simple analgesia. District nurse "
+            "to review wounds at day five. No follow-up appointment required.",
+            "This document is synthetic demonstration data and describes no real person.",
+        ],
+    )
+    gitehr(
+        "document",
+        "add",
+        letter,
+        "--title",
+        "Discharge summary appendicectomy",
+        "--message",
+        "Discharge summary from Leeds General Infirmary following "
+        "laparoscopic appendicectomy in June 2017, added to the record by the "
+        "patient after requesting a copy of her hospital notes.",
+        cwd=repo,
+    )
+
+
+def build_child(gitehr, repo, work_dir):
+    """Theo Vance, born 2019: eczema, viral wheeze becoming asthma, and a
+    childhood immunisation history - the parent-held record that paediatric
+    research recruitment would actually reach."""
+
+    gitehr(
+        "demographics",
+        "set",
+        "--full-name",
+        "Theo Vance",
+        "--date-of-birth",
+        "2019-08-30",
+        "--nhs-number",
+        nhs_number("theo"),
+        "--address",
+        "14 Ashgrove Terrace, Leeds, LS6 2QP",
+        "--note",
+        "Record held by parent. Demographics from the personal child health record.",
+        cwd=repo,
+    )
+
+    for name, onset, code in [
+        ("Atopic eczema", "2020-11-04", "snomed:24079001"),
+        ("Asthma", "2024-02-26", "snomed:195967001"),
+    ]:
+        gitehr(
+            "conditions",
+            "add",
+            "--name",
+            name,
+            "--onset",
+            onset,
+            "--code",
+            code,
+            "--verification",
+            "confirmed",
+            cwd=repo,
+        )
+
+    for name, dose, frequency, indication, started in [
+        ("Salbutamol inhaler", "100mcg", "as required via spacer", "Asthma", "2024-02-26"),
+        ("Beclometasone inhaler", "50mcg", "twice daily via spacer", "Asthma", "2024-03-18"),
+        ("Emollient ointment", "As directed", "at least twice daily", "Atopic eczema", "2020-11-04"),
+    ]:
+        gitehr(
+            "medications",
+            "add",
+            "--name",
+            name,
+            "--dose",
+            dose,
+            "--route",
+            "inhaled" if "inhaler" in name else "topical",
+            "--frequency",
+            frequency,
+            "--indication",
+            indication,
+            "--started",
+            started,
+            cwd=repo,
+        )
+
+    # The UK childhood schedule: the part of a child's record a parent can
+    # usually produce from the red book, and a researcher would want intact.
+    schedule = [
+        ("6-in-1 (DTaP/IPV/Hib/HepB)", "2019-11-01", 1, "Diphtheria"),
+        ("Rotavirus", "2019-11-01", 1, "Rotavirus gastroenteritis"),
+        ("MenB", "2019-11-01", 1, "Meningococcal B"),
+        ("6-in-1 (DTaP/IPV/Hib/HepB)", "2019-11-29", 2, "Diphtheria"),
+        ("Rotavirus", "2019-11-29", 2, "Rotavirus gastroenteritis"),
+        ("6-in-1 (DTaP/IPV/Hib/HepB)", "2020-01-03", 3, "Diphtheria"),
+        ("MenB", "2020-01-03", 2, "Meningococcal B"),
+        ("MMR", "2020-09-04", 1, "Measles"),
+        ("MMR", "2023-02-17", 2, "Measles"),
+        ("Preschool booster (dTaP/IPV)", "2023-02-17", 1, "Diphtheria"),
+        ("Influenza (nasal)", "2025-10-03", 1, "Influenza"),
+    ]
+    for vaccine, date, dose, disease in schedule:
+        gitehr(
+            "vaccinations",
+            "add",
+            "--vaccine",
+            vaccine,
+            "--date",
+            date,
+            "--dose-sequence",
+            dose,
+            "--target-disease",
+            disease,
+            cwd=repo,
+        )
+
+    for name, value, unit, category, effective in [
+        ("Body weight", "3.41", "kg", "vital-signs", "2019-08-30"),
+        ("Body weight", "9.8", "kg", "vital-signs", "2020-09-04"),
+        ("Body weight", "17.2", "kg", "vital-signs", "2023-02-17"),
+        ("Body weight", "23.5", "kg", "vital-signs", "2026-01-14"),
+        ("Body height", "112", "cm", "vital-signs", "2023-02-17"),
+        ("Body height", "126", "cm", "vital-signs", "2026-01-14"),
+        ("Peak expiratory flow", "180", "L/min", "vital-signs", "2026-01-14"),
+    ]:
+        gitehr(
+            "observations",
+            "add",
+            "--name",
+            name,
+            "--value",
+            value,
+            "--unit",
+            unit,
+            "--category",
+            category,
+            "--effective",
+            effective,
+            cwd=repo,
+        )
+
+    entries = [
+        (
+            at(2019, 8, 30, 4, 12),
+            "dr-lindqvist",
+            f"{SYNTHETIC_NOTICE}\n\n"
+            "Born at 39+2 by spontaneous vaginal delivery. Birth weight 3.41kg. "
+            "Apgars 9 and 10. Newborn examination normal. Breastfeeding "
+            "established before discharge.",
+        ),
+        (
+            at(2020, 11, 4, 16, 20),
+            "dr-okafor",
+            "Dry, itchy patches in the elbow and knee creases for several weeks, "
+            "worse in the cold. Sleep disturbed by scratching two or three nights a "
+            "week. Atopic eczema. Generous emollient demonstrated to mum, with a "
+            "short course of a mild topical steroid for the flare and clear advice "
+            "on when to step it up.",
+        ),
+        (
+            at(2023, 11, 12, 21, 5),
+            "dr-lindqvist",
+            "Attended the children's emergency department with wheeze and a cough "
+            "on the third day of a cold. Saturations 94% on air, mild recession, "
+            "responded well to ten puffs of salbutamol via a spacer. Observed for "
+            "three hours and discharged with a weaning plan. Third such episode "
+            "this year.",
+        ),
+        (
+            at(2024, 2, 26, 10, 30),
+            "dr-okafor",
+            "Fourth episode of interval wheeze, now with a night cough between "
+            "colds and symptoms on running. Given the pattern, the atopy and the "
+            "family history, this is asthma rather than recurrent viral wheeze. "
+            "Salbutamol via spacer with a written action plan; mum shown inhaler "
+            "technique and asked to keep a symptom diary before we consider a "
+            "preventer.",
+        ),
+        (
+            at(2024, 3, 18, 9, 50),
+            "nurse-hale",
+            "Asthma review. Diary shows symptoms four nights in the past fortnight "
+            "and salbutamol most days. Starting beclometasone 50mcg twice daily via "
+            "spacer. Technique good. Action plan updated and a copy given to "
+            "school.",
+        ),
+        (
+            at(2026, 1, 14, 15, 40),
+            "nurse-hale",
+            "Annual asthma review. No night symptoms since the autumn, no time off "
+            "school, salbutamol used twice in three months. Running and swimming "
+            "without limitation. Peak flow 180 L/min. Technique still good. "
+            "Continue current treatment; review in a year or sooner if unwell.",
+        ),
+    ]
+    write_journal_entries(entries, work_dir)
+    gitehr("import", "--mode", "journal", work_dir, cwd=repo)
+
+
+def _latest_id(gitehr, repo, family):
+    """The id of the most recently added entry in a typed-state family.
+
+    The add commands print the new id, but reading it back keeps this working
+    if that output ever changes.
+    """
+    import json
+
+    listed = json.loads(gitehr(family, "list", "--json", "--all", cwd=repo))
+    if not listed:
+        raise SystemExit(f"no {family} recorded")
+    return listed[-1]["id"]
+
+
+# ── entry point ──────────────────────────────────────────────────────────────
+
+
+def main():
+    repo_root = subprocess.run(
+        ["git", "rev-parse", "--show-toplevel"],
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.strip()
+
+    parser = argparse.ArgumentParser(
+        description="Build a synthetic GitEHR Store for demos and screenshots"
+    )
+    parser.add_argument(
+        "--output",
+        default=os.path.join(repo_root, ".private", "demo-store"),
+        help="Where to build the Store (default: .private/demo-store, gitignored)",
+    )
+    parser.add_argument(
+        "--gitehr",
+        default=os.path.join(repo_root, "target", "debug", "gitehr"),
+        help="gitehr binary to drive (default: target/debug/gitehr)",
+    )
+    parser.add_argument(
+        "--force", action="store_true", help="Replace an existing demo Store"
+    )
+    args = parser.parse_args()
+
+    binary = args.gitehr
+    if os.sep not in binary and shutil.which(binary) is None:
+        raise SystemExit(f"gitehr binary not found: {binary}")
+    if os.sep in binary and not os.path.exists(binary):
+        raise SystemExit(f"gitehr binary not found: {binary}. Run `cargo build` first.")
+
+    store_root = os.path.realpath(args.output)
+
+    configured = configured_store_path(binary)
+    if configured and (store_root == configured or store_root.startswith(configured + os.sep)):
+        raise SystemExit(
+            f"Refusing to build demo data inside your configured Store ({configured}).\n"
+            "Pass --output somewhere else."
+        )
+
+    if os.path.exists(store_root) and os.listdir(store_root):
+        if not args.force:
+            raise SystemExit(
+                f"{store_root} already exists and is not empty. Re-run with --force to replace it."
+            )
+        if not os.path.exists(os.path.join(store_root, "gitehr-mpi.json")):
+            raise SystemExit(
+                f"Refusing to delete {store_root}: it is not a GitEHR Store. "
+                "Remove it yourself if that is really what you want."
+            )
+        shutil.rmtree(store_root)
+
+    os.makedirs(store_root, exist_ok=True)
+    gitehr = Gitehr(binary, store_root)
+
+    eprint(f"Building demo Store in {store_root}")
+
+    gitehr("store", "init", "rosalind", cwd=store_root)
+    gitehr("store", "add", "theo", cwd=store_root)
+
+    for subject, identifier in [("rosalind", "rosalind"), ("theo", "theo")]:
+        repo = os.path.join(store_root, subject)
+        for user_id, name, role in CONTRIBUTORS:
+            gitehr("user", "add", user_id, name, "--role", role, cwd=repo)
+        gitehr("user", "activate", CONTRIBUTORS[0][0], cwd=repo)
+
+    with tempfile.TemporaryDirectory() as work:
+        adult_work = os.path.join(work, "rosalind")
+        child_work = os.path.join(work, "theo")
+        os.makedirs(adult_work)
+        os.makedirs(child_work)
+
+        eprint("  rosalind: hypertension, type 2 diabetes, 2017 appendicectomy")
+        build_adult(gitehr, os.path.join(store_root, "rosalind"), adult_work)
+
+        eprint("  theo: eczema, asthma, childhood immunisations")
+        build_child(gitehr, os.path.join(store_root, "theo"), child_work)
+
+    eprint("")
+    eprint("Done. To look around:")
+    eprint(f"  cd {store_root}/rosalind && {binary} status")
+    eprint(f"  GITEHR_STORE_PATH={store_root} {binary} gui")
+    eprint("")
+    eprint(
+        "Note: typed-state entries (conditions, medications, ...) are stamped today,\n"
+        "because those commands cannot record an entry at the time the event happened.\n"
+        "Only the imported journal entries carry their real historical dates."
+    )
+
+    # Data on stdout, so `cd $(s/demo-store)` works.
+    print(store_root)
+
+
+if __name__ == "__main__":
+    main()

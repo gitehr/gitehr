@@ -91,3 +91,22 @@ Parallel repo creation (use with care):
 ```
 s/generate -repos 1000 -journal-entries 100 --parallel 4
 ```
+
+## `s/demo-store`
+
+Build a synthetic Store for demos, screenshots, and manual testing. Where `s/generate` makes bulk repos for benchmarking, this makes a small number of clinically coherent records: a multi-year adult record (hypertension, type 2 diabetes, a 2017 appendicectomy, a penicillin allergy) and a child record (eczema, asthma, the UK childhood immunisation schedule), with typed state, a document, and three contributors.
+
+```
+s/demo-store              # build .private/demo-store (gitignored)
+s/demo-store --force      # replace an existing demo Store
+s/demo-store --output /tmp/demo
+```
+
+It prints the Store path on stdout, so `cd $(s/demo-store)` works. Every invocation sets `GITEHR_STORE_PATH`, and the script refuses to build inside your configured Store or to delete a directory that is not a GitEHR Store.
+
+All the data is invented; NHS numbers come from the reserved 999 test range and each record says so in its first journal entry.
+
+Two things to know before using it for a demo:
+
+- Journal entries are backdated through `gitehr import --mode journal`, which preserves each entry's original timestamp, so the timeline genuinely spans years.
+- Typed-state commands write their own journal entries and cannot record them at the time the event clinically happened, so they are stamped today. About two thirds of the adult record's entries therefore carry today's date. Any view showing only the most recent entries will show none of the history until it can page back.
