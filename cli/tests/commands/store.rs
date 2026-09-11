@@ -378,3 +378,22 @@ fn store_init_scaffolds_openehr_layout() -> Result<()> {
     assert!(openehr.join("indexes").is_dir(), "indexes/ should exist");
     Ok(())
 }
+
+#[test]
+#[serial]
+fn store_init_scaffolds_fhir_layout() -> Result<()> {
+    let temp = tempdir().unwrap();
+    std::env::set_current_dir(&temp)?;
+
+    store::init::run(Some("rex"))?;
+
+    let fhir = Path::new("rex/fhir");
+    assert!(fhir.join("README.md").exists(), "fhir README should exist");
+    assert!(
+        fhir.join("definitions").is_dir(),
+        "definitions/ should exist"
+    );
+    assert!(fhir.join("resources").is_dir(), "resources/ should exist");
+    assert!(fhir.join("indexes").is_dir(), "indexes/ should exist");
+    Ok(())
+}

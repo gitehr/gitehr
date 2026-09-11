@@ -32,6 +32,8 @@ When `gitehr store init` runs, it copies the template from `folder-structure` in
 
 - `/openehr` – Native openEHR content: operational templates, versioned reference-model instances, and optional derived indexes (see [folder-structure/openehr/README.md](../../folder-structure/openehr/README.md) and [openehr.md](openehr.md)). Scaffolding and conventions only for now; commands arrive with R14/R17+.
 
+- `/fhir` – FHIR content: compiled resource definitions, concrete resource instances, and optional derived indexes (see [folder-structure/fhir/README.md](../../folder-structure/fhir/README.md) and [fhir.md](fhir.md)). R5 is the validation target; R4 resources are expected too (NHS App import, R4), so each instance records the release it conforms to. Scaffolding and conventions only for now; commands arrive with R12-R14.
+
 - `/.gitehr` – Internal configuration directory created at init time (template currently empty; see [src/commands/init.rs](../../src/commands/init.rs)).
 
 ---

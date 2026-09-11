@@ -308,3 +308,32 @@ fn test_create_archive_includes_openehr_layout() -> Result<()> {
 
     Ok(())
 }
+
+#[test]
+#[serial]
+fn test_create_archive_includes_fhir_layout() -> Result<()> {
+    let _temp_dir = setup();
+
+    fs::create_dir_all("fhir/resources")?;
+    fs::write("fhir/README.md", "FHIR layout")?;
+    fs::write("fhir/resources/patient-example.json", "{}")?;
+
+    create_transport_archive(Some("test.tar.gz"), false)?;
+
+    let extract_dir = tempdir()?;
+    extract_transport_archive("test.tar.gz", extract_dir.path().to_str())?;
+
+    assert!(
+        extract_dir.path().join("fhir/README.md").exists(),
+        "fhir layout should be included in transport archives"
+    );
+    assert!(
+        extract_dir
+            .path()
+            .join("fhir/resources/patient-example.json")
+            .exists(),
+        "nested FHIR resource files should be included"
+    );
+
+    Ok(())
+}
