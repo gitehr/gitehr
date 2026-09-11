@@ -149,11 +149,18 @@ function DocumentPreview({ document }: { document: JournalDocumentInfo }) {
   );
 }
 
+/** Journal entries fetched per page. */
+const PAGE_SIZE = 25;
+
 function App() {
   const [repoPath, setRepoPath] = useState<string | null>(null);
   const [storeRoot, setStoreRoot] = useState<string | null>(null);
   const [repoChecked, setRepoChecked] = useState(false);
   const [entries, setEntries] = useState<JournalEntryInfo[]>([]);
+  // The journal spans years; the view holds a page of it, and `entryTotal`
+  // is what lets the count describe the record rather than the page.
+  const [entryTotal, setEntryTotal] = useState(0);
+  const [loadingOlder, setLoadingOlder] = useState(false);
   const [demographics, setDemographics] = useState<PatientDemographics | null>(null);
   const [allergies, setAllergies] = useState<AllergyInfo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -307,19 +314,23 @@ function App() {
     }
   };
 
-  const fetchData = async () => {
+  const fetchData = async (keepLoaded = false) => {
     if (!repoPath) return;
     setLoading(true);
     setError(null);
     setDemographics(null);
     setAllergies([]);
     try {
-      const [entriesData, demographicsData, allergiesData] = await Promise.all([
-        getJournalEntries(repoPath, { limit: 10, reverse: true }),
+      // Refetching keeps whatever the reader has already paged back to, so
+      // adding an entry does not throw them to the top of the timeline.
+      const limit = Math.max(PAGE_SIZE, keepLoaded ? entries.length : 0);
+      const [journalPage, demographicsData, allergiesData] = await Promise.all([
+        getJournalEntries(repoPath, { limit, reverse: true }),
         getDemographics(repoPath),
         getActiveAllergies(repoPath),
       ]);
-      setEntries(entriesData);
+      setEntries(journalPage.entries);
+      setEntryTotal(journalPage.total);
       setDemographics(mapDemographics(demographicsData));
       setAllergies(allergiesData);
     } catch (err) {
@@ -338,13 +349,32 @@ function App() {
     }
   }, [repoPath]);
 
+  const loadOlderEntries = async () => {
+    if (!repoPath) return;
+    setLoadingOlder(true);
+    try {
+      const journalPage = await getJournalEntries(repoPath, {
+        limit: PAGE_SIZE,
+        offset: entries.length,
+        reverse: true,
+      });
+      setEntries((current) => [...current, ...journalPage.entries]);
+      setEntryTotal(journalPage.total);
+    } catch (err) {
+      console.error("Failed to load older entries:", err);
+      setError("Failed to load older journal entries: " + err);
+    } finally {
+      setLoadingOlder(false);
+    }
+  };
+
   const handleAddEntry = async () => {
     if (!repoPath || !newEntryContent.trim()) return;
     setSubmitting(true);
     try {
       await addJournalEntry(repoPath, newEntryContent);
       setNewEntryContent("");
-      fetchData();
+      fetchData(true);
     } catch (err) {
       console.error("Failed to add entry:", err);
       setError("Failed to add journal entry: " + err);
@@ -751,7 +781,11 @@ function App() {
                   </ThemeIcon>
                   <Text fw={600}>Journal</Text>
                 </Group>
-                <Badge variant="outline">{entries.length} entries</Badge>
+                <Badge variant="outline">
+                  {entries.length < entryTotal
+                    ? `${entries.length} of ${entryTotal} entries`
+                    : `${entryTotal} ${entryTotal === 1 ? "entry" : "entries"}`}
+                </Badge>
               </Group>
 
               <Group align="flex-start" gap="sm" mb="md">
@@ -826,6 +860,15 @@ function App() {
                       </Text>
                     </Card>
                   ))}
+                  {entries.length < entryTotal && (
+                    <Button
+                      variant="subtle"
+                      onClick={loadOlderEntries}
+                      loading={loadingOlder}
+                    >
+                      Load older entries ({entryTotal - entries.length} earlier)
+                    </Button>
+                  )}
                 </Stack>
               )}
             </Card>

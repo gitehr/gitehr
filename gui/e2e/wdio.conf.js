@@ -77,6 +77,14 @@ export const config = {
       execSync(`"${cliBinary}" store link e2e NHS:1234567890`, { cwd: testStorePath, stdio: 'inherit', shell: true });
       const testRepoPath = path.join(testStorePath, 'e2e');
       execSync('git config commit.gpgsign false', { cwd: testRepoPath, stdio: 'inherit', shell: true });
+
+      // More entries than the GUI shows in one page, so the paging control is
+      // exercised. Seeded before the entries the other specs assert on, which
+      // are newest-first and so stay on the first page.
+      for (let i = 1; i <= 26; i += 1) {
+        execSync(`"${cliBinary}" journal add "Backfilled entry ${i} for paging coverage"`, { cwd: testRepoPath, stdio: 'ignore', shell: true });
+      }
+
       execSync(`"${cliBinary}" journal add "Initial test entry for E2E testing"`, { cwd: testRepoPath, stdio: 'inherit', shell: true });
       execSync(`"${cliBinary}" allergies add --agent Penicillin --reaction anaphylaxis --severity high`, { cwd: testRepoPath, stdio: 'inherit', shell: true });
 

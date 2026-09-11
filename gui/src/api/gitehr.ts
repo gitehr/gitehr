@@ -18,6 +18,12 @@ export interface JournalEntryInfo {
   documents: JournalDocumentInfo[];
 }
 
+/** One page of journal entries, with the total size of the journal. */
+export interface JournalPage {
+  entries: JournalEntryInfo[];
+  total: number;
+}
+
 export interface StateFileInfo {
   name: string;
   content: string;
@@ -135,8 +141,8 @@ export async function getJournalEntries(
     offset?: number;
     reverse?: boolean;
   }
-): Promise<JournalEntryInfo[]> {
-  return invoke<JournalEntryInfo[]>("get_journal_entries", {
+): Promise<JournalPage> {
+  return invoke<JournalPage>("get_journal_entries", {
     repoPath,
     limit: options?.limit,
     offset: options?.offset,

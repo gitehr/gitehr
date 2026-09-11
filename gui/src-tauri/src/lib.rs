@@ -14,6 +14,18 @@ pub struct JournalEntryInfo {
     pub documents: Vec<JournalDocumentInfo>,
 }
 
+/// One page of journal entries, with the size of the whole journal.
+///
+/// `total` is what makes a partial view honest: a record spanning years can
+/// only be described accurately by a caller that knows how much it is not
+/// showing, and that a record "only grows" (ADR-0002) makes a stale count
+/// misleading rather than merely imprecise.
+#[derive(Debug, Serialize, Deserialize)]
+pub struct JournalPage {
+    pub entries: Vec<JournalEntryInfo>,
+    pub total: usize,
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct JournalDocumentInfo {
     pub path: String,
@@ -140,7 +152,10 @@ fn resolve_gitehr_cli() -> PathBuf {
         .and_then(Path::parent);
     if let Some(repo_root) = repo_root {
         for profile in ["debug", "release"] {
-            let candidate = repo_root.join("target").join(profile).join(exe_name("gitehr"));
+            let candidate = repo_root
+                .join("target")
+                .join(profile)
+                .join(exe_name("gitehr"));
             if candidate.exists() {
                 return candidate;
             }
@@ -275,19 +290,19 @@ fn get_journal_entries(
     limit: Option<usize>,
     offset: Option<usize>,
     reverse: Option<bool>,
-) -> Result<Vec<JournalEntryInfo>, String> {
+) -> Result<JournalPage, String> {
     with_repo_dir(&repo_path, || {
-        let mut entries =
-            gitehr::commands::journal::parsed_entries().map_err(|e| e.to_string())?;
+        let mut entries = gitehr::commands::journal::parsed_entries().map_err(|e| e.to_string())?;
 
         if reverse.unwrap_or(false) {
             entries.reverse();
         }
 
+        let total = entries.len();
         let offset = offset.unwrap_or(0);
         let limit = limit.unwrap_or(50);
 
-        Ok(entries
+        let entries = entries
             .into_iter()
             .skip(offset)
             .take(limit)
@@ -316,7 +331,9 @@ fn get_journal_entries(
                     })
                     .collect(),
             })
-            .collect())
+            .collect();
+
+        Ok(JournalPage { entries, total })
     })
 }
 
@@ -367,7 +384,9 @@ fn get_demographics(
 }
 
 #[tauri::command]
-fn get_active_allergies(repo_path: String) -> Result<Vec<gitehr::commands::allergies::Allergy>, String> {
+fn get_active_allergies(
+    repo_path: String,
+) -> Result<Vec<gitehr::commands::allergies::Allergy>, String> {
     with_repo_dir(&repo_path, || {
         gitehr::commands::allergies::list(false).map_err(|e| e.to_string())
     })

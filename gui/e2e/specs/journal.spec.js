@@ -83,5 +83,30 @@ describe('GitEHR Store and Record View', () => {
         timeoutMsg: 'textarea should be cleared after adding an entry',
       });
     });
+
+    // Last, because paging the whole journal onto the screen pushes the entry
+    // box out of view for anything that runs afterwards.
+    it('should say how much of the journal it is showing, and page back', async () => {
+      const journalCard = await $('.panel-card');
+      await journalCard.waitForDisplayed({ timeout: 10000 });
+
+      // The record is longer than one page, so the count has to describe the
+      // journal rather than the page: "25 of 29 entries", not "25 entries".
+      const badge = await $('.panel-card .mantine-Badge-label');
+      await badge.waitForDisplayed({ timeout: 10000 });
+      expect(await badge.getHTML()).toContain(' of ');
+
+      // The oldest entry is off the first page until the reader asks for it.
+      expect(await journalCard.getText()).not.toContain('Backfilled entry 1 for');
+
+      const loadOlder = await $('button*=Load older entries');
+      await loadOlder.waitForDisplayed({ timeout: 10000 });
+      // Point-clicks are intercepted by the sticky header under xvfb.
+      await browser.execute((el) => el.click(), loadOlder);
+
+      const oldest = await $('div*=Backfilled entry 1 for paging coverage');
+      await oldest.waitForDisplayed({ timeout: 15000 });
+      expect(await oldest.isDisplayed()).toBe(true);
+    });
   });
 });
