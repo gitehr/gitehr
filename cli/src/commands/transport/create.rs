@@ -7,6 +7,23 @@ use std::io::Read;
 use std::path::PathBuf;
 use walkdir::WalkDir;
 
+/// Repository directories copied into a transport archive.
+///
+/// Unlike `scaffold`, which copies the whole `folder-structure` template
+/// generically, this list is explicit, so a new template directory is only
+/// archived once it is added here. `every_template_directory_is_archived`
+/// enforces that, because a directory missed here is silently absent from
+/// every archive the user believes is their portable record.
+const INCLUDED_DIRS: [&str; 7] = [
+    "journal",
+    "state",
+    "imaging",
+    "documents",
+    "openehr",
+    "fhir",
+    ".gitehr",
+];
+
 pub fn run(output_path: Option<&str>, encrypt: bool) -> Result<()> {
     if !PathBuf::from(".gitehr").exists() {
         anyhow::bail!("Not a GitEHR repository (or not in the repository root).");
@@ -33,17 +50,7 @@ Re-run without --encrypt to create an unencrypted archive."
     let encoder = flate2::write::GzEncoder::new(tar_file, flate2::Compression::default());
     let mut archive = tar::Builder::new(encoder);
 
-    let dirs_to_include = [
-        "journal",
-        "state",
-        "imaging",
-        "documents",
-        "openehr",
-        "fhir",
-        ".gitehr",
-    ];
-
-    for dir in &dirs_to_include {
+    for dir in &INCLUDED_DIRS {
         let path = PathBuf::from(dir);
         if path.exists() {
             for entry in WalkDir::new(&path).into_iter().filter_map(|e| e.ok()) {
@@ -86,4 +93,41 @@ Re-run without --encrypt to create an unencrypted archive."
     println!("It can be extracted with: tar -xzf {}", output);
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::INCLUDED_DIRS;
+    use std::path::PathBuf;
+
+    /// Adding a directory to `folder-structure` puts it in every new
+    /// repository automatically, but not into transport archives: this
+    /// module's list is explicit. Name any template directory that has been
+    /// scaffolded but never archived, rather than leaving the omission to be
+    /// noticed when someone restores an incomplete record.
+    ///
+    /// Only this direction is checked. An entry here with no template
+    /// directory is legitimate - a directory a repository grows at runtime
+    /// still belongs in the archive.
+    #[test]
+    fn every_template_directory_is_archived() {
+        let template = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .expect("cli/ has a parent")
+            .join("folder-structure");
+
+        let missing: Vec<String> = std::fs::read_dir(&template)
+            .expect("folder-structure template exists")
+            .filter_map(|entry| entry.ok())
+            .filter(|entry| entry.file_type().is_ok_and(|kind| kind.is_dir()))
+            .map(|entry| entry.file_name().to_string_lossy().into_owned())
+            .filter(|name| !INCLUDED_DIRS.contains(&name.as_str()))
+            .collect();
+
+        assert!(
+            missing.is_empty(),
+            "template directories missing from transport archives: {missing:?}. \
+             Add each to INCLUDED_DIRS, or document why it must not be archived."
+        );
+    }
 }

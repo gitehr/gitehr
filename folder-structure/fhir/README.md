@@ -1,9 +1,17 @@
 # FHIR
 
-This directory holds FHIR v5 content: compiled resource definitions and
+This directory holds FHIR content: compiled resource definitions and
 concrete resource instances, plus optional derived indexes. It is laid out
 for future FHIR support (roadmap R9/R11-R16); today it is structure and
 documentation only - nothing in GitEHR currently reads or writes here.
+
+More than one FHIR release is expected here. `spec/fhir.md` targets R5
+("v5") for validation, while NHS App import (roadmap R4) plans to land R4
+resources in this same layout, and `gitehr vaccinations` already embeds
+source R4 `Immunization` JSON in typed State. A resource instance is only
+interpretable alongside the release it conforms to, so record that release
+explicitly - in the resource itself (`meta.profile`) or in a manifest beside
+it - rather than inferring it from the directory.
 
 Layout (see `spec/fhir.md`):
 
