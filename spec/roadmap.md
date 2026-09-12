@@ -55,7 +55,7 @@ The calculator engine lives in [clincalc](https://github.com/pacharanero/clincal
 - [ ] **R36 - Integrate clincalc MCP tools:** expose each calculator's JSON Schema and response contract.
 - [ ] **R37 - Add a GUI MCP client panel.**
 - [x] **R38 - Document MCP integration and API reference.** Published as [`docs/cli/mcp-usage.md`](../docs/cli/mcp-usage.md), with a full resource/tool reference table and corrected URI examples.
-- [ ] **R39 - Add MCP client libraries for testing.**
+- [x] **R39 - Add MCP client libraries for testing:** a stdlib-only Python client (`clients/python/gitehr_mcp.py`) wraps the stdio JSON-RPC transport (initialize handshake, resources, tools, prompts) behind a small `GitEHRMCPClient` class, documented in [`clients/python/README.md`](../clients/python/README.md) and linked from [`docs/cli/mcp-usage.md`](../docs/cli/mcp-usage.md). `clients/python/test_gitehr_mcp.py` exercises it end to end against a real `gitehr store init` repo, and CI runs it so the client cannot drift from the server. No TypeScript client yet.
 
 ## Security and Integrity
 

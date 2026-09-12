@@ -47,6 +47,21 @@ Expected response:
 }
 ```
 
+### Python Client Library
+
+For scripting or testing against the server without hand-writing JSON-RPC, use the stdlib-only Python client in [`clients/python/gitehr_mcp.py`](../../clients/python/gitehr_mcp.py):
+
+```python
+from gitehr_mcp import GitEHRMCPClient
+
+with GitEHRMCPClient(repo_path="/path/to/gitehr/repo") as client:
+    client.initialize()
+    for resource in client.list_resources():
+        print(resource["uri"])
+```
+
+See [`clients/python/README.md`](../../clients/python/README.md) for the full API and how to run its own test suite.
+
 ## MCP Capabilities
 
 ### Resources (Read-Only)
