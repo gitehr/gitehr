@@ -22,9 +22,13 @@
 from __future__ import annotations
 
 import json
+import selectors
 import subprocess
+import tempfile
 from itertools import count
 from typing import Any, Optional
+
+DEFAULT_TIMEOUT = 30.0
 
 
 class McpError(RuntimeError):
@@ -45,19 +49,31 @@ class GitEHRMCPClient:
     calls from multiple threads would race on the same pipes.
     """
 
-    def __init__(self, gitehr_bin: str = "gitehr", repo_path: Optional[str] = None) -> None:
+    def __init__(
+        self,
+        gitehr_bin: str = "gitehr",
+        repo_path: Optional[str] = None,
+        timeout: Optional[float] = DEFAULT_TIMEOUT,
+    ) -> None:
         args = [gitehr_bin, "mcp", "serve", "--stdio"]
         if repo_path is not None:
             args += ["--repo-path", repo_path]
+        # The server's diagnostics go to a temporary file rather than a pipe.
+        # An undrained stderr pipe deadlocks once it fills: the server blocks
+        # writing to it while this client blocks waiting for a response that
+        # can no longer be written. A file has no such limit, and is still
+        # readable when a failure needs explaining.
+        self._stderr = tempfile.TemporaryFile(mode="w+")
         self._process = subprocess.Popen(
             args,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            stderr=self._stderr,
             text=True,
             bufsize=1,
         )
         self._next_id = count(1)
+        self._timeout = timeout
 
     def __enter__(self) -> "GitEHRMCPClient":
         return self
@@ -74,9 +90,10 @@ class GitEHRMCPClient:
             except subprocess.TimeoutExpired:
                 self._process.kill()
                 self._process.wait()
-        for pipe in (self._process.stdin, self._process.stdout, self._process.stderr):
+        for pipe in (self._process.stdin, self._process.stdout):
             if pipe is not None:
                 pipe.close()
+        self._stderr.close()
 
     # -- MCP protocol ---------------------------------------------------
 
@@ -150,12 +167,40 @@ class GitEHRMCPClient:
 
     def _read(self) -> dict:
         assert self._process.stdout is not None
-        line = self._process.stdout.readline()
-        if line == "":
-            stderr = self._process.stderr.read() if self._process.stderr else ""
+        if not self._wait_readable():
             raise McpError(
                 -32603,
-                "gitehr mcp serve exited without a response"
-                + (f" (stderr: {stderr.strip()})" if stderr.strip() else ""),
+                f"gitehr mcp serve did not respond within {self._timeout}s"
+                + self._stderr_suffix(),
+            )
+
+        line = self._process.stdout.readline()
+        if line == "":
+            raise McpError(
+                -32603,
+                "gitehr mcp serve exited without a response" + self._stderr_suffix(),
             )
         return json.loads(line)
+
+    def _wait_readable(self) -> bool:
+        """Whether a response arrived in time. A silent server should fail a
+        test rather than hang it."""
+        if self._timeout is None:
+            return True
+        try:
+            with selectors.DefaultSelector() as selector:
+                selector.register(self._process.stdout, selectors.EVENT_READ)
+                return bool(selector.select(self._timeout))
+        except (OSError, ValueError):
+            # Windows selectors cannot wait on a pipe; block instead of
+            # refusing to run at all.
+            return True
+
+    def _stderr_suffix(self) -> str:
+        """Whatever the server managed to say before going quiet."""
+        try:
+            self._stderr.seek(0)
+            message = self._stderr.read().strip()
+        except (OSError, ValueError):
+            return ""
+        return f" (stderr: {message})" if message else ""

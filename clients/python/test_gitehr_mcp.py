@@ -61,7 +61,9 @@ class GitEHRMCPClientTest(unittest.TestCase):
         subject_dirs = [
             entry for entry in store_root.iterdir() if (entry / ".gitehr").is_dir()
         ]
-        assert len(subject_dirs) == 1, f"expected one subject repo, found {subject_dirs}"
+        self.assertEqual(
+            len(subject_dirs), 1, f"expected one subject repo, found {subject_dirs}"
+        )
         self.repo_path = subject_dirs[0]
 
         self.client = GitEHRMCPClient(self.gitehr_bin, repo_path=str(self.repo_path))

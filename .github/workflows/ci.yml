@@ -53,6 +53,14 @@ jobs:
       - name: Tests
         run: cargo test --all-features
 
+      # The Python MCP client exists to test the server, so it has to be run:
+      # unexercised, it would quietly stop matching the protocol it documents.
+      # Reuses the debug binary the test step has already built.
+      - name: MCP Python client
+        run: timeout 300 python3 clients/python/test_gitehr_mcp.py
+        env:
+          GITEHR_BIN: target/debug/gitehr
+
   workflow-security:
     name: GitHub Actions security
     runs-on: ubuntu-latest
