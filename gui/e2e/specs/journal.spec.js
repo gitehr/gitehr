@@ -100,6 +100,45 @@ describe('GitEHR Store and Record View', () => {
       });
     });
 
+    it('should keep an unfinished entry with the record it belongs to', async () => {
+      const textarea = await $('textarea[placeholder*="new journal entry"]');
+      await textarea.waitForDisplayed({ timeout: 10000 });
+      await textarea.setValue('Unfinished note about the first patient');
+
+      const backToList = await $('button*=Patient list');
+      await backToList.waitForDisplayed({ timeout: 10000 });
+      await browser.execute((el) => el.click(), backToList);
+
+      // Open the other subject: the draft above must not have followed us.
+      const openButtons = await $$('button*=Open');
+      await browser.waitUntil(async () => (await $$('button*=Open')).length > 1, {
+        timeout: 10000,
+        timeoutMsg: 'expected two subjects in the Patient Index',
+      });
+      await browser.execute((el) => el.click(), openButtons[1]);
+
+      const otherTextarea = await $('textarea[placeholder*="new journal entry"]');
+      await otherTextarea.waitForDisplayed({ timeout: 10000 });
+      await browser.waitUntil(async () => (await otherTextarea.getValue()) === '', {
+        timeout: 10000,
+        timeoutMsg: 'a draft must not carry across to another patient',
+      });
+
+      // Going back restores the draft to the record it was written about.
+      const backAgain = await $('button*=Patient list');
+      await browser.execute((el) => el.click(), backAgain);
+      const reopen = await $$('button*=Open');
+      await browser.execute((el) => el.click(), reopen[0]);
+
+      const restored = await $('textarea[placeholder*="new journal entry"]');
+      await restored.waitForDisplayed({ timeout: 10000 });
+      await browser.waitUntil(
+        async () =>
+          (await restored.getValue()) === 'Unfinished note about the first patient',
+        { timeout: 10000, timeoutMsg: 'the original draft should come back' }
+      );
+    });
+
     // Last, because paging the whole journal onto the screen pushes the entry
     // box out of view for anything that runs afterwards.
     it('should say how much of the journal it is showing, and page back', async () => {

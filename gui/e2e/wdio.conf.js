@@ -75,6 +75,9 @@ export const config = {
 
       execSync(`"${cliBinary}" store init e2e`, { cwd: testStorePath, stdio: 'inherit', shell: true });
       execSync(`"${cliBinary}" store link e2e NHS:1234567890`, { cwd: testStorePath, stdio: 'inherit', shell: true });
+      // A second subject, so switching records can be exercised: an unfinished
+      // entry must not follow the reader from one patient to another.
+      execSync(`"${cliBinary}" store add other`, { cwd: testStorePath, stdio: 'inherit', shell: true });
       const testRepoPath = path.join(testStorePath, 'e2e');
       execSync('git config commit.gpgsign false', { cwd: testRepoPath, stdio: 'inherit', shell: true });
 

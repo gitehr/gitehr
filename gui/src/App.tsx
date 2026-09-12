@@ -265,7 +265,16 @@ function App() {
   const [firstSubjectName, setFirstSubjectName] = useState("");
   const [newSubjectName, setNewSubjectName] = useState("");
 
-  const [newEntryContent, setNewEntryContent] = useState("");
+  // Keyed by repository: an unfinished entry belongs to the record it was
+  // written about. Held in one place so switching records cannot carry text
+  // into somebody else's journal, and so returning to a record brings its own
+  // draft back rather than discarding the work.
+  const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const newEntryContent = repoPath ? drafts[repoPath] ?? "" : "";
+  const setNewEntryContent = (content: string) => {
+    if (!repoPath) return;
+    setDrafts((current) => ({ ...current, [repoPath]: content }));
+  };
   const [submitting, setSubmitting] = useState(false);
   const [attachingDocument, setAttachingDocument] = useState(false);
 
@@ -407,7 +416,14 @@ function App() {
     }
   };
 
-  const fetchData = async (keepLoaded = false) => {
+  /**
+   * Load everything the record view shows.
+   *
+   * `isStale` lets a caller abandon a response that arrived after the reader
+   * moved on: applying it would paint one patient's clinical data under
+   * another patient's name in the header.
+   */
+  const fetchData = async (keepLoaded = false, isStale = () => false) => {
     if (!repoPath) return;
     setLoading(true);
     setError(null);
@@ -438,6 +454,8 @@ function App() {
         getRecentObservations(repoPath),
         getVaccinations(repoPath),
       ]);
+      if (isStale()) return;
+
       setEntries(journalPage.entries);
       setEntryTotal(journalPage.total);
       setDemographics(mapDemographics(demographicsData));
@@ -447,19 +465,23 @@ function App() {
       setObservations(observationsData);
       setVaccinations(vaccinationsData);
     } catch (err) {
+      if (isStale()) return;
       console.error("Failed to fetch data:", err);
       setError(
         "Failed to load GitEHR data. Please ensure the backend is running and the repo path is correct."
       );
     } finally {
-      setLoading(false);
+      if (!isStale()) setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (repoPath) {
-      fetchData();
-    }
+    if (!repoPath) return;
+    let superseded = false;
+    fetchData(false, () => superseded);
+    return () => {
+      superseded = true;
+    };
   }, [repoPath]);
 
   const loadOlderEntries = async () => {
@@ -808,8 +830,14 @@ function App() {
                 Allergies
               </Text>
               <Group gap={6}>
-                {allergies.length > 0 ? (
-                  allergies.slice(0, 3).map((allergy) => (
+                {/* Every allergy, not the first few: a hidden allergen is the
+                    one field here where an incomplete summary could inform a
+                    prescribing decision. "Loading" is also kept distinct from
+                    "none recorded", which is a clinical assertion. */}
+                {loading ? (
+                  <Loader size="xs" />
+                ) : allergies.length > 0 ? (
+                  allergies.map((allergy) => (
                     <Badge
                       key={allergy.id}
                       variant="light"
