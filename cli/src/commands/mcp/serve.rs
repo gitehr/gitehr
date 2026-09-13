@@ -4,7 +4,7 @@
 use anyhow::{Result, bail};
 use std::path::{Path, PathBuf};
 
-use super::server_impl::{McpServer, ServerConfig};
+use super::server_impl::{McpServer, ServerConfig, ensure_not_encrypted};
 
 pub fn run(repo_path: Option<PathBuf>) -> Result<()> {
     super::init_tracing();
@@ -35,13 +35,7 @@ fn validate_repo(repo_path: &Path) -> Result<()> {
             repo_path.display()
         );
     }
-    if repo_path.join(".gitehr/ENCRYPTED").exists() {
-        bail!(
-            "{} is marked as encrypted (.gitehr/ENCRYPTED present). \
-             GitEHR MCP does not yet support encrypted repositories.",
-            repo_path.display()
-        );
-    }
+    ensure_not_encrypted(repo_path)?;
     Ok(())
 }
 

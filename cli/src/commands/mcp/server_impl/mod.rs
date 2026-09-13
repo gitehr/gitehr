@@ -7,7 +7,9 @@ mod audit;
 mod prompts;
 mod protocol;
 mod resources;
+mod security;
 mod server;
 mod tools;
 
+pub use security::ensure_not_encrypted;
 pub use server::{McpServer, ServerConfig};

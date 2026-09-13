@@ -11,6 +11,8 @@ use std::path::PathBuf;
 
 use crate::commands::document::{DOCUMENT_ROOTS, MANIFEST_FILENAME};
 
+use super::security::ensure_not_encrypted;
+
 /// MCP Resource
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -105,6 +107,8 @@ impl ResourceHandler {
 
     /// List all available resources
     pub fn list_resources(&self) -> anyhow::Result<ResourcesList> {
+        ensure_not_encrypted(&self.repo_path)?;
+
         let resources = vec![
             Resource {
                 uri: "gitehr://repo/journal".to_string(),
@@ -145,6 +149,8 @@ impl ResourceHandler {
 
     /// Read a specific resource by URI
     pub fn read_resource(&self, uri: &str) -> anyhow::Result<ResourcesRead> {
+        ensure_not_encrypted(&self.repo_path)?;
+
         let rest = uri
             .strip_prefix(REPO_URI_PREFIX)
             .ok_or_else(|| anyhow::anyhow!("Unknown resource URI: {}", uri))?;
@@ -442,6 +448,28 @@ mod tests {
         let json = serde_json::to_value(&content).unwrap();
         assert_eq!(json["type"], "text");
         assert_eq!(json["text"], "test content");
+    }
+
+    #[test]
+    fn test_read_resource_refuses_on_encrypted_repository() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::create_dir_all(dir.path().join(".gitehr")).unwrap();
+        std::fs::write(dir.path().join(".gitehr/ENCRYPTED"), "").unwrap();
+
+        let handler = ResourceHandler::new(dir.path().to_path_buf());
+        let err = handler.read_resource("gitehr://repo/status").unwrap_err();
+        assert!(err.to_string().contains("Repository encrypted"));
+    }
+
+    #[test]
+    fn test_list_resources_refuses_on_encrypted_repository() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::create_dir_all(dir.path().join(".gitehr")).unwrap();
+        std::fs::write(dir.path().join(".gitehr/ENCRYPTED"), "").unwrap();
+
+        let handler = ResourceHandler::new(dir.path().to_path_buf());
+        let err = handler.list_resources().unwrap_err();
+        assert!(err.to_string().contains("Repository encrypted"));
     }
 
     #[test]
