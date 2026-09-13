@@ -7,21 +7,35 @@
 
 use std::path::Path;
 
-/// Refuse an MCP operation against an encrypted repository.
+/// Refuse an MCP operation against a repository carrying the encryption
+/// marker.
 ///
-/// `gitehr mcp serve` already refuses to start on an encrypted repository
-/// (see `mcp::serve::validate_repo`, R76), but the server is a long-lived
-/// stdio process: `.gitehr/ENCRYPTED` can appear after the server has
-/// already started serving that repository. Per spec/mcp.md, "all MCP
-/// operations should re-check encryption status per request", so resource
-/// reads and tool calls call this on every request rather than relying on
-/// the once-at-startup check alone.
+/// `gitehr mcp serve` already refuses to start on a marked repository (see
+/// `mcp::serve::validate_repo`, R76), but the server is a long-lived stdio
+/// process: `.gitehr/ENCRYPTED` can appear after the server has already
+/// started serving that repository. Per spec/mcp.md, "all MCP operations
+/// should re-check encryption status per request", so resource reads and
+/// tool calls call this on every request rather than relying on the
+/// once-at-startup check alone.
+///
+/// The message does not claim the repository's contents are encrypted,
+/// because they are not: encryption at rest is unimplemented (R67/R68) and
+/// the marker is a stale artefact of the placeholder `gitehr encrypt` that
+/// R79 removed. Refusing to serve a repository in that state is still the
+/// safe response - GitEHR cannot tell what a marked repository was meant to
+/// be - but telling a user their data is encrypted would be the same false
+/// assurance R79 exists to prevent.
+///
+/// It also names no path. This string is returned to the MCP client
+/// verbatim, and a Store's subject directories are named after the people
+/// whose records they hold.
 pub fn ensure_not_encrypted(repo_path: &Path) -> anyhow::Result<()> {
     if repo_path.join(".gitehr/ENCRYPTED").exists() {
         anyhow::bail!(
-            "Repository encrypted: {} is marked as encrypted (.gitehr/ENCRYPTED present). \
-             GitEHR MCP does not yet support encrypted repositories.",
-            repo_path.display()
+            "Repository encrypted: the repository carries a .gitehr/ENCRYPTED marker, \
+             which GitEHR MCP refuses to serve. Encryption at rest is not implemented \
+             (roadmap R67/R68), so no data was encrypted and the marker is stale; \
+             `gitehr decrypt` removes it."
         );
     }
     Ok(())

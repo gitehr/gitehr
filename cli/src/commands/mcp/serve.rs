@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Marcus Baw and Baw Medical Ltd
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use anyhow::{Result, bail};
+use anyhow::{Context, Result, bail};
 use std::path::{Path, PathBuf};
 
 use super::server_impl::{McpServer, ServerConfig, ensure_not_encrypted};
@@ -35,7 +35,14 @@ fn validate_repo(repo_path: &Path) -> Result<()> {
             repo_path.display()
         );
     }
-    ensure_not_encrypted(repo_path)?;
+    // The operator running the server gets the path; the per-request guard
+    // deliberately withholds it from MCP clients.
+    ensure_not_encrypted(repo_path).with_context(|| {
+        format!(
+            "{} is marked as encrypted (.gitehr/ENCRYPTED present)",
+            repo_path.display()
+        )
+    })?;
     Ok(())
 }
 
