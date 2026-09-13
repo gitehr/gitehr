@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Marcus Baw and Baw Medical Ltd
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::io::Write;
+use std::io::{BufRead, BufReader, Write};
 use std::process::{Command, Stdio};
 use tempfile::tempdir;
 
@@ -306,4 +306,99 @@ fn mcp_serve_refuses_encrypted_repository() {
         stderr.contains("marked as encrypted"),
         "expected a clear refusal; got {stderr:?}"
     );
+}
+
+#[test]
+fn mcp_refuses_repository_marked_encrypted_after_the_server_started() {
+    // The startup check cannot cover this: the marker appears while the
+    // server is already running, which is the case R34 exists for.
+    let dir = tempdir().unwrap();
+    std::fs::create_dir(dir.path().join(".gitehr")).unwrap();
+    std::fs::create_dir(dir.path().join("journal")).unwrap();
+    std::fs::create_dir(dir.path().join("state")).unwrap();
+
+    let mut child = gitehr()
+        .args([
+            "mcp",
+            "serve",
+            "--stdio",
+            "--repo-path",
+            dir.path().to_str().unwrap(),
+        ])
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .unwrap();
+
+    let mut stdout = BufReader::new(child.stdout.take().unwrap());
+    let mut first = String::new();
+
+    {
+        // Owned, so stdin closes at the end of this block. Borrowing it here
+        // would leave the server waiting for input while the loop below waits
+        // for the server: both block for ever.
+        let mut stdin = child.stdin.take().unwrap();
+        writeln!(
+            stdin,
+            r#"{{"jsonrpc":"2.0","id":1,"method":"initialize","params":{{"protocolVersion":"2024-11-05","capabilities":{{}},"clientInfo":{{"name":"test-client","version":"1.0.0"}}}}}}"#
+        )
+        .unwrap();
+        writeln!(
+            stdin,
+            r#"{{"jsonrpc":"2.0","method":"notifications/initialized"}}"#
+        )
+        .unwrap();
+
+        // Wait for the handshake before planting the marker, so the server is
+        // demonstrably past its startup check rather than racing it.
+        stdout.read_line(&mut first).unwrap();
+        std::fs::write(dir.path().join(".gitehr/ENCRYPTED"), "").unwrap();
+
+        for (id, method, params) in [
+            (2, "resources/list", "{}"),
+            (3, "resources/read", r#"{"uri":"gitehr://repo/status"}"#),
+            (4, "tools/list", "{}"),
+            (
+                5,
+                "tools/call",
+                r#"{"name":"search_repository","arguments":{"query":"x"}}"#,
+            ),
+            (6, "prompts/list", "{}"),
+        ] {
+            writeln!(
+                stdin,
+                r#"{{"jsonrpc":"2.0","id":{id},"method":"{method}","params":{params}}}"#
+            )
+            .unwrap();
+        }
+    }
+
+    let handshake: serde_json::Value = serde_json::from_str(&first).unwrap();
+    assert!(handshake.get("error").is_none(), "{handshake:?}");
+
+    let responses: Vec<serde_json::Value> = stdout
+        .lines()
+        .map(|line| serde_json::from_str(&line.unwrap()).unwrap())
+        .collect();
+    assert_eq!(responses.len(), 5);
+
+    for response in &responses[..4] {
+        let message = response["error"]["message"].as_str().unwrap_or_default();
+        assert!(
+            message.contains("Repository encrypted"),
+            "every repository-touching method must refuse; got {response:?}"
+        );
+        // A Store names subject directories after the people in them, so the
+        // refusal must not hand the client a path.
+        assert!(
+            !message.contains(dir.path().to_str().unwrap()),
+            "refusal must not disclose the repository path; got {message:?}"
+        );
+    }
+
+    // Prompts never touch the repository, so they keep working.
+    assert!(responses[4].get("error").is_none(), "{:?}", responses[4]);
+
+    child.wait().unwrap();
 }

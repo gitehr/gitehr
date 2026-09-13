@@ -49,7 +49,7 @@ Expected response:
 
 ### Python Client Library
 
-For scripting or testing against the server without hand-writing JSON-RPC, use the stdlib-only Python client in [`clients/python/gitehr_mcp.py`](../../clients/python/gitehr_mcp.py):
+For scripting or testing against the server without hand-writing JSON-RPC, use the stdlib-only Python client in [`clients/python/gitehr_mcp.py`](https://github.com/gitehr/gitehr/blob/main/clients/python/gitehr_mcp.py):
 
 ```python
 from gitehr_mcp import GitEHRMCPClient
@@ -60,7 +60,7 @@ with GitEHRMCPClient(repo_path="/path/to/gitehr/repo") as client:
         print(resource["uri"])
 ```
 
-See [`clients/python/README.md`](../../clients/python/README.md) for the full API and how to run its own test suite.
+See [`clients/python/README.md`](https://github.com/gitehr/gitehr/blob/main/clients/python/README.md) for the full API and how to run its own test suite.
 
 ## MCP Capabilities
 
@@ -300,7 +300,7 @@ cargo build --release
 ## Security Considerations
 
 - Filenames in resource URIs (`journal/{filename}`, `state/{filename}`) and in the `update_state` tool are validated to a single bare path component, so `../` traversal outside the repository is rejected.
-- `gitehr mcp serve` refuses to start unless `--repo-path` (or the current directory) contains a `.gitehr` directory, and refuses to start against a repository marked `.gitehr/ENCRYPTED`, since encrypted-repository support does not exist yet. Point the server only at repositories you trust.
+- `gitehr mcp serve` refuses to start unless `--repo-path` (or the current directory) contains a `.gitehr` directory, and refuses to start against a repository marked `.gitehr/ENCRYPTED`, since encrypted-repository support does not exist yet. The marker is re-checked on every `resources/list`, `resources/read`, `tools/list`, and `tools/call`, because the server is long-lived and a repository can be marked after it has started serving; those requests then fail with a `Repository encrypted` error. Prompts keep working, as they never touch repository data. Note that the marker does not mean the contents are encrypted - encryption at rest is unimplemented (roadmap R67/R68) and any surviving marker is a stale artefact that `gitehr decrypt` removes. Point the server only at repositories you trust.
 - Stdio requests are limited to 1 MiB. Oversized requests are rejected and drained without buffering the remainder in memory.
 - Operations are logged to stderr via `RUST_LOG`, but logs include only protocol metadata and byte counts, never request or response bodies that may contain clinical data.
 - Every successful tool call is also recorded as a dedicated audit journal entry (front matter `mcp_audit: {method, tool, result}`, author `mcp-server`), separate from any journal entry the tool itself wrote. Client/session identity (client name/version, token, IP) is not yet tracked and so is not included - see [Limitations](#limitations-current-implementation).

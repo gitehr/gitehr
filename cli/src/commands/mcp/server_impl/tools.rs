@@ -11,6 +11,7 @@ use std::path::PathBuf;
 use crate::commands::{contributor, journal};
 
 use super::audit;
+use super::security::ensure_not_encrypted;
 
 /// MCP Tool definition
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -55,6 +56,8 @@ impl ToolHandler {
 
     /// List all available tools
     pub fn list_tools(&self) -> anyhow::Result<ToolsList> {
+        ensure_not_encrypted(&self.repo_path)?;
+
         let tools = vec![
             Tool {
                 name: "add_journal_entry".to_string(),
@@ -117,6 +120,8 @@ impl ToolHandler {
         name: &str,
         arguments: serde_json::Value,
     ) -> anyhow::Result<ToolResult> {
+        ensure_not_encrypted(&self.repo_path)?;
+
         let result = match name {
             "add_journal_entry" => self.add_journal_entry(arguments),
             "update_state" => self.update_state(arguments),
@@ -290,6 +295,30 @@ mod tests {
             .call_tool("clincalc_nonesuch", serde_json::json!({}))
             .unwrap_err();
         assert!(err.to_string().contains("Unknown tool"));
+    }
+
+    #[test]
+    fn test_call_tool_refuses_on_encrypted_repository() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::create_dir_all(dir.path().join(".gitehr")).unwrap();
+        std::fs::write(dir.path().join(".gitehr/ENCRYPTED"), "").unwrap();
+
+        let handler = ToolHandler::new(dir.path().to_path_buf());
+        let err = handler
+            .call_tool("search_repository", serde_json::json!({"query": "x"}))
+            .unwrap_err();
+        assert!(err.to_string().contains("Repository encrypted"));
+    }
+
+    #[test]
+    fn test_list_tools_refuses_on_encrypted_repository() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::create_dir_all(dir.path().join(".gitehr")).unwrap();
+        std::fs::write(dir.path().join(".gitehr/ENCRYPTED"), "").unwrap();
+
+        let handler = ToolHandler::new(dir.path().to_path_buf());
+        let err = handler.list_tools().unwrap_err();
+        assert!(err.to_string().contains("Repository encrypted"));
     }
 
     #[test]
