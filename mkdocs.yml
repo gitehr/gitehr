@@ -49,6 +49,7 @@ nav:
       - import: cli/import.md
       - state: cli/state.md
       - demographics: cli/demographics.md
+      - acquisitions: cli/acquisitions.md
       - allergies: cli/allergies.md
       - conditions: cli/conditions.md
       - medications: cli/medications.md

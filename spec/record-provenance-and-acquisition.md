@@ -1,6 +1,6 @@
 # Record provenance and acquisition
 
-*Status: proposal (draft). Two linked gaps the current model under-serves: (1) where each fact came from and how strongly it is asserted (provenance / evidence-level), and (2) the workflow of acquiring your record from the organisations that hold it (SARs / portal extraction / paper), and tracking that acquisition. Relates to the patient-activated-extraction synopsis - which covers extraction agents, but not acquisition tracking or per-fact provenance - and to #10. Drafted from operating a real record and running a real Subject Access Request in parallel; the field lists below are the ones that proved necessary.*
+*Status: Part 2 (the acquisition register) implemented as `gitehr acquisitions` - see [`spec/commands/acquisitions.md`](commands/acquisitions.md). Part 1 (per-fact provenance) remains proposal (draft). Two linked gaps the current model under-serves: (1) where each fact came from and how strongly it is asserted (provenance / evidence-level), and (2) the workflow of acquiring your record from the organisations that hold it (SARs / portal extraction / paper), and tracking that acquisition. Relates to the patient-activated-extraction synopsis - which covers extraction agents, but not acquisition tracking or per-fact provenance - and to #10. Drafted from operating a real record and running a real Subject Access Request in parallel; the field lists below are the ones that proved necessary.*
 
 ## Part 1 - Provenance and evidence-level
 
@@ -80,8 +80,8 @@ On "received", imported documents and journal entries carry `provenance.acquired
 
 Optional helpers:
 
-- `gitehr acquisitions add | list | update` (same shape as `allergies`/`conditions`: current-state register, journal entry per status change).
-- A UK-GDPR-Article-15 SAR letter template generator. The project already owns the patient-activated thesis; this is its unglamorous but essential companion - the thing that turns the thesis into a populated repo.
+- `gitehr acquisitions add | list | update` (same shape as `allergies`/`conditions`: current-state register, journal entry per status change) - implemented, see [`spec/commands/acquisitions.md`](commands/acquisitions.md).
+- A UK-GDPR-Article-15 SAR letter template generator. The project already owns the patient-activated thesis; this is its unglamorous but essential companion - the thing that turns the thesis into a populated repo. Not yet implemented.
 
 ### Respecting existing decisions
 
