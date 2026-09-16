@@ -37,7 +37,7 @@ acquisitions:
     date_sent: 2026-07-10
     id_provided: passport copy
     ack_date: 2026-07-12
-    due_date: 2026-08-12
+    due_date: 2026-08-10
     status: received
     outcome: 14 documents received
     filed_to:
@@ -62,11 +62,17 @@ acquisitions:
   request, for example `"NHS:1234567890"`.
 - `date_sent` - date the request was sent, `YYYY-MM-DD`.
 - `id_provided` - what identity evidence was attached to the request.
-- `ack_date` - acknowledgement date; the statutory clock start.
-- `due_date` - due date. When not set explicitly, `gitehr acquisitions update`
-  computes it as one calendar month after `ack_date`, matching the UK GDPR
-  Article 15 response window; the caller is responsible for adjusting around
-  weekends and bank holidays.
+- `ack_date` - the date the controller acknowledged the request. Recorded for the audit trail; it does not affect `due_date`.
+- `due_date` - the date a response is due, set by `gitehr acquisitions add`
+  as one calendar month after `date_sent` and clamped to the length of the
+  month (31 January yields 28 or 29 February). Under UK GDPR Article 12(3)
+  the clock runs from the controller *receiving* the request, which a patient
+  cannot observe, so `date_sent` is used as the earliest date it can have
+  started - the right way to err for a register whose purpose is chasing.
+  Acknowledgement does not restart the clock. A controller may extend by up
+  to two further months for complex or numerous requests, or state a
+  different date; `--due-date` records that instead.
+
 - `status` - one of `drafted`, `sent`, `acknowledged`, `received`, `partial`,
   `nil-destroyed`, or `refused`. `nil-destroyed` and `refused` are first-class
   outcomes: a documented gap is itself a record, and silence is not the same

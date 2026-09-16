@@ -62,12 +62,12 @@ pub enum AcquisitionCommands {
         status: Option<AcquisitionStatus>,
         #[arg(
             long,
-            help = "Acknowledgement date (statutory clock start), YYYY-MM-DD"
+            help = "Date the controller acknowledged the request, YYYY-MM-DD"
         )]
         ack_date: Option<String>,
         #[arg(
             long,
-            help = "Due date, YYYY-MM-DD (defaults to one month after --ack-date)"
+            help = "Response due date, YYYY-MM-DD; overrides the date computed from --date-sent"
         )]
         due_date: Option<String>,
         #[arg(long, help = "What came back")]
@@ -274,10 +274,13 @@ pub fn add(input: AcquisitionInput) -> Result<Acquisition> {
         care_context: input.care_context.as_deref().and_then(cleaned_str),
         right_invoked: right_invoked.to_string(),
         identifiers_provided,
+        // Set at the point of sending, not on acknowledgement: a controller
+        // that never replies is exactly the one worth chasing, and a request
+        // with no due date would never reach `list --overdue`.
+        due_date: add_one_calendar_month(&input.date_sent),
         date_sent: input.date_sent,
         id_provided: input.id_provided.as_deref().and_then(cleaned_str),
         ack_date: None,
-        due_date: None,
         status: AcquisitionStatus::Sent,
         outcome: None,
         filed_to: Vec::new(),
@@ -336,12 +339,13 @@ pub fn update(input: AcquisitionUpdateInput) -> Result<Acquisition> {
         acquisition.ack_date = Some(ack_date);
     }
     if let Some(due_date) = input.due_date.as_deref().and_then(cleaned_str) {
+        changes.push(format!("due {due_date}"));
         acquisition.due_date = Some(due_date);
-    } else if acquisition.due_date.is_none()
-        && let Some(ack_date) = acquisition.ack_date.as_deref()
-        && let Some(computed) = add_one_calendar_month(ack_date)
-    {
-        acquisition.due_date = Some(computed);
+    } else if acquisition.due_date.is_none() {
+        // Only for registers written before `add` computed this. An
+        // acknowledgement does not restart the clock, so it is never the
+        // basis for the deadline.
+        acquisition.due_date = add_one_calendar_month(&acquisition.date_sent);
     }
     if let Some(outcome) = input.outcome.as_deref().and_then(cleaned_str) {
         changes.push("outcome recorded".to_string());
@@ -383,6 +387,16 @@ fn is_resolved(status: AcquisitionStatus) -> bool {
     )
 }
 
+/// The corresponding date in the following month, clamped to the month's
+/// length (31 January yields 28 or 29 February).
+///
+/// Under UK GDPR Article 12(3) a controller must respond within one month of
+/// *receiving* the request. A patient cannot know the receipt date, so this
+/// counts from the date the request was sent: the earliest the response can
+/// be due, which is the right way to err for a register whose purpose is
+/// chasing. A controller may extend by up to two further months for complex
+/// or numerous requests, and may state a different date on acknowledging;
+/// `--due-date` records that instead.
 fn add_one_calendar_month(date: &str) -> Option<String> {
     let parsed = NaiveDate::parse_from_str(date, "%Y-%m-%d").ok()?;
     parsed

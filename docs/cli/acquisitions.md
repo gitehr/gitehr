@@ -8,7 +8,7 @@ This is typed state for the unglamorous but essential companion to record
 extraction: most of a record is not extracted by a clever agent, it is
 requested from a data controller and waited for. This is the on-ramp that
 populates the record; the repository stays empty until you acquire. See
-[`spec/record-provenance-and-acquisition.md`](../../spec/record-provenance-and-acquisition.md)
+[`spec/record-provenance-and-acquisition.md`](https://github.com/gitehr/gitehr/blob/main/spec/record-provenance-and-acquisition.md)
 for the background (Part 2 - record acquisition workflow). Mutations update
 the state file and create a journal entry in the same commit, same as
 `gitehr allergies` and `gitehr conditions`.
@@ -30,7 +30,9 @@ for GUI/automation output.
 gitehr acquisitions add --controller <name> --date-sent <YYYY-MM-DD> [OPTIONS]
 ```
 
-Records a request as sent.
+Records a request as sent, and sets `due_date` to one calendar month after `--date-sent`, so a request is chaseable from the moment it is recorded rather than only once a controller replies.
+
+Under UK GDPR Article 12(3) the deadline runs from the controller *receiving* the request. A patient cannot observe that, so the date sent is used as the earliest date the clock can have started. A controller may extend by up to two further months for complex or numerous requests, or state a different date when acknowledging - record that with `update --due-date`.
 
 | Option | Description |
 |---|---|
@@ -58,8 +60,8 @@ following must be given:
 | Option | Description |
 |---|---|
 | `--status <status>` | `drafted`, `sent`, `acknowledged`, `received`, `partial`, `nil-destroyed`, or `refused` |
-| `--ack-date <date>` | Acknowledgement date, `YYYY-MM-DD` - the statutory clock start |
-| `--due-date <date>` | Due date, `YYYY-MM-DD` - defaults to one calendar month after `--ack-date` when not set explicitly |
+| `--ack-date <date>` | Date the controller acknowledged the request, `YYYY-MM-DD`. Recorded only; it does not move the due date |
+| `--due-date <date>` | Response due date, `YYYY-MM-DD`. Overrides the date computed when the request was recorded |
 | `--outcome <text>` | What came back |
 | `--filed-to <ref>` | Journal entry or document reference the result was filed to; repeatable, appends |
 | `--notes <text>` | Optional note |

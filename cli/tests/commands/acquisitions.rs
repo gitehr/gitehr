@@ -83,23 +83,59 @@ fn acquisition_add_rejects_blank_controller() -> Result<()> {
 
 #[test]
 #[serial]
-fn acquisition_update_computes_due_date_from_ack_date() -> Result<()> {
+fn acquisition_add_sets_the_due_date_from_the_date_sent() -> Result<()> {
+    let _temp_dir = setup_with_git()?;
+
+    // The statutory clock runs from the controller receiving the request, not
+    // from any reply, so a request is chaseable the moment it is recorded.
+    let acquisition = add(sample_input())?;
+    assert_eq!(acquisition.date_sent, "2026-07-10");
+    assert_eq!(acquisition.due_date.as_deref(), Some("2026-08-10"));
+
+    Ok(())
+}
+
+#[test]
+#[serial]
+fn acquisition_acknowledgement_does_not_move_the_due_date() -> Result<()> {
     let _temp_dir = setup_with_git()?;
 
     let acquisition = add(sample_input())?;
     let updated = update(AcquisitionUpdateInput {
         id: acquisition.id.clone(),
         status: Some(AcquisitionStatus::Acknowledged),
-        ack_date: Some("2026-07-12".to_string()),
+        ack_date: Some("2026-07-29".to_string()),
         ..Default::default()
     })?;
 
     assert_eq!(updated.status, AcquisitionStatus::Acknowledged);
-    assert_eq!(updated.ack_date.as_deref(), Some("2026-07-12"));
-    assert_eq!(updated.due_date.as_deref(), Some("2026-08-12"));
+    assert_eq!(updated.ack_date.as_deref(), Some("2026-07-29"));
+    // A late acknowledgement would otherwise buy the controller three weeks.
+    assert_eq!(updated.due_date.as_deref(), Some("2026-08-10"));
 
     let entries = parsed_entries()?;
     assert_eq!(entries.len(), 2);
+
+    Ok(())
+}
+
+#[test]
+#[serial]
+fn acquisition_ignored_request_becomes_overdue_without_any_reply() -> Result<()> {
+    let _temp_dir = setup_with_git()?;
+
+    // A controller that never acknowledges is the one most worth chasing.
+    let mut input = sample_input();
+    input.date_sent = "2020-01-31".to_string();
+    let ignored = add(input)?;
+
+    // 31 January has no corresponding date in February, so it clamps.
+    assert_eq!(ignored.due_date.as_deref(), Some("2020-02-29"));
+
+    let overdue = list(false, true)?;
+    assert_eq!(overdue.len(), 1);
+    assert_eq!(overdue[0].id, ignored.id);
+    assert!(overdue[0].ack_date.is_none());
 
     Ok(())
 }
