@@ -9,6 +9,7 @@ mod commands;
 mod config;
 mod utils;
 
+use commands::acquisitions::AcquisitionCommands;
 use commands::allergies::AllergyCommands;
 use commands::conditions::ConditionCommands;
 use commands::config::ConfigCommands;
@@ -35,6 +36,14 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
+    #[command(
+        about = "Manage record-acquisition requests (SARs, portal pulls, paper)",
+        arg_required_else_help = true
+    )]
+    Acquisitions {
+        #[command(subcommand)]
+        command: AcquisitionCommands,
+    },
     #[command(
         about = "Manage typed allergy and adverse-reaction state",
         arg_required_else_help = true
@@ -248,6 +257,7 @@ fn main() -> Result<()> {
     apply_context(&mut cli.command)?;
 
     match cli.command {
+        Commands::Acquisitions { command } => commands::acquisitions::run(command)?,
         Commands::Allergies { command } => commands::allergies::run(command)?,
         Commands::Conditions { command } => commands::conditions::run(command)?,
         Commands::Completions {
@@ -288,6 +298,7 @@ fn main() -> Result<()> {
 
 fn bare_command_help_target(command: &str) -> Option<&'static str> {
     match command {
+        "acquisitions" => Some("acquisitions"),
         "allergies" => Some("allergies"),
         "attach" | "document" => Some("document"),
         "completions" => Some("completions"),
@@ -377,6 +388,7 @@ fn apply_context(command: &mut Commands) -> Result<()> {
         Commands::Journal { .. }
         | Commands::State { .. }
         | Commands::Demographics { .. }
+        | Commands::Acquisitions { .. }
         | Commands::Allergies { .. }
         | Commands::Conditions { .. }
         | Commands::Medications { .. }
