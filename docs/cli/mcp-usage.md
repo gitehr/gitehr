@@ -89,7 +89,7 @@ See [`clients/python/README.md`](https://github.com/gitehr/gitehr/blob/main/clie
 - **`tools.{add_journal_entry,update_state,search_repository}.enabled`**: when `false`, that tool is omitted from `tools/list` and `tools/call` fails the same way.
 - The config is re-read only at server startup, matching how the repository path itself is fixed for the life of a `gitehr mcp serve` process.
 
-`spec/mcp.md` sketches a larger config shape covering transport, authentication, audit, and custom prompt directories. None of those exist yet (see [Limitations](#limitations-current-implementation)), so their keys are accepted and ignored rather than rejected - a config file written against the full spec parses, but only the `enabled` and per-resource/per-tool flags above take effect. A malformed `.gitehr/mcp.json` (invalid JSON) fails startup with a parse error instead of silently falling back to defaults.
+Only the fields shown above are supported. Unsupported or misspelled keys, including future `transport`, `auth`, `audit`, and prompt settings described in `spec/mcp.md`, fail startup rather than being ignored. An access-control setting that parses but has no effect would create false assurance. A malformed `.gitehr/mcp.json` also fails startup with a parse error instead of silently falling back to defaults.
 
 ## MCP Capabilities
 
@@ -350,7 +350,7 @@ This shows recognized protocol method names (or `unknown`), whether a request ID
 - **No authentication**: Stdio mode assumes local trust
 - **No encryption support**: Server refuses to operate on encrypted repos rather than decrypting them (see [Security Considerations](#security-considerations))
 - **No client identity in audit entries**: audit entries record the operation and result, but not client name/version, token, or IP, since MCP authentication (R32) does not exist yet
-- **`.gitehr/mcp.json` only gates resources and tools**: the `enabled` switch and per-resource/per-tool flags described in [Configuration](#configuration) work; the transport, `auth`, `audit`, and `prompts.custom_prompts_dir` keys from `spec/mcp.md`'s full config shape are accepted but currently no-ops, since none of those features exist yet
+- **`.gitehr/mcp.json` only gates resources and tools**: the `enabled` switch and per-resource/per-tool flags described in [Configuration](#configuration) work. Transport, authentication, audit, and custom-prompt settings are not implemented and are rejected rather than silently ignored
 
 These will be addressed in future releases.
 

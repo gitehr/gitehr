@@ -9,15 +9,12 @@
 //! switch, and per-resource-group/per-tool `enabled` flags gating
 //! `resources/list`, `resources/read`, `tools/list`, and `tools/call`.
 //!
-//! `spec/mcp.md` sketches a larger config shape (transport, auth, audit,
-//! custom prompts) that nothing in this server implements yet; those keys
-//! are accepted and ignored rather than rejected, so a config file written
-//! against the full spec doesn't fail to parse here. A field this module
-//! *does* model always takes effect - nothing here should claim to gate a
-//! surface and then not (the false-assurance failure class R79/R81 exist to
-//! avoid).
+//! A field in a server configuration must always take effect. Unsupported or
+//! misspelled fields are rejected rather than silently ignored: accepting an
+//! `auth` or `transport` policy while continuing without it would be false
+//! assurance in a clinical-data service.
 
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, bail};
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 
@@ -27,8 +24,9 @@ fn default_true() -> bool {
     true
 }
 
-/// A single `{ "enabled": true, ...ignored fields... }` entry.
+/// A single `{ "enabled": true }` entry.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct FeatureFlag {
     #[serde(default = "default_true")]
     pub enabled: bool,
@@ -41,6 +39,7 @@ impl Default for FeatureFlag {
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ResourcesConfig {
     #[serde(default)]
     pub journal: FeatureFlag,
@@ -53,6 +52,7 @@ pub struct ResourcesConfig {
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ToolsConfig {
     #[serde(default, rename = "add_journal_entry")]
     pub add_journal_entry: FeatureFlag,
@@ -64,6 +64,7 @@ pub struct ToolsConfig {
 
 /// MCP server configuration loaded from `.gitehr/mcp.json`.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct McpConfig {
     #[serde(default = "default_true")]
     pub enabled: bool,
@@ -88,8 +89,25 @@ impl McpConfig {
     /// (everything enabled) when the file does not exist.
     pub fn load(repo_path: &Path) -> Result<Self> {
         let path = repo_path.join(".gitehr").join(CONFIG_FILENAME);
-        if !path.exists() {
-            return Ok(Self::default());
+        let metadata = match std::fs::symlink_metadata(&path) {
+            Ok(metadata) => metadata,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                return Ok(Self::default());
+            }
+            Err(error) => {
+                return Err(error).with_context(|| {
+                    format!("Failed to inspect MCP config at {}", path.display())
+                });
+            }
+        };
+        if metadata.file_type().is_symlink() {
+            bail!(
+                "Refusing MCP config at {}: it is a symlink, which could point outside the repository",
+                path.display()
+            );
+        }
+        if !metadata.is_file() {
+            bail!("MCP config at {} must be a regular file", path.display());
         }
 
         let content = std::fs::read_to_string(&path)
@@ -174,7 +192,7 @@ mod tests {
     }
 
     #[test]
-    fn ignores_unmodelled_fields_from_the_full_spec_shape() {
+    fn rejects_unimplemented_or_unknown_fields() {
         let dir = tempfile::tempdir().unwrap();
         std::fs::create_dir_all(dir.path().join(".gitehr")).unwrap();
         std::fs::write(
@@ -192,9 +210,37 @@ mod tests {
         )
         .unwrap();
 
-        let config = McpConfig::load(dir.path()).unwrap();
-        assert!(config.enabled);
-        assert!(config.is_resource_enabled("journal"));
+        let err = McpConfig::load(dir.path()).unwrap_err();
+        assert!(format!("{err:#}").contains("unknown field"));
+    }
+
+    #[test]
+    fn rejects_unknown_nested_fields() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::create_dir_all(dir.path().join(".gitehr")).unwrap();
+        std::fs::write(
+            dir.path().join(".gitehr/mcp.json"),
+            r#"{ "resources": { "journal": { "max_entries": 1000 } } }"#,
+        )
+        .unwrap();
+
+        let err = McpConfig::load(dir.path()).unwrap_err();
+        assert!(format!("{err:#}").contains("unknown field `max_entries`"));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn rejects_a_symlinked_config() {
+        use std::os::unix::fs::symlink;
+
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::create_dir_all(dir.path().join(".gitehr")).unwrap();
+        let target = dir.path().join("elsewhere.json");
+        std::fs::write(&target, r#"{ "enabled": false }"#).unwrap();
+        symlink(&target, dir.path().join(".gitehr/mcp.json")).unwrap();
+
+        let err = McpConfig::load(dir.path()).unwrap_err();
+        assert!(err.to_string().contains("it is a symlink"));
     }
 
     #[test]
