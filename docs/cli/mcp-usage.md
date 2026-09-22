@@ -62,6 +62,35 @@ with GitEHRMCPClient(repo_path="/path/to/gitehr/repo") as client:
 
 See [`clients/python/README.md`](https://github.com/gitehr/gitehr/blob/main/clients/python/README.md) for the full API and how to run its own test suite.
 
+## Configuration
+
+`gitehr mcp serve` reads an optional `.gitehr/mcp.json` in the repository being served (R35). A missing file is equivalent to everything enabled - the historical, pre-R35 behaviour - so existing repositories need no changes.
+
+```json
+// .gitehr/mcp.json
+{
+  "enabled": true,
+  "resources": {
+    "journal": { "enabled": true },
+    "state": { "enabled": true },
+    "documents": { "enabled": true },
+    "imaging": { "enabled": false }
+  },
+  "tools": {
+    "add_journal_entry": { "enabled": true },
+    "update_state": { "enabled": false },
+    "search_repository": { "enabled": true }
+  }
+}
+```
+
+- **`enabled`** (top-level): when `false`, `gitehr mcp serve` refuses to start and exits non-zero with a clear error, rather than silently serving nothing.
+- **`resources.{journal,state,documents,imaging}.enabled`**: when `false`, that group is omitted from `resources/list` and `resources/read` on any URI under it (including individual entries, e.g. `gitehr://repo/journal/<entry>`) fails with a "disabled by .gitehr/mcp.json" error. `status` has no flag and is always available.
+- **`tools.{add_journal_entry,update_state,search_repository}.enabled`**: when `false`, that tool is omitted from `tools/list` and `tools/call` fails the same way.
+- The config is re-read only at server startup, matching how the repository path itself is fixed for the life of a `gitehr mcp serve` process.
+
+`spec/mcp.md` sketches a larger config shape covering transport, authentication, audit, and custom prompt directories. None of those exist yet (see [Limitations](#limitations-current-implementation)), so their keys are accepted and ignored rather than rejected - a config file written against the full spec parses, but only the `enabled` and per-resource/per-tool flags above take effect. A malformed `.gitehr/mcp.json` (invalid JSON) fails startup with a parse error instead of silently falling back to defaults.
+
 ## MCP Capabilities
 
 ### Resources (Read-Only)
@@ -321,6 +350,7 @@ This shows recognized protocol method names (or `unknown`), whether a request ID
 - **No authentication**: Stdio mode assumes local trust
 - **No encryption support**: Server refuses to operate on encrypted repos rather than decrypting them (see [Security Considerations](#security-considerations))
 - **No client identity in audit entries**: audit entries record the operation and result, but not client name/version, token, or IP, since MCP authentication (R32) does not exist yet
+- **`.gitehr/mcp.json` only gates resources and tools**: the `enabled` switch and per-resource/per-tool flags described in [Configuration](#configuration) work; the transport, `auth`, `audit`, and `prompts.custom_prompts_dir` keys from `spec/mcp.md`'s full config shape are accepted but currently no-ops, since none of those features exist yet
 
 These will be addressed in future releases.
 

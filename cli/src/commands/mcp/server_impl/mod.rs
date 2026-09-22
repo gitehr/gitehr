@@ -4,6 +4,7 @@
 //! Internal MCP server implementation for `gitehr mcp serve`.
 
 mod audit;
+mod config;
 mod prompts;
 mod protocol;
 mod resources;
@@ -11,5 +12,6 @@ mod security;
 mod server;
 mod tools;
 
+pub use config::McpConfig;
 pub use security::ensure_not_encrypted;
 pub use server::{McpServer, ServerConfig};

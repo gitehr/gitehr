@@ -11,6 +11,7 @@ use std::path::PathBuf;
 use crate::commands::{contributor, journal};
 
 use super::audit;
+use super::config::McpConfig;
 use super::security::ensure_not_encrypted;
 
 /// MCP Tool definition
@@ -47,18 +48,20 @@ pub struct ToolsList {
 /// Tool handler for GitEHR repositories
 pub struct ToolHandler {
     repo_path: PathBuf,
+    config: McpConfig,
 }
 
 impl ToolHandler {
-    pub fn new(repo_path: PathBuf) -> Self {
-        Self { repo_path }
+    pub fn new(repo_path: PathBuf, config: McpConfig) -> Self {
+        Self { repo_path, config }
     }
 
-    /// List all available tools
+    /// List all available tools, omitting any tool disabled in
+    /// `.gitehr/mcp.json` (R35).
     pub fn list_tools(&self) -> anyhow::Result<ToolsList> {
         ensure_not_encrypted(&self.repo_path)?;
 
-        let tools = vec![
+        let candidates = [
             Tool {
                 name: "add_journal_entry".to_string(),
                 description: "Create a new clinical journal entry".to_string(),
@@ -111,6 +114,11 @@ impl ToolHandler {
             },
         ];
 
+        let tools = candidates
+            .into_iter()
+            .filter(|tool| self.config.is_tool_enabled(&tool.name))
+            .collect();
+
         Ok(ToolsList { tools })
     }
 
@@ -121,6 +129,13 @@ impl ToolHandler {
         arguments: serde_json::Value,
     ) -> anyhow::Result<ToolResult> {
         ensure_not_encrypted(&self.repo_path)?;
+
+        if !self.config.is_tool_enabled(name) {
+            return Err(anyhow::anyhow!(
+                "Tool '{}' is disabled by .gitehr/mcp.json",
+                name
+            ));
+        }
 
         let result = match name {
             "add_journal_entry" => self.add_journal_entry(arguments),
@@ -290,7 +305,7 @@ mod tests {
 
     #[test]
     fn test_unknown_tool_is_transport_error() {
-        let handler = ToolHandler::new(PathBuf::from("."));
+        let handler = ToolHandler::new(PathBuf::from("."), McpConfig::default());
         let err = handler
             .call_tool("clincalc_nonesuch", serde_json::json!({}))
             .unwrap_err();
@@ -303,7 +318,7 @@ mod tests {
         std::fs::create_dir_all(dir.path().join(".gitehr")).unwrap();
         std::fs::write(dir.path().join(".gitehr/ENCRYPTED"), "").unwrap();
 
-        let handler = ToolHandler::new(dir.path().to_path_buf());
+        let handler = ToolHandler::new(dir.path().to_path_buf(), McpConfig::default());
         let err = handler
             .call_tool("search_repository", serde_json::json!({"query": "x"}))
             .unwrap_err();
@@ -316,14 +331,14 @@ mod tests {
         std::fs::create_dir_all(dir.path().join(".gitehr")).unwrap();
         std::fs::write(dir.path().join(".gitehr/ENCRYPTED"), "").unwrap();
 
-        let handler = ToolHandler::new(dir.path().to_path_buf());
+        let handler = ToolHandler::new(dir.path().to_path_buf(), McpConfig::default());
         let err = handler.list_tools().unwrap_err();
         assert!(err.to_string().contains("Repository encrypted"));
     }
 
     #[test]
     fn test_update_state_rejects_traversal() {
-        let handler = ToolHandler::new(PathBuf::from("."));
+        let handler = ToolHandler::new(PathBuf::from("."), McpConfig::default());
         for filename in ["../evil.txt", "/tmp/evil.txt", "a/b.txt", "..", "c\\d.txt"] {
             let err = handler
                 .call_tool(
@@ -355,7 +370,7 @@ mod tests {
 
     #[test]
     fn test_add_journal_entry_rejects_missing_content() {
-        let handler = ToolHandler::new(PathBuf::from("."));
+        let handler = ToolHandler::new(PathBuf::from("."), McpConfig::default());
         let err = handler
             .call_tool("add_journal_entry", serde_json::json!({}))
             .unwrap_err();
@@ -364,7 +379,7 @@ mod tests {
 
     #[test]
     fn test_add_journal_entry_rejects_empty_content() {
-        let handler = ToolHandler::new(PathBuf::from("."));
+        let handler = ToolHandler::new(PathBuf::from("."), McpConfig::default());
         let err = handler
             .call_tool("add_journal_entry", serde_json::json!({"content": "   "}))
             .unwrap_err();
@@ -377,7 +392,7 @@ mod tests {
         std::fs::create_dir(dir.path().join("journal")).unwrap();
         init_git_repo(dir.path());
 
-        let handler = ToolHandler::new(dir.path().to_path_buf());
+        let handler = ToolHandler::new(dir.path().to_path_buf(), McpConfig::default());
         let result = handler
             .call_tool(
                 "add_journal_entry",
@@ -430,7 +445,7 @@ mod tests {
         .unwrap();
         init_git_repo(dir.path());
 
-        let handler = ToolHandler::new(dir.path().to_path_buf());
+        let handler = ToolHandler::new(dir.path().to_path_buf(), McpConfig::default());
         handler
             .call_tool(
                 "add_journal_entry",
@@ -452,7 +467,7 @@ mod tests {
     #[test]
     fn test_add_journal_entry_missing_journal_dir_is_an_error() {
         let dir = tempfile::tempdir().unwrap();
-        let handler = ToolHandler::new(dir.path().to_path_buf());
+        let handler = ToolHandler::new(dir.path().to_path_buf(), McpConfig::default());
         let err = handler
             .call_tool(
                 "add_journal_entry",
@@ -468,7 +483,7 @@ mod tests {
         std::fs::create_dir(dir.path().join("journal")).unwrap();
         init_git_repo(dir.path());
 
-        let handler = ToolHandler::new(dir.path().to_path_buf());
+        let handler = ToolHandler::new(dir.path().to_path_buf(), McpConfig::default());
         handler
             .call_tool(
                 "update_state",
@@ -491,7 +506,7 @@ mod tests {
         std::fs::create_dir(dir.path().join("journal")).unwrap();
         init_git_repo(dir.path());
 
-        let handler = ToolHandler::new(dir.path().to_path_buf());
+        let handler = ToolHandler::new(dir.path().to_path_buf(), McpConfig::default());
         handler
             .call_tool("search_repository", serde_json::json!({"query": "x"}))
             .unwrap();
