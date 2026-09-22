@@ -402,3 +402,135 @@ fn mcp_refuses_repository_marked_encrypted_after_the_server_started() {
 
     child.wait().unwrap();
 }
+
+#[test]
+fn mcp_serve_refuses_when_config_disables_the_server() {
+    let dir = tempdir().unwrap();
+    std::fs::create_dir(dir.path().join(".gitehr")).unwrap();
+    std::fs::write(dir.path().join(".gitehr/mcp.json"), r#"{"enabled":false}"#).unwrap();
+
+    let out = gitehr()
+        .args([
+            "mcp",
+            "serve",
+            "--stdio",
+            "--repo-path",
+            dir.path().to_str().unwrap(),
+        ])
+        .output()
+        .unwrap();
+
+    assert!(!out.status.success());
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    assert!(
+        stderr.contains("MCP server is disabled"),
+        "expected a clear refusal; got {stderr:?}"
+    );
+}
+
+#[test]
+fn mcp_config_disables_a_resource_group_and_a_tool() {
+    let dir = tempdir().unwrap();
+    std::fs::create_dir(dir.path().join(".gitehr")).unwrap();
+    std::fs::create_dir(dir.path().join("journal")).unwrap();
+    std::fs::create_dir(dir.path().join("state")).unwrap();
+    std::fs::write(
+        dir.path().join(".gitehr/mcp.json"),
+        r#"{
+            "resources": { "imaging": { "enabled": false } },
+            "tools": { "update_state": { "enabled": false } }
+        }"#,
+    )
+    .unwrap();
+
+    let mut child = gitehr()
+        .args([
+            "mcp",
+            "serve",
+            "--stdio",
+            "--repo-path",
+            dir.path().to_str().unwrap(),
+        ])
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .unwrap();
+
+    {
+        let stdin = child.stdin.as_mut().unwrap();
+        writeln!(
+            stdin,
+            r#"{{"jsonrpc":"2.0","id":1,"method":"initialize","params":{{"protocolVersion":"2024-11-05","capabilities":{{}},"clientInfo":{{"name":"test-client","version":"1.0.0"}}}}}}"#
+        )
+        .unwrap();
+        writeln!(
+            stdin,
+            r#"{{"jsonrpc":"2.0","method":"notifications/initialized"}}"#
+        )
+        .unwrap();
+        writeln!(
+            stdin,
+            r#"{{"jsonrpc":"2.0","id":2,"method":"resources/list","params":{{}}}}"#
+        )
+        .unwrap();
+        writeln!(
+            stdin,
+            r#"{{"jsonrpc":"2.0","id":3,"method":"resources/read","params":{{"uri":"gitehr://repo/imaging"}}}}"#
+        )
+        .unwrap();
+        writeln!(
+            stdin,
+            r#"{{"jsonrpc":"2.0","id":4,"method":"tools/list","params":{{}}}}"#
+        )
+        .unwrap();
+        writeln!(
+            stdin,
+            r#"{{"jsonrpc":"2.0","id":5,"method":"tools/call","params":{{"name":"update_state","arguments":{{"filename":"x.json","content":"{{}}"}}}}}}"#
+        )
+        .unwrap();
+    }
+
+    let out = child.wait_with_output().unwrap();
+    assert!(out.status.success());
+
+    let responses: Vec<serde_json::Value> = String::from_utf8_lossy(&out.stdout)
+        .lines()
+        .map(|line| serde_json::from_str(line).unwrap())
+        .collect();
+    assert_eq!(responses.len(), 5);
+
+    let listed_resources: Vec<&str> = responses[1]["result"]["resources"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|r| r["uri"].as_str().unwrap())
+        .collect();
+    assert!(!listed_resources.contains(&"gitehr://repo/imaging"));
+    assert!(listed_resources.contains(&"gitehr://repo/journal"));
+
+    let read_error = responses[2]["error"]["message"]
+        .as_str()
+        .unwrap_or_default();
+    assert!(
+        read_error.contains("disabled by .gitehr/mcp.json"),
+        "{read_error}"
+    );
+
+    let listed_tools: Vec<&str> = responses[3]["result"]["tools"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|t| t["name"].as_str().unwrap())
+        .collect();
+    assert!(!listed_tools.contains(&"update_state"));
+    assert!(listed_tools.contains(&"add_journal_entry"));
+
+    let call_error = responses[4]["error"]["message"]
+        .as_str()
+        .unwrap_or_default();
+    assert!(
+        call_error.contains("disabled by .gitehr/mcp.json"),
+        "{call_error}"
+    );
+}

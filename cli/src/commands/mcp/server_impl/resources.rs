@@ -11,6 +11,7 @@ use std::path::PathBuf;
 
 use crate::commands::document::{DOCUMENT_ROOTS, MANIFEST_FILENAME};
 
+use super::config::McpConfig;
 use super::security::ensure_not_encrypted;
 
 /// MCP Resource
@@ -60,6 +61,7 @@ pub struct ResourceReadContent {
 /// Resource handler for GitEHR repositories
 pub struct ResourceHandler {
     repo_path: PathBuf,
+    config: McpConfig,
 }
 
 const REPO_URI_PREFIX: &str = "gitehr://repo/";
@@ -101,48 +103,71 @@ fn guess_mime_type(filename: &str) -> &'static str {
 }
 
 impl ResourceHandler {
-    pub fn new(repo_path: PathBuf) -> Self {
-        Self { repo_path }
+    pub fn new(repo_path: PathBuf, config: McpConfig) -> Self {
+        Self { repo_path, config }
     }
 
-    /// List all available resources
+    /// List all available resources, omitting any group disabled in
+    /// `.gitehr/mcp.json` (R35).
     pub fn list_resources(&self) -> anyhow::Result<ResourcesList> {
         ensure_not_encrypted(&self.repo_path)?;
 
-        let resources = vec![
-            Resource {
-                uri: "gitehr://repo/journal".to_string(),
-                name: "Journal Entries".to_string(),
-                description: Some("Chronological clinical notes and entries".to_string()),
-                mime_type: Some("application/json".to_string()),
-            },
-            Resource {
-                uri: "gitehr://repo/state".to_string(),
-                name: "Current Clinical State".to_string(),
-                description: Some("Active problems, medications, allergies".to_string()),
-                mime_type: Some("application/json".to_string()),
-            },
-            Resource {
-                uri: "gitehr://repo/status".to_string(),
-                name: "Repository Status".to_string(),
-                description: Some("Repository metadata and status".to_string()),
-                mime_type: Some("application/json".to_string()),
-            },
-            Resource {
-                uri: "gitehr://repo/documents".to_string(),
-                name: "Documents".to_string(),
-                description: Some(
-                    "Non-imaging clinical Documents (reports, correspondence, results)".to_string(),
-                ),
-                mime_type: Some("application/json".to_string()),
-            },
-            Resource {
-                uri: "gitehr://repo/imaging".to_string(),
-                name: "Imaging".to_string(),
-                description: Some("Imaging Documents and studies".to_string()),
-                mime_type: Some("application/json".to_string()),
-            },
+        let candidates = [
+            (
+                "journal",
+                Resource {
+                    uri: "gitehr://repo/journal".to_string(),
+                    name: "Journal Entries".to_string(),
+                    description: Some("Chronological clinical notes and entries".to_string()),
+                    mime_type: Some("application/json".to_string()),
+                },
+            ),
+            (
+                "state",
+                Resource {
+                    uri: "gitehr://repo/state".to_string(),
+                    name: "Current Clinical State".to_string(),
+                    description: Some("Active problems, medications, allergies".to_string()),
+                    mime_type: Some("application/json".to_string()),
+                },
+            ),
+            (
+                "status",
+                Resource {
+                    uri: "gitehr://repo/status".to_string(),
+                    name: "Repository Status".to_string(),
+                    description: Some("Repository metadata and status".to_string()),
+                    mime_type: Some("application/json".to_string()),
+                },
+            ),
+            (
+                "documents",
+                Resource {
+                    uri: "gitehr://repo/documents".to_string(),
+                    name: "Documents".to_string(),
+                    description: Some(
+                        "Non-imaging clinical Documents (reports, correspondence, results)"
+                            .to_string(),
+                    ),
+                    mime_type: Some("application/json".to_string()),
+                },
+            ),
+            (
+                "imaging",
+                Resource {
+                    uri: "gitehr://repo/imaging".to_string(),
+                    name: "Imaging".to_string(),
+                    description: Some("Imaging Documents and studies".to_string()),
+                    mime_type: Some("application/json".to_string()),
+                },
+            ),
         ];
+
+        let resources = candidates
+            .into_iter()
+            .filter(|(name, _)| self.config.is_resource_enabled(name))
+            .map(|(_, resource)| resource)
+            .collect();
 
         Ok(ResourcesList { resources })
     }
@@ -154,6 +179,14 @@ impl ResourceHandler {
         let rest = uri
             .strip_prefix(REPO_URI_PREFIX)
             .ok_or_else(|| anyhow::anyhow!("Unknown resource URI: {}", uri))?;
+
+        let group = rest.split('/').next().unwrap_or(rest);
+        if !self.config.is_resource_enabled(group) {
+            return Err(anyhow::anyhow!(
+                "Resource '{}' is disabled by .gitehr/mcp.json",
+                group
+            ));
+        }
 
         match rest {
             "journal" => self.read_journal(),
@@ -456,7 +489,7 @@ mod tests {
         std::fs::create_dir_all(dir.path().join(".gitehr")).unwrap();
         std::fs::write(dir.path().join(".gitehr/ENCRYPTED"), "").unwrap();
 
-        let handler = ResourceHandler::new(dir.path().to_path_buf());
+        let handler = ResourceHandler::new(dir.path().to_path_buf(), McpConfig::default());
         let err = handler.read_resource("gitehr://repo/status").unwrap_err();
         assert!(err.to_string().contains("Repository encrypted"));
     }
@@ -467,14 +500,14 @@ mod tests {
         std::fs::create_dir_all(dir.path().join(".gitehr")).unwrap();
         std::fs::write(dir.path().join(".gitehr/ENCRYPTED"), "").unwrap();
 
-        let handler = ResourceHandler::new(dir.path().to_path_buf());
+        let handler = ResourceHandler::new(dir.path().to_path_buf(), McpConfig::default());
         let err = handler.list_resources().unwrap_err();
         assert!(err.to_string().contains("Repository encrypted"));
     }
 
     #[test]
     fn test_read_document_item_rejects_traversal() {
-        let handler = ResourceHandler::new(PathBuf::from("."));
+        let handler = ResourceHandler::new(PathBuf::from("."), McpConfig::default());
         for name in ["../evil.txt", "/tmp/evil.txt", "a/b.txt", "..", "c\\d.txt"] {
             let err = handler.read_document_item("documents", name).unwrap_err();
             assert!(
@@ -487,7 +520,7 @@ mod tests {
     #[test]
     fn test_read_document_item_missing_is_an_error() {
         let dir = tempfile::tempdir().unwrap();
-        let handler = ResourceHandler::new(dir.path().to_path_buf());
+        let handler = ResourceHandler::new(dir.path().to_path_buf(), McpConfig::default());
         let err = handler
             .read_document_item("documents", "nope.pdf")
             .unwrap_err();
@@ -502,7 +535,7 @@ mod tests {
         std::fs::write(documents_dir.join("README.md"), "layout notes").unwrap();
         std::fs::write(documents_dir.join("2026-01-01-report-abcd1234.pdf"), b"pdf").unwrap();
 
-        let handler = ResourceHandler::new(dir.path().to_path_buf());
+        let handler = ResourceHandler::new(dir.path().to_path_buf(), McpConfig::default());
         let read = handler.read_resource("gitehr://repo/documents").unwrap();
 
         let ResourceContent::Text { text } = &read.contents[0].content else {
@@ -520,7 +553,7 @@ mod tests {
         let original = b"not really a jpeg but bytes are bytes";
         std::fs::write(imaging_dir.join("scan.jpg"), original).unwrap();
 
-        let handler = ResourceHandler::new(dir.path().to_path_buf());
+        let handler = ResourceHandler::new(dir.path().to_path_buf(), McpConfig::default());
         let read = handler
             .read_resource("gitehr://repo/imaging/scan.jpg")
             .unwrap();
@@ -547,7 +580,7 @@ mod tests {
         let manifest = r#"{"files":{"scan.dcm":"deadbeef"}}"#;
         std::fs::write(study_dir.join(MANIFEST_FILENAME), manifest).unwrap();
 
-        let handler = ResourceHandler::new(dir.path().to_path_buf());
+        let handler = ResourceHandler::new(dir.path().to_path_buf(), McpConfig::default());
         let read = handler
             .read_resource("gitehr://repo/imaging/2026-01-01-ct-head-abcd1234")
             .unwrap();

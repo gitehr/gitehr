@@ -4,18 +4,20 @@
 use anyhow::{Context, Result, bail};
 use std::path::{Path, PathBuf};
 
-use super::server_impl::{McpServer, ServerConfig, ensure_not_encrypted};
+use super::server_impl::{McpConfig, McpServer, ServerConfig, ensure_not_encrypted};
 
 pub fn run(repo_path: Option<PathBuf>) -> Result<()> {
     super::init_tracing();
 
     let repo_path = repo_path.unwrap_or_else(|| PathBuf::from("."));
     validate_repo(&repo_path)?;
+    let mcp_config = load_enabled_config(&repo_path)?;
 
     let config = ServerConfig {
         repo_path,
         server_name: "gitehr".to_string(),
         server_version: env!("CARGO_PKG_VERSION").to_string(),
+        mcp_config,
     };
 
     let runtime = tokio::runtime::Runtime::new()?;
@@ -46,6 +48,20 @@ fn validate_repo(repo_path: &Path) -> Result<()> {
     Ok(())
 }
 
+/// Load `.gitehr/mcp.json` (R35), refusing to serve when it sets
+/// `"enabled": false`.
+fn load_enabled_config(repo_path: &Path) -> Result<McpConfig> {
+    let mcp_config = McpConfig::load(repo_path)
+        .with_context(|| format!("Loading .gitehr/mcp.json for {}", repo_path.display()))?;
+    if !mcp_config.enabled {
+        bail!(
+            "MCP server is disabled for {} (.gitehr/mcp.json sets \"enabled\": false)",
+            repo_path.display()
+        );
+    }
+    Ok(mcp_config)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -71,5 +87,26 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         std::fs::create_dir(dir.path().join(".gitehr")).unwrap();
         validate_repo(dir.path()).unwrap();
+    }
+
+    #[test]
+    fn loads_default_config_when_mcp_json_absent() {
+        let dir = tempfile::tempdir().unwrap();
+        let config = load_enabled_config(dir.path()).unwrap();
+        assert!(config.enabled);
+    }
+
+    #[test]
+    fn refuses_to_serve_when_mcp_json_disables_the_server() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::create_dir(dir.path().join(".gitehr")).unwrap();
+        std::fs::write(
+            dir.path().join(".gitehr/mcp.json"),
+            r#"{ "enabled": false }"#,
+        )
+        .unwrap();
+
+        let err = load_enabled_config(dir.path()).unwrap_err();
+        assert!(err.to_string().contains("MCP server is disabled"));
     }
 }

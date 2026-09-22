@@ -3,6 +3,7 @@
 
 //! MCP Server Implementation
 
+use super::config::McpConfig;
 use super::prompts::PromptHandler;
 use super::protocol::{McpError, McpMethod, McpRequest, McpRequestId, McpResponse};
 use super::resources::ResourceHandler;
@@ -47,6 +48,10 @@ pub struct ServerConfig {
     pub repo_path: PathBuf,
     pub server_name: String,
     pub server_version: String,
+    /// `.gitehr/mcp.json` settings (R35), gating which resources and tools
+    /// this server exposes. Defaults to everything enabled.
+    #[serde(default)]
+    pub mcp_config: McpConfig,
 }
 
 impl Default for ServerConfig {
@@ -55,6 +60,7 @@ impl Default for ServerConfig {
             repo_path: PathBuf::from("."),
             server_name: "gitehr".to_string(),
             server_version: env!("CARGO_PKG_VERSION").to_string(),
+            mcp_config: McpConfig::default(),
         }
     }
 }
@@ -70,8 +76,9 @@ pub struct McpServer {
 
 impl McpServer {
     pub fn new(config: ServerConfig) -> Self {
-        let resource_handler = ResourceHandler::new(config.repo_path.clone());
-        let tool_handler = ToolHandler::new(config.repo_path.clone());
+        let resource_handler =
+            ResourceHandler::new(config.repo_path.clone(), config.mcp_config.clone());
+        let tool_handler = ToolHandler::new(config.repo_path.clone(), config.mcp_config.clone());
         let prompt_handler = PromptHandler::new();
 
         Self {

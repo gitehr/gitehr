@@ -527,6 +527,8 @@ gitehr mcp token revoke mcp_abc123xyz
 
 ### MCP Server Configuration
 
+This is the target configuration model. The current R35 implementation supports only the top-level `enabled` switch and per-resource/per-tool `enabled` flags. It rejects every other key until the corresponding feature exists, so an operator cannot mistake an unimplemented authentication or transport setting for an active protection.
+
 ```json
 // .gitehr/mcp.json
 {
