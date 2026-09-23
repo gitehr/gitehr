@@ -73,7 +73,7 @@ The calculator engine lives in [clincalc](https://github.com/pacharanero/clincal
 - [ ] **R44 - Expand user-facing documentation:** installation, CLI reference, GUI walkthroughs, TUI, safety/Turva, and troubleshooting.
 - [ ] **R45 - Document CLI/GUI packaging, upgrade, and migration compatibility.**
 - [x] **R46 - Add a calculator usage guide:** include clinical examples and validation references. Published as [`docs/cli/clincalc.md`](../docs/cli/clincalc.md), now linked from CLI nav.
-- [ ] **R47 - Document long-term strategic considerations:** EHDS, EHRxF, post-quantum cryptography, federated learning, genomics, streamed vitals, and purpose-scoped sharing.
+- [x] **R47 - Document long-term strategic considerations:** EHDS, EHRxF, post-quantum cryptography, federated learning, genomics, streamed vitals, and purpose-scoped sharing. Published as [`long-term-ideas.md`](long-term-ideas.md), covering EHDS/EHRxF and GitEHR's inverted interoperability model, post-quantum cryptography migration, federated learning, genomic data integration, real-time vital-signs streaming, and purpose-scoped sharing as a mitigation for coerced full-record disclosure ("Radical portability is a double-edged sword"). A living document, revisited as standards and scope evolve.
 
 ## Distribution
 
