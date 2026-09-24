@@ -3,6 +3,7 @@
 
 pub mod acquisitions;
 pub mod allergies;
+pub mod clincalc;
 pub mod completions;
 pub mod conditions;
 pub mod config;

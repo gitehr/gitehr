@@ -93,11 +93,35 @@ pub struct JournalEntry {
     pub author: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub documents: Option<Vec<DocumentRef>>,
+    /// Present on an entry created by `gitehr clincalc record` (R25): the
+    /// calculator, its inputs, and its result, so the computation is an
+    /// auditable part of the immutable record rather than a transient
+    /// terminal output.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub clincalc: Option<ClincalcRecord>,
     /// True while an entry is a machine-authored draft (ADR-0007): written to
     /// disk but not committed, pending human approval. Never present on a
     /// committed entry - approval strips it.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub mcp_draft: bool,
+}
+
+/// A clinical calculator result recorded by `gitehr clincalc record` (R25).
+/// `inputs` and `result` are the calculator's own JSON values, echoed
+/// verbatim so the computation can be reproduced or audited later.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ClincalcRecord {
+    pub calculator: String,
+    /// The `gitehr-clincalc` plugin version, when it could be determined.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub version: Option<String>,
+    pub inputs: serde_json::Value,
+    pub result: serde_json::Value,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub interpretation: Option<String>,
+    /// The primary citation/guideline, when the calculator provided one.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reference: Option<String>,
 }
 
 /// A reference from a journal entry to a Document in the record.
@@ -304,13 +328,35 @@ pub fn create_journal_entry_at(
     documents: Vec<DocumentRef>,
     author: Option<String>,
 ) -> Result<String> {
-    let relative_filename = write_journal_entry_at(repo_path, content, documents, author, false)?;
+    let relative_filename =
+        write_journal_entry_at(repo_path, content, documents, author, false, None)?;
 
     git::git_add_in(repo_path, &relative_filename)?;
     let commit_message = format!("Journal entry: {relative_filename}");
     git::git_commit_in(repo_path, &commit_message)?;
 
     Ok(relative_filename)
+}
+
+/// Create and commit a journal entry recording a `gitehr clincalc record`
+/// result (R25), rooted at the process's current directory.
+pub fn create_journal_entry_with_clincalc(content: &str, clincalc: ClincalcRecord) -> Result<()> {
+    let repo_path = Path::new(".");
+    let relative_filename = write_journal_entry_at(
+        repo_path,
+        content,
+        Vec::new(),
+        contributor::get_current_contributor(),
+        false,
+        Some(clincalc),
+    )?;
+
+    git::git_add_in(repo_path, &relative_filename)?;
+    let commit_message = format!("Journal entry: {relative_filename}");
+    git::git_commit_in(repo_path, &commit_message)?;
+
+    println!("Created journal entry: {}", relative_filename);
+    Ok(())
 }
 
 pub(crate) fn write_journal_entry(content: &str) -> Result<String> {
@@ -320,6 +366,7 @@ pub(crate) fn write_journal_entry(content: &str) -> Result<String> {
         Vec::new(),
         contributor::get_current_contributor(),
         false,
+        None,
     )
 }
 
@@ -329,6 +376,7 @@ fn write_journal_entry_at(
     documents: Vec<DocumentRef>,
     author: Option<String>,
     mcp_draft: bool,
+    clincalc: Option<ClincalcRecord>,
 ) -> Result<String> {
     let entry = JournalEntry {
         timestamp: Utc::now(),
@@ -338,6 +386,7 @@ fn write_journal_entry_at(
         } else {
             Some(documents)
         },
+        clincalc,
         mcp_draft,
     };
 
@@ -392,7 +441,7 @@ pub fn create_mcp_draft_entry(
     content: &str,
     author: Option<String>,
 ) -> Result<String> {
-    write_journal_entry_at(repo_path, content, Vec::new(), author, true)
+    write_journal_entry_at(repo_path, content, Vec::new(), author, true, None)
 }
 
 /// Every unapproved MCP draft in `repo_path`, oldest first.
@@ -448,6 +497,7 @@ pub fn approve_mcp_draft(repo_path: &Path, filename: &str) -> Result<()> {
         timestamp: parsed.metadata.timestamp,
         author: parsed.metadata.author,
         documents: parsed.metadata.documents,
+        clincalc: parsed.metadata.clincalc,
         mcp_draft: false,
     };
 

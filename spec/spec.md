@@ -173,6 +173,10 @@ Displays the current GitEHR version shared by the CLI and GUI.
 
 Generates and installs shell completions for `gitehr` (bash, zsh, fish, powershell, elvish).
 
+### [`gitehr clincalc`](commands/clincalc.md)
+
+Clinical calculators (scores, screeners, risk tools): a `$PATH` plugin (`gitehr-clincalc`) for discovery and computing, with one built-in exception - `gitehr clincalc record` - which runs a calculator and records its inputs, result, and citation as an immutable journal entry ([`R25`](roadmap.md)).
+
 ---
 
 ## The GitEHR Journal

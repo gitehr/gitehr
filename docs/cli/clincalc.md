@@ -1,7 +1,7 @@
 # gitehr clincalc
 
-!!! note "External plugin"
-    `gitehr clincalc` is provided by the external `gitehr-clincalc` plugin. Install that executable on your `$PATH`; GitEHR discovers it automatically and forwards all following arguments.
+!!! note "External plugin, with one built-in exception"
+    `gitehr clincalc` is provided by the external `gitehr-clincalc` plugin. Install that executable on your `$PATH`; GitEHR discovers it automatically and forwards all following arguments. The one exception is `gitehr clincalc record` (below), a built-in GitEHR command that runs the plugin itself and writes the result to the journal.
 
 Clinical calculators: scores, screeners, and risk tools. The same scoring engine drives the command line, the MCP server (for LLM use), the GUI, and the standalone web tools, so a result is identical wherever it is produced.
 
@@ -149,6 +149,40 @@ or licence-locked. Owner: University of Sheffield ... Open alternatives: qfractu
 ```
 
 The response names the owner, the reason, open alternatives (often one GitEHR already ships - e.g. QFracture for FRAX, AMTS for MMSE, FIB-4 for ELF), and advice to advocate for open clinical tools.
+
+## Recording a result in the journal
+
+```text
+gitehr clincalc record <name> --input -           # compute and record, reading JSON from stdin
+gitehr clincalc record <name> --input data.json   # compute and record, reading JSON from a file
+gitehr clincalc record <name> --input '{...}'     # compute and record, reading an inline JSON string
+```
+
+`gitehr clincalc record` is a built-in GitEHR command (unlike every other `clincalc` invocation, which passes straight through to the plugin): it runs the calculator through `gitehr-clincalc`, then writes and commits an immutable journal entry recording the calculator name, the plugin version (when it can be determined), the inputs, the result, the interpretation, and the citation - all in one step, so a clinical calculation becomes part of the permanent record rather than a terminal output that disappears.
+
+```console
+$ gitehr clincalc record feverpain --input '{"fever":true,"purulence":true,"attend_rapidly":true,"inflamed_tonsils":false,"absence_of_cough":false}'
+Created journal entry: journal/20260924T045346.627Z-8feaad0b-64c8-4669-8f2e-1048ea9804e5.md
+```
+
+The entry's YAML front matter carries a `clincalc` block:
+
+```yaml
+clincalc:
+  calculator: feverpain
+  version: gitehr-clincalc 0.4.0
+  inputs:
+    fever: true
+    purulence: true
+    attend_rapidly: true
+    inflamed_tonsils: false
+    absence_of_cough: false
+  result: 3
+  interpretation: A score of 3 is associated with 34-40% isolation of streptococcus...
+  reference: Little P, Stuart B, Hobbs FDR, et al. Lancet Infect Dis. 2014. ...
+```
+
+Run this from within a repository (or a Store with a single, auto-targeted subject); `gitehr clincalc record` requires the same repository context as `gitehr journal add`.
 
 ## Use from an LLM
 

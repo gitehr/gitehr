@@ -79,7 +79,7 @@ gitehr journal show 20260619T143012.123Z-<uuid>.md^    # one entry older than th
 
 ## Journal Data Model
 
-- Each entry file is YAML front matter followed by a Markdown body. The front matter is a `JournalEntry` with `timestamp` (UTC), `author` (optional, set from the currently active contributor via `gitehr user activate <id>`), and `documents` (optional, a list of references to [Documents](document.md) this entry relates to, each with `path`, `sha256`, and optional `original_filename`). See [cli/src/commands/journal/mod.rs](../../cli/src/commands/journal/mod.rs).
+- Each entry file is YAML front matter followed by a Markdown body. The front matter is a `JournalEntry` with `timestamp` (UTC), `author` (optional, set from the currently active contributor via `gitehr user activate <id>`), `documents` (optional, a list of references to [Documents](document.md) this entry relates to, each with `path`, `sha256`, and optional `original_filename`), and `clincalc` (optional, present on an entry written by [`gitehr clincalc record`](clincalc.md) - see [R25](../roadmap.md)). See [cli/src/commands/journal/mod.rs](../../cli/src/commands/journal/mod.rs).
 - The body after the front matter holds the clinical narrative or data supplied when the entry was added.
 - File naming embeds chronological ordering and uniqueness via the timestamp and UUID, so a simple filename sort reconstructs history.
 

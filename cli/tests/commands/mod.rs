@@ -3,6 +3,8 @@
 
 pub mod acquisitions;
 pub mod allergies;
+#[cfg(unix)]
+pub mod clincalc;
 pub mod conditions;
 pub mod config;
 pub mod contributor;

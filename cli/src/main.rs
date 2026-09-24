@@ -290,7 +290,10 @@ fn main() -> Result<()> {
         Commands::User { command } => commands::user::run(command)?,
         Commands::Vaccinations { command } => commands::vaccinations::run(command)?,
         Commands::Version => commands::version::run(),
-        Commands::External(args) => commands::plugin::run(args)?,
+        Commands::External(args) => match clincalc_record_args(&args) {
+            Some(rest) => commands::clincalc::run(rest)?,
+            None => commands::plugin::run(args)?,
+        },
     }
 
     Ok(())
@@ -313,6 +316,20 @@ fn bare_command_help_target(command: &str) -> Option<&'static str> {
         "store" => Some("store"),
         "immunisations" | "immunizations" | "vaccinations" => Some("vaccinations"),
         _ => None,
+    }
+}
+
+/// `Some(&args[2..])` when `args` is `["clincalc", "record", ...]` - the one
+/// External invocation this binary intercepts (R25) ahead of the plugin
+/// fallthrough. Every other `clincalc` invocation returns `None` and keeps
+/// passing straight through to the `gitehr-clincalc` plugin unchanged.
+fn clincalc_record_args(args: &[String]) -> Option<&[String]> {
+    if args.first().map(String::as_str) == Some("clincalc")
+        && args.get(1).map(String::as_str) == Some("record")
+    {
+        Some(&args[2..])
+    } else {
+        None
     }
 }
 
@@ -349,6 +366,25 @@ fn absolutize_external_paths(command: &mut Commands, base: &Path) {
                     ..
                 },
         } => fix_pb(path, base),
+        Commands::External(args) if clincalc_record_args(args).is_some() => {
+            // args = ["clincalc", "record", <name>, "--input", <value>, ...].
+            // Only a value that reads as a file path (not '-' and not inline
+            // JSON) is a cwd-relative path to fix up.
+            for i in 0..args.len() {
+                if args[i] == "--input"
+                    && let Some(value) = args.get_mut(i + 1)
+                {
+                    let looks_like_json = {
+                        let trimmed = value.trim_start();
+                        trimmed.starts_with('{') || trimmed.starts_with('[')
+                    };
+                    if value != "-" && !looks_like_json {
+                        fix_str(value, base);
+                    }
+                    break;
+                }
+            }
+        }
         Commands::Transport {
             command: Some(transport),
         } => match transport {
@@ -402,6 +438,7 @@ fn apply_context(command: &mut Commands) -> Result<()> {
         | Commands::Document { .. }
         | Commands::Import { .. }
         | Commands::User { .. } => Ctx::Repo,
+        Commands::External(args) if clincalc_record_args(args).is_some() => Ctx::Repo,
         _ => Ctx::None,
     };
     let target = match ctx {
