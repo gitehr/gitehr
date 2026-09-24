@@ -77,6 +77,36 @@ fn test_create_journal_entry() -> Result<()> {
 
 #[test]
 #[serial]
+fn journal_commit_leaves_unrelated_staged_changes_alone() -> Result<()> {
+    let _temp_dir = setup_with_git()?;
+    fs::write("unrelated.txt", "keep staged")?;
+    Command::new("git")
+        .args(["add", "unrelated.txt"])
+        .output()?;
+
+    create_journal_entry("A journal entry")?;
+
+    let committed = Command::new("git")
+        .args(["show", "--format=", "--name-only", "HEAD"])
+        .output()?;
+    assert!(committed.status.success());
+    let committed = String::from_utf8_lossy(&committed.stdout);
+    assert!(committed.starts_with("journal/"));
+    assert!(!committed.contains("unrelated.txt"));
+
+    let staged = Command::new("git")
+        .args(["diff", "--cached", "--name-only"])
+        .output()?;
+    assert!(staged.status.success());
+    assert_eq!(
+        String::from_utf8_lossy(&staged.stdout).trim(),
+        "unrelated.txt"
+    );
+    Ok(())
+}
+
+#[test]
+#[serial]
 fn test_entries_sorted_newest_first() -> Result<()> {
     let _temp_dir = setup_with_git()?;
 

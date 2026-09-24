@@ -3,10 +3,10 @@
 !!! note "External plugin"
     `gitehr clincalc` is provided by the external `gitehr-clincalc` plugin. Install that executable on your `$PATH`; GitEHR discovers it automatically and forwards all following arguments.
 
-Clinical calculators: scores, screeners, and risk tools. The same scoring engine drives the command line, the MCP server (for LLM use), the GUI, and the standalone web tools, so a result is identical wherever it is produced.
+Clinical calculators: scores, screeners, and risk tools. `gitehr-clincalc` delegates all calculator discovery, schemas, validation, and scoring to the independently released [clincalc](https://github.com/pacharanero/clincalc) engine. GitEHR remains responsible only for recording an accepted result through its public journal command.
 
 !!! note "One regular surface, no per-calculator flags"
-    Every calculator is driven the same way: ask for a template, fill it in, pass it back. There are no calculator-specific flags to learn, and adding a calculator makes it available here and over MCP automatically.
+    Every calculator is driven the same way: ask for a template, fill it in, pass it back. There are no calculator-specific flags to learn, and adding a calculator to clincalc makes it available through this plugin automatically.
 
 ## The shape
 
@@ -19,9 +19,21 @@ gitehr clincalc <name> --input -           # compute, reading JSON from stdin
 gitehr clincalc <name> --input data.json   # compute, reading JSON from a file
 gitehr clincalc <name> --input '{...}'     # compute, reading an inline JSON string
 gitehr clincalc <name> --input ... --format json   # machine-readable result
+gitehr clincalc record <name> --input ...          # calculate and record an immutable journal entry
 ```
 
 `gitehr clincalc` with no name (or `gitehr clincalc list`) prints the catalogue. Computing always requires an explicit `--input`, so a bare `gitehr clincalc <name>` is pure discovery and never waits on input.
+
+## Record a calculation
+
+`gitehr clincalc record <name> --input <JSON|FILE|->` calculates from the exact submitted JSON and records the verified response in a new immutable journal entry. The entry contains the calculator machine name, clincalc version, submitted input, full response, interpretation, and citation. The plugin asks `gitehr journal add` to write and commit that entry; it does not write GitEHR repository files itself.
+
+```console
+$ gitehr clincalc record feverpain --input '{"fever":true,"purulence":true,"attend_rapidly":true,"inflamed_tonsils":false,"absence_of_cough":false}'
+Created journal entry: journal/20260924T120000.000Z-00000000-0000-0000-0000-000000000000.md
+```
+
+Recording refuses invalid calculator input or an incomplete engine response. It creates a journal entry only, not mutable calculation state; latest-result state is separate work under R26.
 
 ## Discover, fill, compute
 
@@ -50,11 +62,11 @@ prescribing strategy is appropriate after discussion with the patient.
 ...
 ```
 
-The template, schema, and computed result are printed as JSON on **stdout**; hints and usage go to **stderr**, so output stays clean when piped.
+The template and schema are printed as JSON on **stdout**. Computed results use human-readable text by default, or the canonical JSON response with `--format json`; hints and usage go to **stderr**, so output stays clean when piped.
 
 ## Output
 
-`--format json` prints the canonical result object, identical to what the MCP server and the web tools return:
+`--format json` prints the canonical result object from clincalc, which the recording command preserves verbatim:
 
 ```json
 {
@@ -107,7 +119,7 @@ A handful of tools cannot be shipped because they are proprietary or licence-loc
 
 ## Validation references
 
-Each computed result includes the version-specific clinical citation in its `reference` field when `--format json` is used. The separate `gitehr clincalc <name> --license` command reports the algorithm's distribution licence and evidence URL. Because clincalc is an independently released plugin whose catalogue can grow between GitEHR releases, use the result's `reference` field as the source of truth. The table below provides background reading for representative tools highlighted in this guide:
+Each computed result includes the version-specific clinical citation in its `reference` field when `--format json` is used. The separate `gitehr clincalc <name> --license` command reports the algorithm's distribution licence and evidence URL. Because clincalc is an independently released engine whose catalogue can grow between GitEHR releases, use the result's `reference` field as the source of truth. The table below provides background reading for representative tools highlighted in this guide:
 
 | Calculator | Primary reference |
 |---|---|
@@ -138,7 +150,7 @@ These are starting points for clinical review, not a substitute for the computed
 
 ## Proprietary tools
 
-Some clinical tools are owned and licence-controlled by their authors and cannot be distributed in open-source software. Rather than omit them silently, GitEHR registers each as a calculator that returns a structured explanation instead of a score:
+Some clinical tools are owned and licence-controlled by their authors and cannot be distributed in open-source software. Rather than omit them silently, clincalc registers each as a calculator that returns a structured explanation instead of a score:
 
 ```console
 $ gitehr clincalc frax --input '{}'
@@ -152,15 +164,15 @@ The response names the owner, the reason, open alternatives (often one GitEHR al
 
 ## Use from an LLM
 
-The MCP server exposes each calculator as a tool named `clincalc_<name>` whose input schema is the calculator's own JSON Schema, so a model receives a typed input contract (including any input definitions) rather than scraping help text. See [MCP usage](mcp-usage.md). The CLI and MCP surfaces share one engine and one schema: discover the schema, supply the JSON, receive the result.
+GitEHR's MCP server does not yet expose calculator tools (R36). An MCP client can invoke the installed `gitehr-clincalc` command as an external process, using the same discover -> schema -> input -> response sequence described above. Any future MCP integration must reuse clincalc's published schemas and response contract rather than introducing a second calculator interface.
 
-## Standalone `clincalc` binary
+## Install the GitEHR plugin
 
-The calculators also ship as a small, dependency-light standalone binary with the same interface, for use without a GitEHR repository:
+Install the independently published plugin to make the calculator interface and recording command available through GitEHR:
 
 ```console
-$ cargo install --git https://github.com/pacharanero/clincalc clincalc
-$ clincalc phq9 --input '{"responses":[2,2,1,1,1,0,1,0,0]}' --format json
+$ cargo install gitehr-clincalc --locked
+$ gitehr clincalc phq9 --input '{"responses":[2,2,1,1,1,0,1,0,0]}' --format json
 ```
 
 !!! warning "Clinical safety"

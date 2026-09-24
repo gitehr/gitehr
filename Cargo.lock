@@ -212,6 +212,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c8d4a3bb8b1e0c1050499d1815f5ab16d04f0959b233085fb31653fbfc9d98f9"
 
 [[package]]
+name = "clincalc"
+version = "0.3.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8da84d69a8cddf3dc3fa3c198ac022e2c066dd495eabfb2d89ac6cc44536abce"
+dependencies = [
+ "anyhow",
+ "clap",
+ "clap_complete",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "colorchoice"
 version = "1.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -396,6 +409,16 @@ dependencies = [
  "uuid",
  "walkdir",
  "which",
+]
+
+[[package]]
+name = "gitehr-clincalc"
+version = "0.3.6"
+dependencies = [
+ "anyhow",
+ "clap",
+ "clincalc",
+ "serde_json",
 ]
 
 [[package]]

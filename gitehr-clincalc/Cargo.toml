@@ -1,0 +1,29 @@
+# SPDX-FileCopyrightText: 2026 Marcus Baw and Baw Medical Ltd
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+[package]
+name = "gitehr-clincalc"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+description = "GitEHR integration plugin for the clincalc clinical-calculator engine"
+documentation = "https://gitehr.org/cli/clincalc/"
+readme = "README.md"
+categories = ["command-line-utilities", "science"]
+keywords = ["ehr", "clinical", "calculator", "gitehr", "clincalc"]
+
+[package.metadata.dist]
+dist = false
+
+[[bin]]
+name = "gitehr-clincalc"
+path = "src/main.rs"
+
+[dependencies]
+anyhow.workspace = true
+clap.workspace = true
+clincalc.workspace = true
+serde_json.workspace = true

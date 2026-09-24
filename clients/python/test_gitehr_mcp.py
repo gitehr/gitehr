@@ -6,7 +6,7 @@
 #
 # Builds the release binary if needed, then drives a fresh `gitehr init`
 # repository through the MCP handshake, resources, tools, and prompts -
-# the same surface docs/cli/mcp-usage.md and test-mcp.sh exercise by hand.
+# the same surface documented in docs/cli/mcp-usage.md exercises by hand.
 #
 # Usage:
 #   python3 clients/python/test_gitehr_mcp.py

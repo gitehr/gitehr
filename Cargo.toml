@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "cli",
+    "gitehr-clincalc",
 ]
 exclude = [
     "gui/src-tauri",
@@ -26,6 +27,7 @@ chrono = { version = "0.4", features = ["serde"] }
 uuid = { version = "1", features = ["v4", "v7"] }
 sha2 = "0.11"
 clap = { version = "4.6", features = ["derive"] }
+clincalc = { version = "=0.3.4", default-features = false, features = ["cli"] }
 
 # Async runtime for MCP server
 tokio = { version = "1", features = ["full"] }

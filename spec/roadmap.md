@@ -36,7 +36,7 @@ R61 completion covers the v1 typed-state commands and audited mutations, not a l
 
 The calculator engine lives in [clincalc](https://github.com/pacharanero/clincalc). GitEHR delegates `gitehr clincalc <command>` to `gitehr-clincalc` on `$PATH`.
 
-- [ ] **R25 - Record calculator results in the journal:** record calculator, version, inputs, result, and citation in an immutable entry.
+- [x] **R25 - Record calculator results in the journal:** `gitehr-clincalc record <calculator> --input <JSON|FILE|->` calculates through clincalc and uses the public `gitehr journal add` interface to commit an immutable entry containing the calculator, clincalc version, submitted input, full response, interpretation, and citation. The plugin owns this integration; GitEHR core remains generic external-plugin dispatch.
 - [ ] **R26 - Store latest calculation results:** add `state/calculations/<name>-latest.json`.
 - [ ] **R27 - Add a GUI calculator panel:** expose a Tauri `calculate_clinical` command integrating with clincalc.
 - [ ] **R65 - Add read-only Medical Markdown extraction:** expose structured extraction through `journal show`, `journal extract`, and MCP without changing canonical journal bodies.

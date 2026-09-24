@@ -41,3 +41,9 @@ Make it executable (`chmod +x gitehr-hello`) and put it somewhere on your `PATH`
 - find the repository themselves by looking for `.gitehr/` in the working directory or an ancestor - gitehr does not pass repository context implicitly.
 
 Choose a name that is not a built-in command (built-ins win, so a same-named plugin would be unreachable). Run `gitehr --help` to see the built-in commands.
+
+## Plugin boundary
+
+GitEHR owns generic plugin discovery and its public repository commands. A plugin owns every feature-specific argument, schema, domain rule, and external integration behind its name. Do not add a plugin's domain nouns or command variants to the `gitehr` core CLI merely because the plugin invokes GitEHR.
+
+Plugins must use documented public interfaces when they need repository work. For example, [`gitehr-clincalc`](clincalc.md) asks `gitehr journal add` to create a calculation record; it does not import GitEHR Rust modules or write journal files itself. Conversely, a reusable engine belongs below the plugin and must not depend on GitEHR. This keeps a plugin independently installable, testable, and releasable.

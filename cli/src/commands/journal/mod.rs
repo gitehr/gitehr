@@ -308,7 +308,7 @@ pub fn create_journal_entry_at(
 
     git::git_add_in(repo_path, &relative_filename)?;
     let commit_message = format!("Journal entry: {relative_filename}");
-    git::git_commit_in(repo_path, &commit_message)?;
+    git::git_commit_paths_in(repo_path, &commit_message, &[&relative_filename])?;
 
     Ok(relative_filename)
 }
@@ -455,7 +455,8 @@ pub fn approve_mcp_draft(repo_path: &Path, filename: &str) -> Result<()> {
     let file_content = format!("---\n{}---\n\n{}", yaml, parsed.content);
     fs::write(&path, file_content)?;
 
-    git::git_add_in(repo_path, &format!("journal/{filename}"))?;
+    let mut staged_paths = vec![format!("journal/{filename}")];
+    git::git_add_in(repo_path, &staged_paths[0])?;
 
     // Commit pending audit drafts in the same commit so the audit trail
     // travels with the content it describes.
@@ -474,13 +475,17 @@ pub fn approve_mcp_draft(repo_path: &Path, filename: &str) -> Result<()> {
             // as pending.
             let cleared = content.replace("mcp_draft: true", "mcp_draft: false");
             fs::write(&p, cleared)?;
-            git::git_add_in(repo_path, &format!("journal/{n}"))?;
+            let audit_path = format!("journal/{n}");
+            git::git_add_in(repo_path, &audit_path)?;
+            staged_paths.push(audit_path);
         }
     }
 
-    git::git_commit_in(
+    let staged_path_refs = staged_paths.iter().map(String::as_str).collect::<Vec<_>>();
+    git::git_commit_paths_in(
         repo_path,
         &format!("Journal entry (approved MCP draft): journal/{filename}"),
+        &staged_path_refs,
     )?;
     Ok(())
 }

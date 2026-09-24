@@ -83,9 +83,19 @@ pub(crate) fn git_path_status(file_path: &str) -> Result<String> {
 
 /// Commit only the named paths, leaving unrelated staged work untouched.
 pub(crate) fn git_commit_paths(message: &str, file_paths: &[&str]) -> Result<()> {
+    git_commit_paths_in(Path::new("."), message, file_paths)
+}
+
+/// Commit only the named paths in a specific repository, leaving unrelated
+/// staged work untouched.
+pub(crate) fn git_commit_paths_in(
+    repo_path: &Path,
+    message: &str,
+    file_paths: &[&str],
+) -> Result<()> {
     let mut args = vec!["commit", "--only", "-m", message, "--"];
     args.extend_from_slice(file_paths);
-    run_git_command_in(Path::new("."), &args)
+    run_git_command_in(repo_path, &args)
 }
 
 /// Remove named paths from the index while preserving their working-tree files.

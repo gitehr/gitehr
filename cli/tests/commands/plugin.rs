@@ -44,6 +44,24 @@ fn dispatches_to_plugin_and_passes_args_through() {
 }
 
 #[test]
+fn clincalc_record_remains_an_external_plugin_command() {
+    let dir = tempdir().unwrap();
+    write_plugin(dir.path(), "gitehr-clincalc", "#!/bin/sh\necho \"$*\"\n");
+
+    let out = gitehr()
+        .args(["clincalc", "record", "feverpain", "--input", "{}"])
+        .env("PATH", path_with(dir.path()))
+        .output()
+        .unwrap();
+
+    assert!(out.status.success());
+    assert_eq!(
+        String::from_utf8_lossy(&out.stdout).trim(),
+        "record feverpain --input {}"
+    );
+}
+
+#[test]
 fn builtin_wins_over_a_shadowing_plugin() {
     let dir = tempdir().unwrap();
     // A decoy that would run if a plugin could shadow the built-in `journal`.

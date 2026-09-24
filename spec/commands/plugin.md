@@ -32,6 +32,12 @@ A plugin is any executable named `gitehr-<command>` on the user's `PATH`. To beh
 - **`--help`**: handle `gitehr <command> --help` yourself (gitehr forwards it), printing your own usage.
 - **Repository context** is not passed implicitly. Find the repository the usual way (look for `.gitehr/` in the working directory or an ancestor), or read whatever the user passes you.
 
+## Boundary and composition
+
+Core GitEHR owns only generic external-command dispatch and documented public CLI/repository contracts. A plugin owns its feature-specific command grammar, schemas, domain rules, and integrations. Do not add a plugin-specific subcommand, calculation, or feature type to the core `gitehr` command tree.
+
+A plugin that needs to mutate a GitEHR repository must compose a documented public command such as `gitehr journal add`. It must not import `gitehr` crate internals or write repository files directly. A reusable engine sits below the plugin: it never depends on GitEHR, and the plugin must call its public API rather than reimplementing its algorithms or schemas. This creates a one-way dependency direction: `gitehr-clincalc` -> `clincalc` and `gitehr-clincalc` -> public `gitehr` CLI, with no reverse dependency.
+
 ## Example
 
 A minimal plugin, `gitehr-hello`, placed anywhere on `PATH` and made executable (`chmod +x`):
