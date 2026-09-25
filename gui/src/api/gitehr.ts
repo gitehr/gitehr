@@ -35,7 +35,7 @@ export interface RepoStatusInfo {
   gitehr_version: string | null;
   journal_entry_count: number;
   state_files: string[];
-  is_encrypted: boolean;
+  has_legacy_encryption_marker: boolean;
 }
 
 export interface ContributorInfo {
