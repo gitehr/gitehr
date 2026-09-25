@@ -27,7 +27,7 @@ A Git-based, decentralised, multi-contributor Electronic Health Record system.
 
 4. **Security First**
 
-   - All entries can be cryptographically verified via Git's content-addressed hashing
+   - A known Git history is tamper-evident through content-addressed hashing; authorship and rewrite protection require future controls
    - Encryption at rest is planned, not yet implemented (roadmap R67/R68)
    - Digital signatures are planned, not yet implemented (roadmap R41/R69)
    - Transport format for secure data movement
