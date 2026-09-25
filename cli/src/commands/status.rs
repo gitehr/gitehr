@@ -14,7 +14,7 @@ pub struct RepoStatus {
     pub state_files: Vec<String>,
     pub has_uncommitted_changes: bool,
     pub uncommitted_files: Vec<String>,
-    pub is_encrypted: bool,
+    pub has_legacy_encryption_marker: bool,
 }
 
 impl RepoStatus {
@@ -30,7 +30,7 @@ impl RepoStatus {
                 state_files: vec![],
                 has_uncommitted_changes: false,
                 uncommitted_files: vec![],
-                is_encrypted: false,
+                has_legacy_encryption_marker: false,
             });
         }
 
@@ -38,7 +38,7 @@ impl RepoStatus {
         let journal_entry_count = count_journal_entries()?;
         let state_files = list_state_files()?;
         let (has_uncommitted_changes, uncommitted_files) = check_git_status()?;
-        let is_encrypted = gitehr_dir.join("ENCRYPTED").exists();
+        let has_legacy_encryption_marker = gitehr_dir.join("ENCRYPTED").exists();
 
         Ok(Self {
             is_gitehr_repo,
@@ -47,7 +47,7 @@ impl RepoStatus {
             state_files,
             has_uncommitted_changes,
             uncommitted_files,
-            is_encrypted,
+            has_legacy_encryption_marker,
         })
     }
 }
@@ -126,10 +126,11 @@ pub fn run() -> Result<()> {
 
     println!(
         "Encryption: {}",
-        if status.is_encrypted {
-            "Encrypted"
+        if status.has_legacy_encryption_marker {
+            "Not implemented - a stale legacy marker is present, but no file in this \
+             repository is actually encrypted (see roadmap R67/R68)"
         } else {
-            "Not encrypted"
+            "Not implemented (see roadmap R67/R68)"
         }
     );
     println!();

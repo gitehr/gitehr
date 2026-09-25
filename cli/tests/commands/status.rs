@@ -4,6 +4,7 @@
 use anyhow::Result;
 use serial_test::serial;
 use std::fs;
+use std::process::Command;
 use tempfile::tempdir;
 
 use gitehr::commands::status::RepoStatus;
@@ -26,7 +27,7 @@ fn test_gather_non_gitehr_repo() -> Result<()> {
     assert_eq!(status.journal_entry_count, 0);
     assert_eq!(status.state_files.len(), 0);
     assert!(!status.has_uncommitted_changes);
-    assert!(!status.is_encrypted);
+    assert!(!status.has_legacy_encryption_marker);
 
     Ok(())
 }
@@ -97,7 +98,7 @@ fn test_gather_lists_state_files() -> Result<()> {
 
 #[test]
 #[serial]
-fn test_gather_detects_encryption() -> Result<()> {
+fn test_gather_detects_legacy_encryption_marker() -> Result<()> {
     let _temp_dir = setup();
 
     fs::create_dir_all(".gitehr")?;
@@ -106,7 +107,10 @@ fn test_gather_detects_encryption() -> Result<()> {
 
     let status = RepoStatus::gather()?;
 
-    assert!(status.is_encrypted, "Should detect encrypted repository");
+    assert!(
+        status.has_legacy_encryption_marker,
+        "Should detect the legacy marker"
+    );
 
     Ok(())
 }
@@ -121,7 +125,10 @@ fn test_gather_detects_unencrypted() -> Result<()> {
 
     let status = RepoStatus::gather()?;
 
-    assert!(!status.is_encrypted, "Should not be encrypted");
+    assert!(
+        !status.has_legacy_encryption_marker,
+        "Should not detect a legacy marker"
+    );
 
     Ok(())
 }
@@ -189,8 +196,27 @@ fn test_gather_full_status() -> Result<()> {
     assert_eq!(status.gitehr_version, Some("0.1.7".to_string()));
     assert_eq!(status.journal_entry_count, 2);
     assert_eq!(status.state_files.len(), 1);
-    assert!(!status.is_encrypted);
+    assert!(!status.has_legacy_encryption_marker);
 
+    Ok(())
+}
+
+#[test]
+#[serial]
+fn status_reports_a_legacy_marker_as_unimplemented() -> Result<()> {
+    let _temp_dir = setup();
+    fs::create_dir_all(".gitehr")?;
+    fs::write(".gitehr/ENCRYPTED", "encrypted_at=2024-01-01T00:00:00Z")?;
+
+    let output = Command::new(env!("CARGO_BIN_EXE_gitehr"))
+        .arg("status")
+        .output()?;
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout)?;
+    assert!(stdout.contains("Encryption: Not implemented"));
+    assert!(stdout.contains("stale legacy marker"));
+    assert!(!stdout.contains("Encryption: Encrypted"));
     Ok(())
 }
 

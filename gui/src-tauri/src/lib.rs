@@ -48,7 +48,7 @@ pub struct RepoStatusInfo {
     pub gitehr_version: Option<String>,
     pub journal_entry_count: usize,
     pub state_files: Vec<String>,
-    pub is_encrypted: bool,
+    pub has_legacy_encryption_marker: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -279,7 +279,7 @@ fn get_status(repo_path: String) -> Result<RepoStatusInfo, String> {
             gitehr_version: status.gitehr_version,
             journal_entry_count: status.journal_entry_count,
             state_files: status.state_files,
-            is_encrypted: status.is_encrypted,
+            has_legacy_encryption_marker: status.has_legacy_encryption_marker,
         })
     })
 }
