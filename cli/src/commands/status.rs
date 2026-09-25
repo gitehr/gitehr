@@ -127,9 +127,10 @@ pub fn run() -> Result<()> {
     println!(
         "Encryption: {}",
         if status.is_encrypted {
-            "Encrypted"
+            "Not implemented — a stale legacy marker is present, but no file in this \
+             repository is actually encrypted (see roadmap R67/R68)"
         } else {
-            "Not encrypted"
+            "Not implemented (see roadmap R67/R68)"
         }
     );
     println!();

@@ -35,7 +35,7 @@ This separation also makes safety review tractable: an external assessor can rea
 
 ### Append-mostly journal
 
-Clinical errors that overwrite information without recording who, when, and why are responsible for an outsized share of harm in current EHRs. GitEHR's journal is append-mostly: every change is a new entry, every entry is signed by an identified contributor, every entry is timestamped, and nothing in the history is silently overwritten. Corrections are themselves journal entries that reference what they correct.
+Clinical errors that overwrite information without recording who, when, and why are responsible for an outsized share of harm in current EHRs. GitEHR's journal is append-mostly: every change is a new entry, every entry is attributed to an identified contributor via Git commit authorship, every entry is timestamped, and nothing in the history is silently overwritten. Corrections are themselves journal entries that reference what they correct. Commit authorship is not yet cryptographically signed; hardware-backed signing credentials are planned (roadmap R41/R69), not implemented today.
 
 ### Redundancy across organisations
 
