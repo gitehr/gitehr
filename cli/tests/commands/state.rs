@@ -172,3 +172,35 @@ fn test_state_files_have_modification_time() -> Result<()> {
 
     Ok(())
 }
+
+#[test]
+#[serial]
+fn test_update_state_file_creates_subdirectories() -> Result<()> {
+    let _temp_dir = setup();
+
+    update_state_file("calculations/feverpain-latest.json", "{\"result\":3}")?;
+
+    let file_path = Path::new("state")
+        .join("calculations")
+        .join("feverpain-latest.json");
+    assert!(file_path.exists(), "Nested file should be created");
+    assert_eq!(fs::read_to_string(file_path)?, "{\"result\":3}");
+
+    Ok(())
+}
+
+#[test]
+#[serial]
+fn test_update_state_file_rejects_path_traversal() -> Result<()> {
+    let _temp_dir = setup();
+
+    let result = update_state_file("../escape.txt", "content");
+    assert!(result.is_err(), "Should reject a filename with '..'");
+
+    let result = update_state_file("calculations/../../escape.txt", "content");
+    assert!(result.is_err(), "Should reject a nested filename with '..'");
+
+    assert!(!Path::new("escape.txt").exists());
+
+    Ok(())
+}

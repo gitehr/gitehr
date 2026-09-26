@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use anyhow::{Context, Result, bail};
+use chrono::{SecondsFormat, Utc};
 use clap::{Args, Parser, Subcommand, ValueHint};
 use serde_json::{Value, json};
 use std::io::{Read, Write};
@@ -85,8 +86,9 @@ fn print_version(format: clincalc::cli::OutputFormat) -> Result<()> {
 
 fn record(command: RecordCommand) -> Result<()> {
     let input = read_input(&command.input)?;
-    let body = render_record(&command.calculator, input)?;
-    add_journal_entry(&body)
+    let evidence = build_evidence(&command.calculator, input)?;
+    add_journal_entry(&render_journal_body(&evidence)?)?;
+    write_latest_state(&evidence)
 }
 
 fn read_input(source: &str) -> Result<Value> {
@@ -117,7 +119,10 @@ fn tilde_path(source: &str) -> PathBuf {
     }
 }
 
-fn render_record(calculator_name: &str, input: Value) -> Result<String> {
+/// Calculate from `input` and assemble the verifiable evidence object shared
+/// by the journal entry and the latest-result state file. Refuses to
+/// continue on invalid input or an incomplete engine response.
+fn build_evidence(calculator_name: &str, input: Value) -> Result<Value> {
     let calculator = clincalc::get(calculator_name).ok_or_else(|| {
         anyhow::anyhow!("unknown calculator: {calculator_name}; use `gitehr clincalc list`")
     })?;
@@ -132,12 +137,16 @@ fn render_record(calculator_name: &str, input: Value) -> Result<String> {
         bail!("clincalc returned an incomplete calculation response; refusing to record it");
     }
 
-    let evidence = json!({
+    Ok(json!({
         "calculator": response.calculator,
         "clincalc_version": CLINCALC_VERSION,
+        "recorded_at": Utc::now().to_rfc3339_opts(SecondsFormat::Millis, true),
         "input": input,
         "response": response,
-    });
+    }))
+}
+
+fn render_journal_body(evidence: &Value) -> Result<String> {
     let response = evidence["response"]
         .as_object()
         .expect("calculation response is an object");
@@ -155,7 +164,7 @@ fn render_record(calculator_name: &str, input: Value) -> Result<String> {
             .as_str()
             .expect("calculation response calculator is a string"),
         CLINCALC_VERSION,
-        fenced_json(&evidence)?
+        fenced_json(evidence)?
     ))
 }
 
@@ -192,31 +201,70 @@ fn add_journal_entry(body: &str) -> Result<()> {
     Ok(())
 }
 
+/// Cache the evidence as `state/calculations/<calculator>-latest.json`, so
+/// the most recent result for a calculator is readable without scanning the
+/// journal. The journal entry `add_journal_entry` just wrote remains the
+/// canonical, immutable record; this is mutable, derived convenience state.
+fn write_latest_state(evidence: &Value) -> Result<()> {
+    let calculator_name = evidence["calculator"]
+        .as_str()
+        .expect("calculation response calculator is a string");
+    let filename = format!("calculations/{calculator_name}-latest.json");
+    let content = serde_json::to_string(evidence)?;
+
+    let status = Command::new("gitehr")
+        .args(["state", "set", &filename, &content])
+        .status()
+        .context("running `gitehr state set`; install gitehr and ensure it is on PATH")?;
+    if !status.success() {
+        bail!("`gitehr state set` failed with {status}");
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{CLINCALC_VERSION, print_version, render_record};
+    use super::{CLINCALC_VERSION, build_evidence, print_version, render_journal_body};
     use clincalc::cli::OutputFormat;
     use serde_json::json;
 
+    fn feverpain_input() -> serde_json::Value {
+        json!({
+            "fever": true,
+            "purulence": true,
+            "attend_rapidly": true,
+            "inflamed_tonsils": false,
+            "absence_of_cough": false,
+        })
+    }
+
     #[test]
     fn record_contains_complete_verifiable_calculation_data() {
-        let body = render_record(
-            "feverpain",
-            json!({
-                "fever": true,
-                "purulence": true,
-                "attend_rapidly": true,
-                "inflamed_tonsils": false,
-                "absence_of_cough": false,
-            }),
-        )
-        .unwrap();
+        let evidence = build_evidence("feverpain", feverpain_input()).unwrap();
+        let body = render_journal_body(&evidence).unwrap();
 
         assert!(body.contains("# Clinical calculation: feverpain"));
         assert!(body.contains("\"clincalc_version\": \"0.3.4\""));
         assert!(body.contains("\"input\""));
         assert!(body.contains("\"response\""));
         assert!(body.contains("\"reference\""));
+    }
+
+    #[test]
+    fn evidence_carries_a_utc_recorded_at_timestamp() {
+        let evidence = build_evidence("feverpain", feverpain_input()).unwrap();
+
+        let recorded_at = evidence["recorded_at"].as_str().unwrap();
+        assert!(
+            recorded_at.ends_with('Z'),
+            "expected a UTC timestamp, got: {recorded_at}"
+        );
+        chrono::DateTime::parse_from_rfc3339(recorded_at).unwrap();
+    }
+
+    #[test]
+    fn build_evidence_rejects_an_unknown_calculator() {
+        assert!(build_evidence("not-a-real-calculator", json!({})).is_err());
     }
 
     #[test]
