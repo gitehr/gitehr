@@ -16,7 +16,7 @@ All subcommands require the current directory to be a GitEHR repository.
 gitehr state list
 ```
 
-Lists files in `state/`, excluding `README.md`, with their last-modified timestamps when available.
+Lists files recursively in `state/`, excluding its `README.md`, with their last-modified timestamps when available.
 
 Run with no subcommand for the same effect: `gitehr state`.
 
@@ -32,9 +32,13 @@ Prints the contents of the named state file. Fails if the file does not exist in
 
 ```text
 gitehr state set <filename> <content>
+gitehr state set <filename> --file <path|->
+gitehr state set <filename> --file <path|-> --commit
 ```
 
-Writes content to the named state file, creating `state/` if needed. Overwrites any existing file of the same name.
+Writes content to the named state file, creating `state/` (and any subdirectory in `filename`) if needed. Overwrites any existing file of the same name. Use `--file -` to read content from standard input rather than exposing sensitive content in process arguments. Pass `--commit` to create a commit containing only the updated state file; it refuses to overwrite an uncommitted target file.
+
+`filename` may include subdirectories, for example `calculations/feverpain-latest.json`; an absolute path or any `..` component is rejected.
 
 !!! warning "Audit trail"
     State mutations are tracked by Git history alone. For high-significance changes, also write a [`gitehr journal add`](journal.md#gitehr-journal-add) entry that explains the change. The journal is the canonical audit trail; state is the current snapshot.

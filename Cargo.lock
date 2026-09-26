@@ -416,9 +416,11 @@ name = "gitehr-clincalc"
 version = "0.3.6"
 dependencies = [
  "anyhow",
+ "chrono",
  "clap",
  "clincalc",
  "serde_json",
+ "tempfile",
 ]
 
 [[package]]

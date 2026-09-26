@@ -24,6 +24,10 @@ path = "src/main.rs"
 
 [dependencies]
 anyhow.workspace = true
+chrono.workspace = true
 clap.workspace = true
 clincalc.workspace = true
 serde_json.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
