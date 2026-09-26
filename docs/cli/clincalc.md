@@ -33,7 +33,7 @@ $ gitehr clincalc record feverpain --input '{"fever":true,"purulence":true,"atte
 Created journal entry: journal/20260924T120000.000Z-00000000-0000-0000-0000-000000000000.md
 ```
 
-Recording refuses invalid calculator input or an incomplete engine response. It creates a journal entry only, not mutable calculation state; latest-result state is separate work under R26.
+Recording refuses invalid calculator input or an incomplete engine response. Beyond the journal entry, it also writes `state/calculations/<name>-latest.json` with the same evidence (calculator, clincalc version, `recorded_at`, input, and response), so the most recent result for a calculator is readable without scanning the journal. The journal entry remains the canonical, immutable record; the state file is mutable, derived convenience state that a later recording overwrites.
 
 ## Discover, fill, compute
 

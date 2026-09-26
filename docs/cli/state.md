@@ -34,7 +34,9 @@ Prints the contents of the named state file. Fails if the file does not exist in
 gitehr state set <filename> <content>
 ```
 
-Writes content to the named state file, creating `state/` if needed. Overwrites any existing file of the same name.
+Writes content to the named state file, creating `state/` (and any subdirectory in `filename`) if needed. Overwrites any existing file of the same name.
+
+`filename` may include subdirectories, for example `calculations/feverpain-latest.json`; an absolute path or any `..` component is rejected.
 
 !!! warning "Audit trail"
     State mutations are tracked by Git history alone. For high-significance changes, also write a [`gitehr journal add`](journal.md#gitehr-journal-add) entry that explains the change. The journal is the canonical audit trail; state is the current snapshot.

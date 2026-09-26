@@ -5,7 +5,7 @@ use anyhow::Result;
 use clap::Subcommand;
 use serde::{Deserialize, Serialize};
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Component, Path, PathBuf};
 
 pub mod get;
 pub mod list;
@@ -113,14 +113,28 @@ pub fn view_state_file(filename: &str) -> Result<StateFile> {
 }
 
 pub fn update_state_file(filename: &str, content: &str) -> Result<()> {
-    let state_dir = get_state_dir();
-    if !state_dir.exists() {
-        fs::create_dir_all(&state_dir)?;
+    let file_path = safe_state_path(filename)?;
+    if let Some(parent) = file_path.parent() {
+        fs::create_dir_all(parent)?;
     }
 
-    let file_path = state_dir.join(filename);
     fs::write(&file_path, content)?;
 
     println!("Updated state file: {}", filename);
     Ok(())
+}
+
+/// Resolve a state-relative filename under `state/`, allowing subdirectories
+/// (e.g. `calculations/feverpain-latest.json`) but rejecting an absolute
+/// path or any `..` component that would escape `state/`.
+fn safe_state_path(filename: &str) -> Result<PathBuf> {
+    let relative = Path::new(filename);
+    if relative.is_absolute()
+        || relative
+            .components()
+            .any(|component| matches!(component, Component::ParentDir))
+    {
+        anyhow::bail!("Invalid state filename: {filename}");
+    }
+    Ok(get_state_dir().join(relative))
 }

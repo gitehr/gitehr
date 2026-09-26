@@ -30,10 +30,11 @@ Behavior:
 
 ### `gitehr state set <filename> <content>`
 
-Writes content to the specified state file, creating the `state/` directory if needed.
+Writes content to the specified state file, creating the `state/` directory (and any subdirectory in `filename`) if needed.
 
 Behavior:
 - Overwrites any existing file of the same name.
+- `filename` may include subdirectories (for example `calculations/feverpain-latest.json`); an absolute path or any `..` component is rejected.
 
 ### `gitehr state`
 
