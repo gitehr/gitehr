@@ -4,7 +4,9 @@
 use anyhow::Result;
 use serial_test::serial;
 use std::fs;
+use std::io::Write;
 use std::path::Path;
+use std::process::{Command, Stdio};
 use tempfile::tempdir;
 
 use gitehr::commands::state::{list_state_files, update_state_file, view_state_file};
@@ -15,6 +17,18 @@ fn setup() -> tempfile::TempDir {
     fs::create_dir_all(".gitehr").ok();
     fs::create_dir_all("state").ok();
     temp_dir
+}
+
+fn git(args: &[&str]) -> Result<()> {
+    let output = Command::new("git").args(args).output()?;
+    if !output.status.success() {
+        anyhow::bail!(
+            "git {:?}: {}",
+            args,
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
+    Ok(())
 }
 
 #[test]
@@ -191,6 +205,99 @@ fn test_update_state_file_creates_subdirectories() -> Result<()> {
 
 #[test]
 #[serial]
+fn test_nested_state_files_are_listed_and_readable() -> Result<()> {
+    let _temp_dir = setup();
+
+    update_state_file("calculations/feverpain-latest.json", "{\"result\":3}")?;
+
+    let files = list_state_files()?;
+    assert_eq!(files.len(), 1);
+    assert_eq!(files[0].name, "calculations/feverpain-latest.json");
+    assert_eq!(
+        view_state_file("calculations/feverpain-latest.json")?.content,
+        "{\"result\":3}"
+    );
+
+    Ok(())
+}
+
+#[test]
+#[serial]
+fn test_state_set_reads_content_from_stdin() -> Result<()> {
+    let _temp_dir = setup();
+
+    let mut child = Command::new(env!("CARGO_BIN_EXE_gitehr"))
+        .args([
+            "state",
+            "set",
+            "calculations/feverpain-latest.json",
+            "--file",
+            "-",
+        ])
+        .stdin(Stdio::piped())
+        .spawn()?;
+    child
+        .stdin
+        .take()
+        .expect("child stdin was piped")
+        .write_all(b"{\"result\":3}")?;
+    let output = child.wait_with_output()?;
+
+    assert!(output.status.success());
+    assert_eq!(
+        fs::read_to_string("state/calculations/feverpain-latest.json")?,
+        "{\"result\":3}"
+    );
+
+    Ok(())
+}
+
+#[test]
+#[serial]
+fn test_state_set_commit_leaves_unrelated_staged_changes_untouched() -> Result<()> {
+    let _temp_dir = setup();
+    git(&["init"])?;
+    git(&["config", "user.email", "test@example.com"])?;
+    git(&["config", "user.name", "Test User"])?;
+    git(&["config", "commit.gpgsign", "false"])?;
+    fs::write("unrelated.txt", "keep staged")?;
+    git(&["add", "unrelated.txt"])?;
+
+    let mut child = Command::new(env!("CARGO_BIN_EXE_gitehr"))
+        .args([
+            "state",
+            "set",
+            "calculations/feverpain-latest.json",
+            "--file",
+            "-",
+            "--commit",
+        ])
+        .stdin(Stdio::piped())
+        .spawn()?;
+    child
+        .stdin
+        .take()
+        .expect("child stdin was piped")
+        .write_all(b"{\"result\":3}")?;
+    assert!(child.wait()?.success());
+
+    let staged = Command::new("git")
+        .args(["diff", "--cached", "--name-only"])
+        .output()?;
+    assert_eq!(String::from_utf8(staged.stdout)?.trim(), "unrelated.txt");
+    let committed = Command::new("git")
+        .args(["show", "--format=", "--name-only", "HEAD"])
+        .output()?;
+    assert_eq!(
+        String::from_utf8(committed.stdout)?.trim(),
+        "state/calculations/feverpain-latest.json"
+    );
+
+    Ok(())
+}
+
+#[test]
+#[serial]
 fn test_update_state_file_rejects_path_traversal() -> Result<()> {
     let _temp_dir = setup();
 
@@ -201,6 +308,25 @@ fn test_update_state_file_rejects_path_traversal() -> Result<()> {
     assert!(result.is_err(), "Should reject a nested filename with '..'");
 
     assert!(!Path::new("escape.txt").exists());
+
+    fs::write("outside.txt", "outside")?;
+    assert!(view_state_file("../outside.txt").is_err());
+
+    Ok(())
+}
+
+#[cfg(unix)]
+#[test]
+#[serial]
+fn test_nested_state_files_refuse_symlinked_directories() -> Result<()> {
+    use std::os::unix::fs::symlink;
+
+    let _temp_dir = setup();
+    fs::create_dir("outside")?;
+    symlink("../outside", "state/calculations")?;
+
+    assert!(update_state_file("calculations/feverpain-latest.json", "{}").is_err());
+    assert!(!Path::new("outside/feverpain-latest.json").exists());
 
     Ok(())
 }

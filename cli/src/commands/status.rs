@@ -6,6 +6,8 @@ use std::fs;
 use std::path::PathBuf;
 use std::process::Command;
 
+use super::state;
+
 #[derive(Debug)]
 pub struct RepoStatus {
     pub is_gitehr_repo: bool,
@@ -67,19 +69,10 @@ fn count_journal_entries() -> Result<usize> {
 }
 
 fn list_state_files() -> Result<Vec<String>> {
-    let state_dir = PathBuf::from("state");
-    if !state_dir.exists() {
-        return Ok(vec![]);
-    }
-
-    let files: Vec<String> = fs::read_dir(&state_dir)?
-        .filter_map(|e| e.ok())
-        .filter(|e| e.path().is_file())
-        .filter(|e| e.file_name() != "README.md")
-        .map(|e| e.file_name().to_string_lossy().to_string())
-        .collect();
-
-    Ok(files)
+    Ok(state::list_state_files()?
+        .into_iter()
+        .map(|file| file.name)
+        .collect())
 }
 
 fn check_git_status() -> Result<(bool, Vec<String>)> {

@@ -61,13 +61,10 @@ fn record_writes_a_journal_entry_and_the_latest_calculation_state() {
 
     assert_eq!(lines[0], "journal add --file -");
 
-    assert!(
-        lines[1].starts_with("state set calculations/feverpain-latest.json "),
-        "unexpected second call: {}",
-        lines[1]
+    assert_eq!(
+        lines[1],
+        "state set calculations/feverpain-latest.json --file - --commit"
     );
-    assert!(lines[1].contains(r#""calculator":"feverpain""#));
-    assert!(lines[1].contains(r#""recorded_at""#));
 }
 
 #[test]

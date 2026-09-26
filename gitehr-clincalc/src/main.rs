@@ -212,10 +212,20 @@ fn write_latest_state(evidence: &Value) -> Result<()> {
     let filename = format!("calculations/{calculator_name}-latest.json");
     let content = serde_json::to_string(evidence)?;
 
-    let status = Command::new("gitehr")
-        .args(["state", "set", &filename, &content])
-        .status()
-        .context("running `gitehr state set`; install gitehr and ensure it is on PATH")?;
+    let mut child = Command::new("gitehr")
+        .args(["state", "set", &filename, "--file", "-", "--commit"])
+        .stdin(Stdio::piped())
+        .stdout(Stdio::inherit())
+        .stderr(Stdio::inherit())
+        .spawn()
+        .context("starting `gitehr state set`; install gitehr and ensure it is on PATH")?;
+    let write_result = child
+        .stdin
+        .take()
+        .expect("child stdin was piped")
+        .write_all(content.as_bytes());
+    let status = child.wait().context("waiting for `gitehr state set`")?;
+    write_result.context("sending latest calculation state to `gitehr state set`")?;
     if !status.success() {
         bail!("`gitehr state set` failed with {status}");
     }

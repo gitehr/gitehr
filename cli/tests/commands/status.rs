@@ -98,6 +98,25 @@ fn test_gather_lists_state_files() -> Result<()> {
 
 #[test]
 #[serial]
+fn test_gather_lists_nested_state_files() -> Result<()> {
+    let _temp_dir = setup();
+
+    fs::create_dir_all(".gitehr")?;
+    fs::create_dir_all("state/calculations")?;
+    fs::write("state/calculations/feverpain-latest.json", "{\"result\":3}")?;
+
+    let status = RepoStatus::gather()?;
+
+    assert_eq!(
+        status.state_files,
+        vec!["calculations/feverpain-latest.json"]
+    );
+
+    Ok(())
+}
+
+#[test]
+#[serial]
 fn test_gather_detects_legacy_encryption_marker() -> Result<()> {
     let _temp_dir = setup();
 
