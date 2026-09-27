@@ -12,9 +12,11 @@ This is typed state, following the same pattern as `gitehr allergies` and
 `gitehr conditions`: the state file is the current queryable register; each
 mutation also writes a journal entry as the audit narrative.
 
-Not yet implemented: the reusable per-fact `provenance` block from Part 1 of
-the spec (linking imported journal entries/documents back to an acquisition
-via `acquired_via`), and a UK-GDPR-Article-15 SAR letter template generator.
+`letter` renders a UK-GDPR-Article-15 SAR letter template from a recorded
+acquisition (read-only, no state or journal write). Not yet implemented: the
+reusable per-fact `provenance` block from Part 1 of the spec (linking
+imported journal entries/documents back to an acquisition via
+`acquired_via`).
 
 All subcommands require the current directory to be a GitEHR repository.
 
@@ -90,6 +92,7 @@ acquisitions:
 gitehr acquisitions list [--json] [--all] [--overdue]
 gitehr acquisitions add --controller <name> --date-sent <YYYY-MM-DD> [OPTIONS]
 gitehr acquisitions update <id> [OPTIONS]
+gitehr acquisitions letter <id> [--requester-name <name>] [--requester-address <address>] [--out <path>]
 ```
 
 `list` hides resolved acquisitions (`received`, `nil-destroyed`, `refused`) by
@@ -104,6 +107,15 @@ commits both together. New acquisitions start with status `sent`.
 `--outcome`, `--filed-to`, or `--notes`. It never deletes an acquisition entry;
 it changes the current-state row and writes a journal entry, preserving the
 prior status in Git history.
+
+`letter` fills a UK GDPR Article 15 template with the fields the register
+already holds for `<id>` (controller, site,
+contact, `care_context`, `identifiers_provided`, `id_provided`). The
+requester's name and postal address are not modelled by GitEHR, so they are
+left as bracketed placeholders unless supplied with `--requester-name` /
+`--requester-address`. It always prints to stdout; `--out <path>` also saves
+a copy. It is a pure read of `state/acquisitions.md` - no journal entry is
+written.
 
 ## Examples
 

@@ -54,6 +54,23 @@ pub enum AcquisitionCommands {
         #[arg(long, help = "Optional note")]
         notes: Option<String>,
     },
+    #[command(about = "Render a UK GDPR Article 15 subject access request letter")]
+    Letter {
+        #[arg(help = "Acquisition id")]
+        id: String,
+        #[arg(
+            long,
+            help = "Requester's name for the signature; left as a placeholder if omitted"
+        )]
+        requester_name: Option<String>,
+        #[arg(
+            long,
+            help = "Requester's return address for the letterhead; left as a placeholder if omitted"
+        )]
+        requester_address: Option<String>,
+        #[arg(long, help = "Also write the rendered letter to this file")]
+        out: Option<String>,
+    },
     #[command(about = "Update the status and details of an acquisition request")]
     Update {
         #[arg(help = "Acquisition id")]
@@ -196,6 +213,21 @@ pub fn run(command: AcquisitionCommands) -> Result<()> {
                 id_provided,
                 notes,
             })?;
+            Ok(())
+        }
+        AcquisitionCommands::Letter {
+            id,
+            requester_name,
+            requester_address,
+            out,
+        } => {
+            let rendered = letter(&id, requester_name.as_deref(), requester_address.as_deref())?;
+            if let Some(path) = out.as_deref() {
+                std::fs::write(path, &rendered)
+                    .map_err(|error| anyhow::anyhow!("Failed to write {}: {}", path, error))?;
+                eprintln!("Wrote SAR letter to {}", path);
+            }
+            print!("{}", rendered);
             Ok(())
         }
         AcquisitionCommands::Update {
@@ -378,6 +410,115 @@ pub fn update(input: AcquisitionUpdateInput) -> Result<Acquisition> {
     persist_with_journal(&state, &summary)?;
     println!("Updated acquisition: {}", changed.id);
     Ok(changed)
+}
+
+const NAME_PLACEHOLDER: &str = "[your name]";
+const ADDRESS_PLACEHOLDER: &str = "[your return address]";
+const ID_PLACEHOLDER: &str = "[copy of ID, e.g. passport or driving licence]";
+
+/// Render a UK GDPR Article 15 subject access request letter from an
+/// already-recorded acquisition. This only fills in fields the register
+/// already holds; the requester's name, address, and identity evidence are
+/// not modelled elsewhere in GitEHR, so they are left as bracketed
+/// placeholders when not passed on the command line - true to "template
+/// generator", not "auto-sent letter".
+pub fn letter(
+    id: &str,
+    requester_name: Option<&str>,
+    requester_address: Option<&str>,
+) -> Result<String> {
+    typed_state::ensure_gitehr_repository()?;
+    let state = load()?;
+    let acquisition = state
+        .acquisitions
+        .into_iter()
+        .find(|acquisition| acquisition.id == id)
+        .ok_or_else(|| anyhow::anyhow!("Acquisition not found: {}", id))?;
+    Ok(render_letter(
+        &acquisition,
+        requester_name,
+        requester_address,
+    ))
+}
+
+fn render_letter(
+    acquisition: &Acquisition,
+    requester_name: Option<&str>,
+    requester_address: Option<&str>,
+) -> String {
+    let requester_name = requester_name
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .unwrap_or(NAME_PLACEHOLDER);
+    let requester_address = requester_address
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .unwrap_or(ADDRESS_PLACEHOLDER);
+    let id_provided = acquisition.id_provided.as_deref().unwrap_or(ID_PLACEHOLDER);
+    let date = format_date(&acquisition.date_sent);
+    let controller = &acquisition.controller;
+    let reference = &acquisition.id;
+
+    let mut recipient = format!("To: {controller}");
+    if let Some(site) = acquisition
+        .site
+        .as_deref()
+        .filter(|site| *site != controller)
+    {
+        recipient.push_str(&format!(" ({site})"));
+    }
+    if let Some(contact) = acquisition.contact_used.as_deref() {
+        recipient.push_str(&format!("\nContact: {contact}"));
+    }
+
+    let context_line = acquisition
+        .care_context
+        .as_deref()
+        .map(|context| format!("Specifically, I am requesting: {context}.\n\n"))
+        .unwrap_or_default();
+
+    let identifiers_block = if acquisition.identifiers_provided.is_empty() {
+        String::new()
+    } else {
+        let identifiers = acquisition
+            .identifiers_provided
+            .iter()
+            .map(|identifier| format!("- {identifier}"))
+            .collect::<Vec<_>>()
+            .join("\n");
+        format!("To help you locate my records, my identifying details are:\n{identifiers}\n\n")
+    };
+
+    format!(
+        "{requester_name}\n{requester_address}\n\n\
+{date}\n\n\
+{recipient}\n\n\
+Subject Access Request under UK GDPR Article 15\n\
+Reference: {reference}\n\n\
+Dear Sir/Madam,\n\n\
+I am writing to request access to the personal data that {controller} holds about me, \
+under Article 15 of the UK General Data Protection Regulation.\n\n\
+{context_line}\
+{identifiers_block}\
+I enclose the following to verify my identity: {id_provided}.\n\n\
+Under Article 12(3) UK GDPR, please respond within one calendar month of receiving this \
+request. If you need further information to locate my records or to verify my identity, \
+please contact me as soon as possible so this does not delay your response.\n\n\
+If any of my personal data has already been destroyed under a retention schedule, please \
+confirm this to me explicitly, together with the date of destruction and the retention \
+policy applied, rather than treating it as simply absent from your reply.\n\n\
+Yours faithfully,\n\n\
+{requester_name}\n"
+    )
+}
+
+/// Formats a `YYYY-MM-DD` date as e.g. "10 July 2026" for the letter body.
+/// Falls back to the raw value on a malformed date, which `add`/`update`
+/// should already have rejected.
+fn format_date(date: &str) -> String {
+    NaiveDate::parse_from_str(date, "%Y-%m-%d")
+        .map(|parsed| parsed.format("%d %B %Y").to_string())
+        .unwrap_or_else(|_| date.to_string())
 }
 
 fn is_resolved(status: AcquisitionStatus) -> bool {

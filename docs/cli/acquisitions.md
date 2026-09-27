@@ -66,13 +66,42 @@ following must be given:
 | `--filed-to <ref>` | Journal entry or document reference the result was filed to; repeatable, appends |
 | `--notes <text>` | Optional note |
 
-Example:
+## gitehr acquisitions letter
+
+```bash
+gitehr acquisitions letter <id> [--requester-name <name>] [--requester-address <address>] [--out <path>]
+```
+
+Renders a UK GDPR Article 15 subject access request letter from an
+already-recorded acquisition, filling in the
+controller, site, contact, requested context, identifiers, and identity
+evidence the register already holds. It reads state only - no journal entry
+is written and nothing is committed.
+
+The requester's name and address are not modelled anywhere else in GitEHR
+(that is patient-identity data, not acquisition-tracking data), so they are
+left as bracketed placeholders - `[your name]` / `[your return address]` -
+unless supplied with `--requester-name`/`--requester-address`. This is a
+template to review and complete, not a letter to send unedited.
+
+| Option | Description |
+|---|---|
+| `--requester-name <name>` | Name to sign the letter with |
+| `--requester-address <address>` | Return address for the letterhead |
+| `--out <path>` | Also write the rendered letter to this file |
+
+The letter always prints to stdout; `--out` additionally saves a copy.
+
+## Example
 
 ```bash
 gitehr acquisitions add --controller "York Teaching Hospitals NHS Trust" \
   --site "York Hospital" --contact dpo@york.nhs.uk \
   --context "2019 discharge summary" --identifier NHS:1234567890 \
   --date-sent 2026-07-10
+gitehr acquisitions letter ACQ-20260710T090000Z-4f2a9c1b \
+  --requester-name "Jo Patient" --requester-address "1 Example Street, Leeds" \
+  --out sar-letter.txt
 gitehr acquisitions update ACQ-20260710T090000Z-4f2a9c1b \
   --status acknowledged --ack-date 2026-07-12
 gitehr acquisitions update ACQ-20260710T090000Z-4f2a9c1b \
