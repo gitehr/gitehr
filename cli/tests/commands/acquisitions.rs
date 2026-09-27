@@ -6,7 +6,8 @@ use serial_test::serial;
 use std::fs;
 
 use gitehr::commands::acquisitions::{
-    Acquisition, AcquisitionInput, AcquisitionStatus, AcquisitionUpdateInput, add, list, update,
+    Acquisition, AcquisitionInput, AcquisitionStatus, AcquisitionUpdateInput, add, letter, list,
+    update,
 };
 use gitehr::commands::journal::parsed_entries;
 
@@ -197,6 +198,60 @@ fn acquisition_received_is_hidden_from_default_list_but_kept_in_all() -> Result<
 
     let entries = parsed_entries()?;
     assert_eq!(entries.len(), 2);
+
+    Ok(())
+}
+
+#[test]
+#[serial]
+fn acquisition_letter_fills_in_recorded_fields_and_placeholders() -> Result<()> {
+    let _temp_dir = setup_with_git()?;
+
+    let acquisition = add(sample_input())?;
+    let rendered = letter(&acquisition.id, None, None)?;
+
+    assert!(rendered.contains("[your name]"));
+    assert!(rendered.contains("[your return address]"));
+    assert!(rendered.contains("York Teaching Hospitals NHS Trust"));
+    assert!(rendered.contains("York Hospital"));
+    assert!(rendered.contains("dpo@york.nhs.uk"));
+    assert!(rendered.contains("chasing 2019 discharge summary"));
+    assert!(rendered.contains("NHS:1234567890"));
+    assert!(rendered.contains("passport copy"));
+    assert!(rendered.contains("10 July 2026"));
+    assert!(rendered.contains(&acquisition.id));
+    assert!(rendered.contains("Article 15"));
+
+    Ok(())
+}
+
+#[test]
+#[serial]
+fn acquisition_letter_uses_supplied_requester_details() -> Result<()> {
+    let _temp_dir = setup_with_git()?;
+
+    let acquisition = add(sample_input())?;
+    let rendered = letter(
+        &acquisition.id,
+        Some("Jo Patient"),
+        Some("1 Example Street, Leeds"),
+    )?;
+
+    assert!(rendered.contains("Jo Patient"));
+    assert!(rendered.contains("1 Example Street, Leeds"));
+    assert!(!rendered.contains("[your name]"));
+    assert!(!rendered.contains("[your return address]"));
+
+    Ok(())
+}
+
+#[test]
+#[serial]
+fn acquisition_letter_rejects_unknown_id() -> Result<()> {
+    let _temp_dir = setup_with_git()?;
+    add(sample_input())?;
+
+    assert!(letter("ACQ-does-not-exist", None, None).is_err());
 
     Ok(())
 }
