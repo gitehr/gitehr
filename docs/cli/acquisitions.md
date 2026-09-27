@@ -72,8 +72,8 @@ following must be given:
 gitehr acquisitions letter <id> [--requester-name <name>] [--requester-address <address>] [--out <path>]
 ```
 
-Renders a UK GDPR Article 15 (Data Protection Act 2018 section 45) subject
-access request letter from an already-recorded acquisition, filling in the
+Renders a UK GDPR Article 15 subject access request letter from an
+already-recorded acquisition, filling in the
 controller, site, contact, requested context, identifiers, and identity
 evidence the register already holds. It reads state only - no journal entry
 is written and nothing is committed.

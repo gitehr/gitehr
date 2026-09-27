@@ -221,6 +221,7 @@ fn acquisition_letter_fills_in_recorded_fields_and_placeholders() -> Result<()> 
     assert!(rendered.contains("10 July 2026"));
     assert!(rendered.contains(&acquisition.id));
     assert!(rendered.contains("Article 15"));
+    assert!(!rendered.contains("section 45"));
 
     Ok(())
 }

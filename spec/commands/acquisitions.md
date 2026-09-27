@@ -108,8 +108,8 @@ commits both together. New acquisitions start with status `sent`.
 it changes the current-state row and writes a journal entry, preserving the
 prior status in Git history.
 
-`letter` fills a UK GDPR Article 15 / Data Protection Act 2018 s.45 template
-with the fields the register already holds for `<id>` (controller, site,
+`letter` fills a UK GDPR Article 15 template with the fields the register
+already holds for `<id>` (controller, site,
 contact, `care_context`, `identifiers_provided`, `id_provided`). The
 requester's name and postal address are not modelled by GitEHR, so they are
 left as bracketed placeholders unless supplied with `--requester-name` /

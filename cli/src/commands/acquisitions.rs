@@ -493,12 +493,11 @@ fn render_letter(
         "{requester_name}\n{requester_address}\n\n\
 {date}\n\n\
 {recipient}\n\n\
-Subject Access Request under UK GDPR Article 15 (Data Protection Act 2018)\n\
+Subject Access Request under UK GDPR Article 15\n\
 Reference: {reference}\n\n\
 Dear Sir/Madam,\n\n\
 I am writing to request access to the personal data that {controller} holds about me, \
-under Article 15 of the UK General Data Protection Regulation and section 45 of the \
-Data Protection Act 2018.\n\n\
+under Article 15 of the UK General Data Protection Regulation.\n\n\
 {context_line}\
 {identifiers_block}\
 I enclose the following to verify my identity: {id_provided}.\n\n\
