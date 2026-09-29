@@ -40,6 +40,7 @@ fn medication_input() -> MedicationInput {
         started: Some("2026-01-15".to_string()),
         supplement: false,
         note: None,
+        provenance: None,
     }
 }
 
@@ -360,5 +361,35 @@ fn medication_add_refuses_symlinked_state_file() -> Result<()> {
     assert!(fs::symlink_metadata("state")?.file_type().is_symlink());
     assert_eq!(fs::read_to_string("outside/medications.md")?, original);
     assert_eq!(fs::read_dir("journal")?.count(), 0);
+    Ok(())
+}
+
+#[test]
+#[serial]
+fn medication_add_records_provenance_only_when_supplied() -> Result<()> {
+    use gitehr::commands::typed_state::{EvidenceLevel, Provenance, SourceType};
+
+    let _temp_dir = setup_with_git()?;
+
+    let plain = add(medication_input())?;
+    assert!(plain.provenance.is_none());
+
+    let mut input = medication_input();
+    input.provenance = Provenance::from_parts(
+        Some(SourceType::Sar),
+        Some("Example GP Practice"),
+        Some("ACQ-1"),
+        Some(EvidenceLevel::Documented),
+        None,
+    );
+    let sourced = add(input)?;
+    let state = std::fs::read_to_string("state/medications.md")?;
+    assert!(state.contains("source_type: sar"));
+    assert!(state.contains("evidence_level: documented"));
+    assert_eq!(plain.provenance, None);
+    let reloaded = list(false)?;
+    let found = reloaded.iter().find(|m| m.id == sourced.id).unwrap();
+    assert_eq!(found.provenance, sourced.provenance);
+    assert_eq!(found.provenance.as_ref().unwrap().confidence, None);
     Ok(())
 }

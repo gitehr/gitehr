@@ -260,3 +260,70 @@ mod tests {
         );
     }
 }
+
+/// Where an asserted fact came from (R60 Part 1, `spec/record-provenance-and-acquisition.md`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, serde::Deserialize, clap::ValueEnum)]
+#[serde(rename_all = "kebab-case")]
+#[value(rename_all = "kebab-case")]
+pub enum SourceType {
+    SelfReported,
+    ClinicianAsserted,
+    PortalExtracted,
+    Sar,
+    PaperTranscribed,
+    Device,
+    Inferred,
+}
+
+/// How strongly a fact is evidenced. An inference must never masquerade as a record.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, serde::Deserialize, clap::ValueEnum)]
+#[serde(rename_all = "lowercase")]
+pub enum EvidenceLevel {
+    Documented,
+    Inferred,
+    Assumed,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, serde::Deserialize, clap::ValueEnum)]
+#[serde(rename_all = "lowercase")]
+pub enum Confidence {
+    High,
+    Medium,
+    Low,
+}
+
+/// Optional, reusable metadata about an assertion. `document_ref` from the
+/// spec is not yet modelled.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, serde::Deserialize)]
+pub struct Provenance {
+    pub source_type: Option<SourceType>,
+    pub source_detail: Option<String>,
+    pub acquired_via: Option<String>,
+    pub evidence_level: Option<EvidenceLevel>,
+    pub confidence: Option<Confidence>,
+}
+
+impl Provenance {
+    /// Builds a block from CLI inputs, or `None` when nothing was supplied.
+    pub fn from_parts(
+        source_type: Option<SourceType>,
+        source_detail: Option<&str>,
+        acquired_via: Option<&str>,
+        evidence_level: Option<EvidenceLevel>,
+        confidence: Option<Confidence>,
+    ) -> Option<Self> {
+        let clean = |v: Option<&str>| {
+            v.map(str::trim)
+                .filter(|v| !v.is_empty())
+                .map(str::to_string)
+        };
+        let provenance = Provenance {
+            source_type,
+            source_detail: clean(source_detail),
+            acquired_via: clean(acquired_via),
+            evidence_level,
+            confidence,
+        };
+        (provenance != Provenance::default()).then_some(provenance)
+    }
+}
