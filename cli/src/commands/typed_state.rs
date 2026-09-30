@@ -229,9 +229,86 @@ fn split_front_matter(content: &str) -> Option<(&str, &str)> {
     None
 }
 
+/// Where an asserted fact came from (R60 Part 1, `spec/record-provenance-and-acquisition.md`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, serde::Deserialize, clap::ValueEnum)]
+#[serde(rename_all = "kebab-case")]
+#[value(rename_all = "kebab-case")]
+pub enum SourceType {
+    SelfReported,
+    ClinicianAsserted,
+    PortalExtracted,
+    Sar,
+    PaperTranscribed,
+    Device,
+    Inferred,
+}
+
+/// How strongly a fact is evidenced. An inference must never masquerade as a record.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, serde::Deserialize, clap::ValueEnum)]
+#[serde(rename_all = "lowercase")]
+pub enum EvidenceLevel {
+    Documented,
+    Inferred,
+    Assumed,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, serde::Deserialize, clap::ValueEnum)]
+#[serde(rename_all = "lowercase")]
+pub enum Confidence {
+    High,
+    Medium,
+    Low,
+}
+
+/// Optional, reusable metadata about an assertion. `document_ref` from the
+/// spec is not yet modelled.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, serde::Deserialize)]
+pub struct Provenance {
+    pub source_type: Option<SourceType>,
+    pub source_detail: Option<String>,
+    pub acquired_via: Option<String>,
+    pub evidence_level: Option<EvidenceLevel>,
+    pub confidence: Option<Confidence>,
+}
+
+impl Provenance {
+    /// Builds a block from CLI inputs, or `None` when nothing was supplied.
+    pub fn from_parts(
+        source_type: Option<SourceType>,
+        source_detail: Option<&str>,
+        acquired_via: Option<&str>,
+        evidence_level: Option<EvidenceLevel>,
+        confidence: Option<Confidence>,
+    ) -> Result<Option<Self>> {
+        let clean = |v: Option<&str>| {
+            v.map(str::trim)
+                .filter(|v| !v.is_empty())
+                .map(str::to_string)
+        };
+        let source_detail = clean(source_detail);
+        let acquired_via = clean(acquired_via);
+        if source_type.is_none()
+            && (source_detail.is_some()
+                || acquired_via.is_some()
+                || evidence_level.is_some()
+                || confidence.is_some())
+        {
+            anyhow::bail!("--source-type is required with other provenance metadata");
+        }
+        let provenance = Provenance {
+            source_type,
+            source_detail,
+            acquired_via,
+            evidence_level,
+            confidence,
+        };
+        Ok((provenance != Provenance::default()).then_some(provenance))
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use super::split_front_matter;
+    use super::{EvidenceLevel, Provenance, SourceType, split_front_matter};
 
     #[test]
     fn front_matter_requires_a_whole_delimiter_line() {
@@ -257,6 +334,27 @@ mod tests {
         assert_eq!(
             split_front_matter("---\nconditions: []\n---invalid\n"),
             None
+        );
+    }
+
+    #[test]
+    fn provenance_requires_a_source_type() {
+        assert!(
+            Provenance::from_parts(
+                None,
+                Some("Example GP Practice"),
+                None,
+                Some(EvidenceLevel::Documented),
+                None,
+            )
+            .is_err()
+        );
+        assert_eq!(
+            Provenance::from_parts(Some(SourceType::Sar), None, None, None, None).unwrap(),
+            Some(Provenance {
+                source_type: Some(SourceType::Sar),
+                ..Default::default()
+            })
         );
     }
 }
