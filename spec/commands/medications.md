@@ -50,6 +50,7 @@ medications:
 - `stopped` / `stopped_reason` - set when a medication is stopped.
 - `recorded_at` / `recorded_by` - GitEHR recording metadata.
 - `note` - optional clinical note.
+- `provenance` - optional source metadata: `source_type`, `source_detail`, `acquired_via`, `evidence_level`, and `confidence`. `source_type` is required whenever any other provenance field is present. See [`record-provenance-and-acquisition.md`](../record-provenance-and-acquisition.md).
 
 The stable JSON output uses the same field names and nullability as this YAML model.
 
@@ -82,7 +83,7 @@ gitehr medications stop <id> [--date <YYYY-MM-DD>] [--reason <text>]
 
 `list` hides `stopped` entries by default. `--all` includes them.
 
-`add` writes `state/medications.md` and a journal entry in one commit. `--started`, when given, must use `YYYY-MM-DD`.
+`add` writes `state/medications.md` and a journal entry in one commit. `--started`, when given, must use `YYYY-MM-DD`. The provenance flags are `--source-type`, `--source-detail`, `--acquired-via`, `--evidence-level`, and `--confidence`; `--source-type` is required when supplying any of the other four.
 
 `stop` never deletes a medication entry. It changes the current state row and writes a journal entry, preserving prior belief in Git history. `--date` defaults to today, must use `YYYY-MM-DD`, and cannot precede `started`. Repeated stopping is rejected so the original stop date and reason cannot be overwritten.
 

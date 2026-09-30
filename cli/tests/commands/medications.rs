@@ -381,7 +381,7 @@ fn medication_add_records_provenance_only_when_supplied() -> Result<()> {
         Some("ACQ-1"),
         Some(EvidenceLevel::Documented),
         None,
-    );
+    )?;
     let sourced = add(input)?;
     let state = std::fs::read_to_string("state/medications.md")?;
     assert!(state.contains("source_type: sar"));

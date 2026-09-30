@@ -229,38 +229,6 @@ fn split_front_matter(content: &str) -> Option<(&str, &str)> {
     None
 }
 
-#[cfg(test)]
-mod tests {
-    use super::split_front_matter;
-
-    #[test]
-    fn front_matter_requires_a_whole_delimiter_line() {
-        for newline in ["\n", "\r\n"] {
-            let yaml = format!("conditions: []{newline}---source: imported{newline}");
-            let body = format!("{newline}{newline}Clinical notes{newline}");
-            let content = format!("---{newline}{yaml}---{body}");
-            assert_eq!(
-                split_front_matter(&content),
-                Some((yaml.as_str(), body.as_str()))
-            );
-            assert_eq!(split_front_matter(&format!("---{newline}{yaml}")), None);
-            assert_eq!(
-                split_front_matter(&format!("---{newline}---{body}")),
-                Some(("", body.as_str()))
-            );
-            assert_eq!(
-                split_front_matter(&format!("---{newline}{yaml}---")),
-                Some((yaml.as_str(), ""))
-            );
-        }
-        assert_eq!(split_front_matter("conditions: []\n"), None);
-        assert_eq!(
-            split_front_matter("---\nconditions: []\n---invalid\n"),
-            None
-        );
-    }
-}
-
 /// Where an asserted fact came from (R60 Part 1, `spec/record-provenance-and-acquisition.md`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, serde::Deserialize, clap::ValueEnum)]
 #[serde(rename_all = "kebab-case")]
@@ -311,19 +279,82 @@ impl Provenance {
         acquired_via: Option<&str>,
         evidence_level: Option<EvidenceLevel>,
         confidence: Option<Confidence>,
-    ) -> Option<Self> {
+    ) -> Result<Option<Self>> {
         let clean = |v: Option<&str>| {
             v.map(str::trim)
                 .filter(|v| !v.is_empty())
                 .map(str::to_string)
         };
+        let source_detail = clean(source_detail);
+        let acquired_via = clean(acquired_via);
+        if source_type.is_none()
+            && (source_detail.is_some()
+                || acquired_via.is_some()
+                || evidence_level.is_some()
+                || confidence.is_some())
+        {
+            anyhow::bail!("--source-type is required with other provenance metadata");
+        }
         let provenance = Provenance {
             source_type,
-            source_detail: clean(source_detail),
-            acquired_via: clean(acquired_via),
+            source_detail,
+            acquired_via,
             evidence_level,
             confidence,
         };
-        (provenance != Provenance::default()).then_some(provenance)
+        Ok((provenance != Provenance::default()).then_some(provenance))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{EvidenceLevel, Provenance, SourceType, split_front_matter};
+
+    #[test]
+    fn front_matter_requires_a_whole_delimiter_line() {
+        for newline in ["\n", "\r\n"] {
+            let yaml = format!("conditions: []{newline}---source: imported{newline}");
+            let body = format!("{newline}{newline}Clinical notes{newline}");
+            let content = format!("---{newline}{yaml}---{body}");
+            assert_eq!(
+                split_front_matter(&content),
+                Some((yaml.as_str(), body.as_str()))
+            );
+            assert_eq!(split_front_matter(&format!("---{newline}{yaml}")), None);
+            assert_eq!(
+                split_front_matter(&format!("---{newline}---{body}")),
+                Some(("", body.as_str()))
+            );
+            assert_eq!(
+                split_front_matter(&format!("---{newline}{yaml}---")),
+                Some((yaml.as_str(), ""))
+            );
+        }
+        assert_eq!(split_front_matter("conditions: []\n"), None);
+        assert_eq!(
+            split_front_matter("---\nconditions: []\n---invalid\n"),
+            None
+        );
+    }
+
+    #[test]
+    fn provenance_requires_a_source_type() {
+        assert!(
+            Provenance::from_parts(
+                None,
+                Some("Example GP Practice"),
+                None,
+                Some(EvidenceLevel::Documented),
+                None,
+            )
+            .is_err()
+        );
+        assert_eq!(
+            Provenance::from_parts(Some(SourceType::Sar), None, None, None, None).unwrap(),
+            Some(Provenance {
+                source_type: Some(SourceType::Sar),
+                ..Default::default()
+            })
+        );
     }
 }

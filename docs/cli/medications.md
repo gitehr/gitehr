@@ -24,7 +24,7 @@ gitehr medications add --name <name> [--dose <dose>] [--route <route>] [--freque
 
 `--supplement` marks the entry as a supplement rather than a prescribed medication, so PHR/GUI views can distinguish the two. `--started`, when given, must be `YYYY-MM-DD`. An optional note is appended to the generated audit narrative; it does not replace the action and medication identity.
 
-The optional `--source-type` (`self-reported`, `clinician-asserted`, `portal-extracted`, `sar`, `paper-transcribed`, `device`, `inferred`), `--source-detail`, `--acquired-via`, `--evidence-level` (`documented`, `inferred`, `assumed`) and `--confidence` (`high`, `medium`, `low`) flags record a `provenance` block on the entry, so a documented fact can be told apart from an inference. The block is omitted entirely when none of these flags is given. `document_ref` is not yet supported.
+The optional `--source-type` (`self-reported`, `clinician-asserted`, `portal-extracted`, `sar`, `paper-transcribed`, `device`, `inferred`), `--source-detail`, `--acquired-via`, `--evidence-level` (`documented`, `inferred`, `assumed`) and `--confidence` (`high`, `medium`, `low`) flags record a `provenance` block on the entry, so a documented fact can be told apart from an inference. `--source-type` is required when supplying any other provenance flag. The block is omitted entirely when none of these flags is given. `document_ref` is not yet supported.
 
 ## gitehr medications stop
 

@@ -180,7 +180,7 @@ pub fn run(command: MedicationCommands) -> Result<()> {
                     acquired_via.as_deref(),
                     evidence_level,
                     confidence,
-                ),
+                )?,
             })?;
             Ok(())
         }
