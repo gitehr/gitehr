@@ -9,6 +9,7 @@ use serde_yaml_ng::Value as YamlValue;
 use std::collections::{BTreeMap, BTreeSet};
 use uuid::Uuid;
 
+use super::typed_state::{Confidence, EvidenceLevel, Provenance, SourceType};
 use super::{contributor, typed_state};
 
 const STATE_FILE: &str = "conditions.md";
@@ -62,6 +63,16 @@ pub enum ConditionCommands {
         severity: Option<String>,
         #[arg(long, help = "Optional clinical note")]
         note: Option<String>,
+        #[arg(long, value_enum, help = "Provenance: where this assertion came from")]
+        source_type: Option<SourceType>,
+        #[arg(long, help = "Provenance: controller, portal, device or citation")]
+        source_detail: Option<String>,
+        #[arg(long, help = "Provenance: acquisition id (see `gitehr acquisitions`)")]
+        acquired_via: Option<String>,
+        #[arg(long, value_enum, help = "Provenance: strength of evidence")]
+        evidence_level: Option<EvidenceLevel>,
+        #[arg(long, value_enum, help = "Provenance: confidence in the assertion")]
+        confidence: Option<Confidence>,
     },
     #[command(about = "Mark a condition resolved")]
     Resolve {
@@ -191,6 +202,8 @@ pub struct Condition {
     pub recorded_at: String,
     pub recorded_by: Option<String>,
     pub note: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub provenance: Option<Provenance>,
     #[serde(flatten)]
     pub extra: BTreeMap<String, YamlValue>,
 }
@@ -214,6 +227,7 @@ pub struct ConditionInput {
     pub laterality: Option<Laterality>,
     pub severity: Option<String>,
     pub note: Option<String>,
+    pub provenance: Option<Provenance>,
 }
 
 pub fn run(command: ConditionCommands) -> Result<()> {
@@ -243,6 +257,11 @@ pub fn run(command: ConditionCommands) -> Result<()> {
             laterality,
             severity,
             note,
+            source_type,
+            source_detail,
+            acquired_via,
+            evidence_level,
+            confidence,
         } => {
             add(ConditionInput {
                 name,
@@ -255,6 +274,13 @@ pub fn run(command: ConditionCommands) -> Result<()> {
                 laterality,
                 severity,
                 note,
+                provenance: Provenance::from_parts(
+                    source_type,
+                    source_detail.as_deref(),
+                    acquired_via.as_deref(),
+                    evidence_level,
+                    confidence,
+                )?,
             })?;
             Ok(())
         }
@@ -341,6 +367,7 @@ pub fn add(input: ConditionInput) -> Result<Condition> {
         recorded_at: now.to_rfc3339(),
         recorded_by: contributor::get_current_contributor(),
         note: note.clone(),
+        provenance: input.provenance,
         extra: BTreeMap::new(),
     };
 

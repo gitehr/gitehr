@@ -56,6 +56,7 @@ conditions:
 - `severity` - optional free text (no fixed value set, unlike allergy severity).
 - `recorded_at` / `recorded_by` - GitEHR recording metadata.
 - `note` - optional clinical note.
+- `provenance` - optional source metadata: `source_type`, `source_detail`, `acquired_via`, `evidence_level`, and `confidence`. `source_type` is required whenever any other provenance field is present. See [`record-provenance-and-acquisition.md`](../record-provenance-and-acquisition.md).
 
 The stable JSON output uses the same field names and nullability as this YAML model.
 
@@ -91,7 +92,7 @@ gitehr conditions show <id> [--json]
 
 `list` shows current conditions by default: `clinical_status` is `active`, `recurrence`, `relapse`, or `remission`, and `verification_status` is neither `refuted` nor `entered-in-error`. `--all` includes every clinical and verification status. `--problems` only adds the category filter `category = problem-list-item`: alone it shows current problems; combined with `--all` it includes their history too.
 
-`add` writes `state/conditions.md` and a journal entry in one commit. `--name` must not be blank or whitespace-only. `--status` defaults to `active`, `--verification` to `unconfirmed`, `--category` to `problem-list-item`. The journal contains the action, condition identity, optional note, and a complete YAML snapshot of the newly recorded condition so the original assertion remains reconstructable independently of later state changes.
+`add` writes `state/conditions.md` and a journal entry in one commit. `--name` must not be blank or whitespace-only. `--status` defaults to `active`, `--verification` to `unconfirmed`, `--category` to `problem-list-item`. The provenance flags are `--source-type`, `--source-detail`, `--acquired-via`, `--evidence-level`, and `--confidence`; `--source-type` is required when supplying any of the other four. The journal contains the action, condition identity, optional note, and a complete YAML snapshot of the newly recorded condition so the original assertion remains reconstructable independently of later state changes.
 
 `resolve` never deletes a condition entry. It sets `clinical_status` to `resolved`, records abatement details, and writes a journal entry, preserving prior belief in Git history. `--date` defaults to today (UTC), must be a valid calendar date in exact, zero-padded `YYYY-MM-DD` format when given, and cannot precede the stored `onset` when that parses as a `YYYY-MM-DD` date. Repeated resolution is rejected so the original abatement date and reason cannot be overwritten. Resolving a condition with `verification_status` of `refuted` or `entered-in-error` is also rejected.
 
