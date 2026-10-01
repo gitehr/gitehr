@@ -48,6 +48,7 @@ fn condition_input() -> ConditionInput {
         laterality: None,
         severity: Some("moderate".to_string()),
         note: None,
+        provenance: None,
     }
 }
 
@@ -854,5 +855,35 @@ fn condition_partial_journal_write_failure_rolls_back_state_and_index() -> Resul
     assert_eq!(git(&["ls-files", "--stage"])?, index);
     assert_eq!(fs::read_dir("journal")?.count(), 1);
     assert_eq!(fs::read_dir("state")?.count(), 1);
+    Ok(())
+}
+
+#[test]
+#[serial]
+fn condition_add_records_provenance_only_when_supplied() -> Result<()> {
+    use gitehr::commands::typed_state::{EvidenceLevel, Provenance, SourceType};
+
+    let _temp_dir = setup_with_git()?;
+
+    let plain = add(condition_input())?;
+    assert!(plain.provenance.is_none());
+    assert!(!fs::read_to_string("state/conditions.md")?.contains("provenance"));
+
+    let sourced = add(ConditionInput {
+        provenance: Provenance::from_parts(
+            Some(SourceType::Sar),
+            Some("Example GP Practice"),
+            Some("ACQ-1"),
+            Some(EvidenceLevel::Documented),
+            None,
+        )?,
+        ..condition_input()
+    })?;
+    let state = fs::read_to_string("state/conditions.md")?;
+    assert!(state.contains("source_type: sar"));
+    assert!(state.contains("evidence_level: documented"));
+    let found = show(&sourced.id)?;
+    assert_eq!(found.provenance, sourced.provenance);
+    assert_eq!(found.provenance.as_ref().unwrap().confidence, None);
     Ok(())
 }
