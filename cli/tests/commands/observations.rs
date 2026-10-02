@@ -47,6 +47,7 @@ fn observation_input() -> ObservationInput {
         effective: Some("2026-06-03".to_string()),
         interpretation: None,
         note: None,
+        provenance: None,
     }
 }
 
@@ -843,5 +844,35 @@ fn observation_reads_and_mutations_refuse_live_and_dangling_state_symlinks() -> 
             }
         }
     }
+    Ok(())
+}
+
+#[test]
+#[serial]
+fn observation_add_records_provenance_only_when_supplied() -> Result<()> {
+    use gitehr::commands::typed_state::{EvidenceLevel, Provenance, SourceType};
+
+    let _temp_dir = setup_with_git()?;
+
+    let plain = add(observation_input())?;
+    assert!(plain.provenance.is_none());
+    assert!(!fs::read_to_string("state/observations.md")?.contains("provenance"));
+
+    let sourced = add(ObservationInput {
+        provenance: Provenance::from_parts(
+            Some(SourceType::Sar),
+            Some("Example GP Practice"),
+            Some("ACQ-1"),
+            Some(EvidenceLevel::Documented),
+            None,
+        )?,
+        ..observation_input()
+    })?;
+    let state = fs::read_to_string("state/observations.md")?;
+    assert!(state.contains("source_type: sar"));
+    assert!(state.contains("evidence_level: documented"));
+    let found = show(&sourced.id)?;
+    assert_eq!(found.provenance, sourced.provenance);
+    assert_eq!(found.provenance.as_ref().unwrap().confidence, None);
     Ok(())
 }
