@@ -59,6 +59,7 @@ observations:
 - `previous_interpretation` - the interpretation of the old result, preserved by `correct`; the current `interpretation` is cleared rather than silently applied to the new result.
 - `recorded_at` / `recorded_by` - GitEHR recording metadata.
 - `note` - optional clinical note.
+- `provenance` - optional source metadata: `source_type`, `source_detail`, `acquired_via`, `evidence_level`, and `confidence`. `source_type` is required whenever any other provenance field is present. See [`record-provenance-and-acquisition.md`](../record-provenance-and-acquisition.md).
 
 The stable JSON output uses the same field names and nullability as this YAML model.
 
@@ -97,7 +98,7 @@ gitehr observations show <id> [--json]
 
 "Current" does not mean recent or clinically verified. Historical, preliminary, and unknown-status readings remain visible, in stored order; there is no latest-per-measurement projection or date sorting.
 
-`add` writes `state/observations.md` and a journal entry in one commit. `--name` and `--value` must not be blank or whitespace-only. `--status` defaults to `final`. `--effective` is free text and is not strictly validated as a date; it must not be blank when supplied and defaults to the recording timestamp only when omitted. Historical readings require an explicit source measurement time or description of uncertainty to avoid that default. The journal contains the action, observation identity, optional note, and a complete YAML snapshot of the newly recorded observation so the original assertion remains reconstructable independently of later state changes.
+`add` writes `state/observations.md` and a journal entry in one commit. `--name` and `--value` must not be blank or whitespace-only. `--status` defaults to `final`. The provenance flags are `--source-type`, `--source-detail`, `--acquired-via`, `--evidence-level`, and `--confidence`; `--source-type` is required when supplying any of the other four. `--effective` is free text and is not strictly validated as a date; it must not be blank when supplied and defaults to the recording timestamp only when omitted. Historical readings require an explicit source measurement time or description of uncertainty to avoid that default. The journal contains the action, observation identity, optional note, and a complete YAML snapshot of the newly recorded observation so the original assertion remains reconstructable independently of later state changes.
 
 `correct` never deletes an observation entry. It replaces `value` (and, if given, `unit`), records the previous value/unit and an optional reason, sets `status` to `corrected`, and writes a journal entry with complete before/after YAML snapshots, preserving prior belief in Git history and the journal. The value and any supplied unit must not be blank, and the correction must change the value or unit. An observation that is already `corrected`, `cancelled`, or `entered-in-error`, or has any non-null `previous_value`, `previous_unit`, `previous_interpretation`, or `correction_reason`, cannot be corrected, so existing correction history cannot be overwritten even if its status was changed externally. The old interpretation is preserved as `previous_interpretation` and `interpretation` is cleared, not recalculated. Measurement time and original recording metadata are unchanged.
 
