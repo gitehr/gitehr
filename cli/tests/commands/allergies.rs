@@ -32,7 +32,7 @@ fn setup_with_git() -> Result<tempfile::TempDir> {
 fn allergy_add_writes_active_state_and_journal_entry() -> Result<()> {
     let _temp_dir = setup_with_git()?;
 
-    let allergy = add("Penicillin", "Rash", AllergySeverity::High, None)?;
+    let allergy = add("Penicillin", "Rash", AllergySeverity::High, None, None)?;
     assert!(allergy.id.starts_with("ALG-"));
 
     let active = list(false)?;
@@ -54,7 +54,7 @@ fn allergy_add_writes_active_state_and_journal_entry() -> Result<()> {
 fn allergy_inactive_hides_from_active_list_but_keeps_history() -> Result<()> {
     let _temp_dir = setup_with_git()?;
 
-    let allergy = add("Penicillin", "Rash", AllergySeverity::High, None)?;
+    let allergy = add("Penicillin", "Rash", AllergySeverity::High, None, None)?;
     inactive(&allergy.id, Some("Entered in error"))?;
 
     assert!(list(false)?.is_empty());
@@ -66,5 +66,33 @@ fn allergy_inactive_hides_from_active_list_but_keeps_history() -> Result<()> {
     let entries = parsed_entries()?;
     assert_eq!(entries.len(), 2);
 
+    Ok(())
+}
+
+#[test]
+#[serial]
+fn allergy_add_records_provenance_only_when_supplied() -> Result<()> {
+    use gitehr::commands::typed_state::{EvidenceLevel, Provenance, SourceType};
+
+    let _temp_dir = setup_with_git()?;
+
+    let plain = add("Penicillin", "Rash", AllergySeverity::High, None, None)?;
+    assert!(plain.provenance.is_none());
+
+    let provenance = Provenance::from_parts(
+        Some(SourceType::Sar),
+        Some("Example GP Practice"),
+        Some("ACQ-1"),
+        Some(EvidenceLevel::Documented),
+        None,
+    )?;
+    let sourced = add("Latex", "Hives", AllergySeverity::Low, None, provenance)?;
+    let state = std::fs::read_to_string("state/allergies.md")?;
+    assert!(state.contains("source_type: sar"));
+    let reloaded = list(false)?;
+    let found = reloaded.iter().find(|a| a.id == sourced.id).unwrap();
+    assert_eq!(found.provenance, sourced.provenance);
+    let plain_found = reloaded.iter().find(|a| a.id == plain.id).unwrap();
+    assert!(plain_found.provenance.is_none());
     Ok(())
 }
