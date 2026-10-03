@@ -17,11 +17,13 @@ Lists active allergies by default. Use `--all` to include inactive entries and
 ## gitehr allergies add
 
 ```text
-gitehr allergies add --agent <agent> --reaction <reaction> [--severity <severity>] [--note <text>]
+gitehr allergies add --agent <agent> --reaction <reaction> [--severity <severity>] [--note <text>] [--source-type <type>] [--source-detail <text>] [--acquired-via <acquisition-id>] [--evidence-level <level>] [--confidence <level>]
 ```
 
 Severity is one of `low`, `moderate`, `high`, or `critical`; default is
 `moderate`.
+
+The optional `--source-type` (`self-reported`, `clinician-asserted`, `portal-extracted`, `sar`, `paper-transcribed`, `device`, `inferred`), `--source-detail`, `--acquired-via`, `--evidence-level` (`documented`, `inferred`, `assumed`) and `--confidence` (`high`, `medium`, `low`) flags record a `provenance` block on the entry. `--source-type` is required when supplying any other provenance flag. The block is omitted when none is given.
 
 ## gitehr allergies inactive
 

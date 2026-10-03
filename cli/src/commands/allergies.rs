@@ -7,6 +7,7 @@ use clap::{Subcommand, ValueEnum};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+use super::typed_state::{Confidence, EvidenceLevel, Provenance, SourceType};
 use super::{contributor, git, journal, typed_state};
 
 const STATE_FILE: &str = "allergies.md";
@@ -30,6 +31,16 @@ pub enum AllergyCommands {
         severity: AllergySeverity,
         #[arg(long)]
         note: Option<String>,
+        #[arg(long, value_enum, help = "Provenance: where this assertion came from")]
+        source_type: Option<SourceType>,
+        #[arg(long, help = "Provenance: controller, portal, device or citation")]
+        source_detail: Option<String>,
+        #[arg(long, help = "Provenance: acquisition id (see `gitehr acquisitions`)")]
+        acquired_via: Option<String>,
+        #[arg(long, value_enum, help = "Provenance: strength of evidence")]
+        evidence_level: Option<EvidenceLevel>,
+        #[arg(long, value_enum, help = "Provenance: confidence in the assertion")]
+        confidence: Option<Confidence>,
     },
     #[command(about = "Mark an allergy inactive")]
     Inactive {
@@ -79,6 +90,8 @@ pub struct Allergy {
     pub inactive_at: Option<String>,
     pub inactive_reason: Option<String>,
     pub note: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub provenance: Option<Provenance>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -104,8 +117,20 @@ pub fn run(command: AllergyCommands) -> Result<()> {
             reaction,
             severity,
             note,
+            source_type,
+            source_detail,
+            acquired_via,
+            evidence_level,
+            confidence,
         } => {
-            add(&agent, &reaction, severity, note.as_deref())?;
+            let provenance = Provenance::from_parts(
+                source_type,
+                source_detail.as_deref(),
+                acquired_via.as_deref(),
+                evidence_level,
+                confidence,
+            )?;
+            add(&agent, &reaction, severity, note.as_deref(), provenance)?;
             Ok(())
         }
         AllergyCommands::Inactive { id, reason } => {
@@ -133,6 +158,7 @@ pub fn add(
     reaction: &str,
     severity: AllergySeverity,
     note: Option<&str>,
+    provenance: Option<Provenance>,
 ) -> Result<Allergy> {
     typed_state::ensure_gitehr_repository()?;
     let agent = require_text(agent, "--agent")?;
@@ -157,6 +183,7 @@ pub fn add(
         inactive_at: None,
         inactive_reason: None,
         note: note.and_then(cleaned_str),
+        provenance,
     };
 
     let mut state = load()?;

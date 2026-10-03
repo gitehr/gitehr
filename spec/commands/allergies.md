@@ -46,6 +46,13 @@ Adds an active allergy or adverse reaction.
 | `--reaction <reaction>` | Reaction text |
 | `--severity <severity>` | `low`, `moderate`, `high`, or `critical` (default `moderate`) |
 | `--note <text>` | Optional clinical note |
+| `--source-type <type>` | Provenance: `self-reported`, `clinician-asserted`, `portal-extracted`, `sar`, `paper-transcribed`, `device`, or `inferred` |
+| `--source-detail <text>` | Provenance: controller, portal, device or citation |
+| `--acquired-via <id>` | Provenance: acquisition id (see `gitehr acquisitions`) |
+| `--evidence-level <level>` | Provenance: `documented`, `inferred`, or `assumed` |
+| `--confidence <level>` | Provenance: `high`, `medium`, or `low` |
+
+`--source-type` is required when any other provenance option is given. The `provenance` block is optional and omitted from the entry (and from JSON output) when no provenance option is supplied. See [`record-provenance-and-acquisition.md`](../record-provenance-and-acquisition.md).
 
 Behavior:
 
