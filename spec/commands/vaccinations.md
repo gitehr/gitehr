@@ -66,6 +66,7 @@ vaccinations:
 - `entered_in_error_at` / `entered_in_error_reason` - correction metadata.
 - `note` - optional clinical note.
 - `fhir_r4` - optional embedded FHIR R4 `Immunization` JSON object.
+- `provenance` - optional source metadata: `source_type`, `source_detail`, `acquired_via`, `evidence_level`, and `confidence`. `source_type` is required whenever any other provenance field is present. See [`record-provenance-and-acquisition.md`](../record-provenance-and-acquisition.md).
 
 ## FHIR R4 / NHS FHIR
 
@@ -97,6 +98,8 @@ gitehr vaccinations list [--json] [--all]
 gitehr vaccinations add --vaccine <name> --date <YYYY-MM-DD> [OPTIONS]
 gitehr vaccinations entered-in-error <id> [--reason <text>]
 ```
+
+The provenance flags are `--source-type`, `--source-detail`, `--acquired-via`, `--evidence-level`, and `--confidence`; `--source-type` is required when supplying any of the other four.
 
 `list` hides `entered-in-error` entries by default. `--all` includes them.
 

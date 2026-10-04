@@ -40,6 +40,13 @@ Common options:
 | `--performer <text>` | Person or organisation administering |
 | `--fhir-json <path>` | FHIR R4 `Immunization` JSON resource to embed |
 | `--note <text>` | Optional journal narrative |
+| `--source-type <type>` | Provenance: `self-reported`, `clinician-asserted`, `portal-extracted`, `sar`, `paper-transcribed`, `device`, or `inferred` |
+| `--source-detail <text>` | Provenance: controller, portal, device or citation |
+| `--acquired-via <id>` | Provenance: acquisition id (see `gitehr acquisitions`) |
+| `--evidence-level <level>` | Provenance: `documented`, `inferred`, or `assumed` |
+| `--confidence <level>` | Provenance: `high`, `medium`, or `low` |
+
+`--source-type` is required when any other provenance option is given. The `provenance` block is omitted when none is supplied.
 
 Example:
 

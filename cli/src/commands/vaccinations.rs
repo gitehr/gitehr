@@ -9,6 +9,7 @@ use serde_json::Value as JsonValue;
 use std::path::PathBuf;
 use uuid::Uuid;
 
+use super::typed_state::{Confidence, EvidenceLevel, Provenance, SourceType};
 use super::{contributor, git, journal, typed_state};
 
 const STATE_FILE: &str = "vaccinations.md";
@@ -49,6 +50,16 @@ pub enum VaccinationCommands {
         fhir_json: Option<PathBuf>,
         #[arg(long, help = "Optional clinical note")]
         note: Option<String>,
+        #[arg(long, value_enum, help = "Provenance: where this assertion came from")]
+        source_type: Option<SourceType>,
+        #[arg(long, help = "Provenance: controller, portal, device or citation")]
+        source_detail: Option<String>,
+        #[arg(long, help = "Provenance: acquisition id (see `gitehr acquisitions`)")]
+        acquired_via: Option<String>,
+        #[arg(long, value_enum, help = "Provenance: strength of evidence")]
+        evidence_level: Option<EvidenceLevel>,
+        #[arg(long, value_enum, help = "Provenance: confidence in the assertion")]
+        confidence: Option<Confidence>,
     },
     #[command(about = "Mark a vaccination entry as entered in error")]
     EnteredInError {
@@ -96,6 +107,8 @@ pub struct Vaccination {
     pub entered_in_error_reason: Option<String>,
     pub note: Option<String>,
     pub fhir_r4: Option<JsonValue>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub provenance: Option<Provenance>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -118,6 +131,7 @@ pub struct VaccinationInput {
     pub performer: Option<String>,
     pub fhir_json: Option<PathBuf>,
     pub note: Option<String>,
+    pub provenance: Option<Provenance>,
 }
 
 pub fn run(command: VaccinationCommands) -> Result<()> {
@@ -145,7 +159,19 @@ pub fn run(command: VaccinationCommands) -> Result<()> {
             performer,
             fhir_json,
             note,
+            source_type,
+            source_detail,
+            acquired_via,
+            evidence_level,
+            confidence,
         } => {
+            let provenance = Provenance::from_parts(
+                source_type,
+                source_detail.as_deref(),
+                acquired_via.as_deref(),
+                evidence_level,
+                confidence,
+            )?;
             add(VaccinationInput {
                 vaccine,
                 date,
@@ -159,6 +185,7 @@ pub fn run(command: VaccinationCommands) -> Result<()> {
                 performer,
                 fhir_json,
                 note,
+                provenance,
             })?;
             Ok(())
         }
@@ -227,6 +254,7 @@ pub fn add(input: VaccinationInput) -> Result<Vaccination> {
         entered_in_error_reason: None,
         note: input.note.as_deref().and_then(cleaned_str),
         fhir_r4,
+        provenance: input.provenance,
     };
 
     let mut state = load()?;
