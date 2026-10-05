@@ -47,6 +47,7 @@ fn vaccination_input() -> VaccinationInput {
         performer: Some("Nurse Example".to_string()),
         fhir_json: None,
         note: None,
+        provenance: None,
     }
 }
 
@@ -129,5 +130,37 @@ fn vaccination_entered_in_error_hides_from_default_list() -> Result<()> {
     let entries = parsed_entries()?;
     assert_eq!(entries.len(), 2);
 
+    Ok(())
+}
+
+#[test]
+#[serial]
+fn vaccination_add_records_provenance_only_when_supplied() -> Result<()> {
+    use gitehr::commands::typed_state::{EvidenceLevel, Provenance, SourceType};
+
+    let _temp_dir = setup_with_git()?;
+
+    let plain = add(vaccination_input())?;
+    assert!(plain.provenance.is_none());
+
+    let provenance = Provenance::from_parts(
+        Some(SourceType::PortalExtracted),
+        Some("NHS App"),
+        Some("ACQ-1"),
+        Some(EvidenceLevel::Documented),
+        None,
+    )?;
+    let mut input = vaccination_input();
+    input.vaccine = "Influenza".to_string();
+    input.provenance = provenance;
+    let sourced = add(input)?;
+
+    let state = fs::read_to_string("state/vaccinations.md")?;
+    assert!(state.contains("source_type: portal-extracted"));
+    let reloaded = list(false)?;
+    let found = reloaded.iter().find(|v| v.id == sourced.id).unwrap();
+    assert_eq!(found.provenance, sourced.provenance);
+    let plain_found = reloaded.iter().find(|v| v.id == plain.id).unwrap();
+    assert!(plain_found.provenance.is_none());
     Ok(())
 }
