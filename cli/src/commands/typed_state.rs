@@ -7,7 +7,7 @@ use std::fs;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
-use super::{git, journal};
+use super::{document, git, journal};
 
 pub fn ensure_gitehr_repository() -> Result<()> {
     if !Path::new(".gitehr").exists() {
@@ -260,13 +260,73 @@ pub enum Confidence {
     Low,
 }
 
-/// Optional, reusable metadata about an assertion. `document_ref` from the
-/// spec is not yet modelled.
+/// Resolves a provenance document reference and anchors it using the same
+/// path and hash contract as journal Document references.
+fn resolve_document_ref(path: &str) -> Result<journal::DocumentRef> {
+    use std::path::Component;
+
+    let candidate = Path::new(path.trim());
+    let mut components = candidate.components();
+    let root_ok = matches!(
+        components.next(),
+        Some(Component::Normal(root)) if document::DOCUMENT_ROOTS.iter().any(|allowed| root == *allowed)
+    );
+    if !root_ok
+        || components.clone().next().is_none()
+        || !components.all(|component| matches!(component, Component::Normal(_)))
+    {
+        anyhow::bail!(
+            "--document-ref must be a relative path to a Document under documents/ or imaging/"
+        );
+    }
+    refuse_symlinked_path(candidate)?;
+    let metadata = fs::symlink_metadata(candidate)
+        .with_context(|| format!("Document {} not found", candidate.display()))?;
+    let sha256 = if metadata.file_type().is_file() {
+        document::hash_file(candidate)?
+    } else if metadata.file_type().is_dir() {
+        let manifest = candidate.join(document::MANIFEST_FILENAME);
+        refuse_symlinked_path(&manifest)?;
+        let manifest_metadata = fs::symlink_metadata(&manifest).with_context(|| {
+            format!(
+                "Directory Document {} has no {}",
+                candidate.display(),
+                document::MANIFEST_FILENAME
+            )
+        })?;
+        if !manifest_metadata.file_type().is_file() {
+            anyhow::bail!(
+                "Directory Document {} has an invalid {}",
+                candidate.display(),
+                document::MANIFEST_FILENAME
+            );
+        }
+        document::hash_file(&manifest)?
+    } else {
+        anyhow::bail!(
+            "--document-ref {} must be a regular file or manifest-backed directory Document",
+            candidate.display()
+        );
+    };
+    Ok(journal::DocumentRef {
+        path: candidate
+            .components()
+            .map(|component| component.as_os_str().to_string_lossy())
+            .collect::<Vec<_>>()
+            .join("/"),
+        sha256,
+        original_filename: None,
+    })
+}
+
+/// Optional, reusable metadata about an assertion.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, serde::Deserialize)]
 pub struct Provenance {
     pub source_type: Option<SourceType>,
     pub source_detail: Option<String>,
     pub acquired_via: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub document_ref: Option<journal::DocumentRef>,
     pub evidence_level: Option<EvidenceLevel>,
     pub confidence: Option<Confidence>,
 }
@@ -277,6 +337,7 @@ impl Provenance {
         source_type: Option<SourceType>,
         source_detail: Option<&str>,
         acquired_via: Option<&str>,
+        document_ref: Option<&str>,
         evidence_level: Option<EvidenceLevel>,
         confidence: Option<Confidence>,
     ) -> Result<Option<Self>> {
@@ -287,18 +348,25 @@ impl Provenance {
         };
         let source_detail = clean(source_detail);
         let acquired_via = clean(acquired_via);
+        let document_ref = clean(document_ref);
         if source_type.is_none()
             && (source_detail.is_some()
                 || acquired_via.is_some()
+                || document_ref.is_some()
                 || evidence_level.is_some()
                 || confidence.is_some())
         {
             anyhow::bail!("--source-type is required with other provenance metadata");
         }
+        let document_ref = document_ref
+            .as_deref()
+            .map(resolve_document_ref)
+            .transpose()?;
         let provenance = Provenance {
             source_type,
             source_detail,
             acquired_via,
+            document_ref,
             evidence_level,
             confidence,
         };
@@ -344,13 +412,14 @@ mod tests {
                 None,
                 Some("Example GP Practice"),
                 None,
+                None,
                 Some(EvidenceLevel::Documented),
                 None,
             )
             .is_err()
         );
         assert_eq!(
-            Provenance::from_parts(Some(SourceType::Sar), None, None, None, None).unwrap(),
+            Provenance::from_parts(Some(SourceType::Sar), None, None, None, None, None).unwrap(),
             Some(Provenance {
                 source_type: Some(SourceType::Sar),
                 ..Default::default()

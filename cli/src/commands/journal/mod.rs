@@ -103,7 +103,7 @@ pub struct JournalEntry {
 /// A reference from a journal entry to a Document in the record.
 /// The sha256 is a verifiability proof: for a file Document it hashes the
 /// file itself, for a directory Document it hashes the manifest (ADR-0003).
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DocumentRef {
     pub path: String,
     pub sha256: String,

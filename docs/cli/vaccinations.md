@@ -43,6 +43,7 @@ Common options:
 | `--source-type <type>` | Provenance: `self-reported`, `clinician-asserted`, `portal-extracted`, `sar`, `paper-transcribed`, `device`, or `inferred` |
 | `--source-detail <text>` | Provenance: controller, portal, device or citation |
 | `--acquired-via <id>` | Provenance: acquisition id (see `gitehr acquisitions`) |
+| `--document-ref <path>` | Provenance: regular-file or manifest-backed directory Document under `documents/` or `imaging/`; its SHA-256 is recorded |
 | `--evidence-level <level>` | Provenance: `documented`, `inferred`, or `assumed` |
 | `--confidence <level>` | Provenance: `high`, `medium`, or `low` |
 
