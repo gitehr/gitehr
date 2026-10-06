@@ -25,12 +25,12 @@ Lists current conditions by default: `clinical_status` is `active`, `recurrence`
 ## gitehr conditions add
 
 ```text
-gitehr conditions add --name <name> [--status <status>] [--verification <verification>] [--category <category>] [--onset <text>] [--code <code>] [--body-site <text>] [--laterality <laterality>] [--severity <text>] [--note <text>] [--source-type <type>] [--source-detail <text>] [--acquired-via <id>] [--evidence-level <level>] [--confidence <level>]
+gitehr conditions add --name <name> [--status <status>] [--verification <verification>] [--category <category>] [--onset <text>] [--code <code>] [--body-site <text>] [--laterality <laterality>] [--severity <text>] [--note <text>] [--source-type <type>] [--source-detail <text>] [--acquired-via <id>] [--document-ref <path>] [--evidence-level <level>] [--confidence <level>]
 ```
 
 `--status` defaults to `active`, `--verification` defaults to `unconfirmed`, `--category` defaults to `problem-list-item`. `--name` must not be blank or whitespace-only. `--onset` is free text (an ISO date, a year, "childhood", etc.) and is not strictly validated as a date. An optional note is appended to the generated audit narrative; it does not replace the action and condition identity. The add journal entry also contains a complete YAML snapshot of the newly recorded condition, preserving the original assertion independently of later state changes.
 
-The optional `--source-type` (`self-reported`, `clinician-asserted`, `portal-extracted`, `sar`, `paper-transcribed`, `device`, `inferred`), `--source-detail`, `--acquired-via`, `--evidence-level` (`documented`, `inferred`, `assumed`) and `--confidence` (`high`, `medium`, `low`) flags record a `provenance` block on the entry, so a documented fact can be told apart from an inference. `--source-type` is required when supplying any other provenance flag. The block is omitted entirely when none of these flags is given. `document_ref` is not yet supported.
+The optional `--source-type` (`self-reported`, `clinician-asserted`, `portal-extracted`, `sar`, `paper-transcribed`, `device`, `inferred`), `--source-detail`, `--acquired-via`, `--document-ref`, `--evidence-level` (`documented`, `inferred`, `assumed`) and `--confidence` (`high`, `medium`, `low`) flags record a `provenance` block on the entry, so a documented fact can be told apart from an inference. `--source-type` is required when supplying any other provenance flag. The block is omitted entirely when none of these flags is given. `--document-ref <path>` names an existing regular file under `documents/` or `imaging/` (no traversal, symlinks or directories) and records its path and SHA-256 as `document_ref`.
 
 ## gitehr conditions resolve
 

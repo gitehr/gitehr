@@ -874,6 +874,7 @@ fn condition_add_records_provenance_only_when_supplied() -> Result<()> {
             Some(SourceType::Sar),
             Some("Example GP Practice"),
             Some("ACQ-1"),
+            None,
             Some(EvidenceLevel::Documented),
             None,
         )?,

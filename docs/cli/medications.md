@@ -19,12 +19,12 @@ Lists active medications by default. Use `--all` to include stopped entries and 
 ## gitehr medications add
 
 ```text
-gitehr medications add --name <name> [--dose <dose>] [--route <route>] [--frequency <frequency>] [--indication <text>] [--prescriber <name>] [--started <YYYY-MM-DD>] [--supplement] [--note <text>] [--source-type <type>] [--source-detail <text>] [--acquired-via <acquisition-id>] [--evidence-level <level>] [--confidence <level>]
+gitehr medications add --name <name> [--dose <dose>] [--route <route>] [--frequency <frequency>] [--indication <text>] [--prescriber <name>] [--started <YYYY-MM-DD>] [--supplement] [--note <text>] [--source-type <type>] [--source-detail <text>] [--acquired-via <acquisition-id>] [--document-ref <path>] [--evidence-level <level>] [--confidence <level>]
 ```
 
 `--supplement` marks the entry as a supplement rather than a prescribed medication, so PHR/GUI views can distinguish the two. `--started`, when given, must be `YYYY-MM-DD`. An optional note is appended to the generated audit narrative; it does not replace the action and medication identity.
 
-The optional `--source-type` (`self-reported`, `clinician-asserted`, `portal-extracted`, `sar`, `paper-transcribed`, `device`, `inferred`), `--source-detail`, `--acquired-via`, `--evidence-level` (`documented`, `inferred`, `assumed`) and `--confidence` (`high`, `medium`, `low`) flags record a `provenance` block on the entry, so a documented fact can be told apart from an inference. `--source-type` is required when supplying any other provenance flag. The block is omitted entirely when none of these flags is given. `document_ref` is not yet supported.
+The optional `--source-type` (`self-reported`, `clinician-asserted`, `portal-extracted`, `sar`, `paper-transcribed`, `device`, `inferred`), `--source-detail`, `--acquired-via`, `--document-ref`, `--evidence-level` (`documented`, `inferred`, `assumed`) and `--confidence` (`high`, `medium`, `low`) flags record a `provenance` block on the entry, so a documented fact can be told apart from an inference. `--source-type` is required when supplying any other provenance flag. The block is omitted entirely when none of these flags is given. `--document-ref <path>` names an existing regular file under `documents/` or `imaging/` (no traversal, symlinks or directories) and records its path and SHA-256 as `document_ref`.
 
 ## gitehr medications stop
 

@@ -260,13 +260,69 @@ pub enum Confidence {
     Low,
 }
 
-/// Optional, reusable metadata about an assertion. `document_ref` from the
-/// spec is not yet modelled.
+/// The artifact that substantiates an assertion: a repository-relative path
+/// under `documents/` or `imaging/`, pinned by the SHA-256 of its content.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, serde::Deserialize)]
+pub struct DocumentRef {
+    pub path: String,
+    pub sha256: String,
+}
+
+impl DocumentRef {
+    /// Resolves `path` against the current repository root and hashes the file.
+    /// Only a regular file directly addressable under `documents/` or
+    /// `imaging/` is accepted; traversal, symlinks and directories are refused.
+    fn resolve(path: &str) -> Result<Self> {
+        use sha2::{Digest, Sha256};
+        use std::path::Component;
+
+        let candidate = Path::new(path.trim());
+        let mut components = candidate.components();
+        let root_ok = matches!(
+            components.next(),
+            Some(Component::Normal(root)) if root == "documents" || root == "imaging"
+        );
+        if !root_ok
+            || components.clone().next().is_none()
+            || !components.all(|c| matches!(c, Component::Normal(_)))
+        {
+            anyhow::bail!(
+                "--document-ref must be a relative path to a file under documents/ or imaging/"
+            );
+        }
+        refuse_symlinked_path(candidate)?;
+        let metadata = fs::metadata(candidate)
+            .with_context(|| format!("Document {} not found", candidate.display()))?;
+        if !metadata.is_file() {
+            anyhow::bail!(
+                "--document-ref {} is not a regular file (directory Documents are not supported)",
+                candidate.display()
+            );
+        }
+        let bytes = fs::read(candidate)
+            .with_context(|| format!("Failed to read {}", candidate.display()))?;
+        Ok(DocumentRef {
+            path: candidate
+                .components()
+                .map(|c| c.as_os_str().to_string_lossy())
+                .collect::<Vec<_>>()
+                .join("/"),
+            sha256: Sha256::digest(&bytes)
+                .iter()
+                .map(|b| format!("{b:02x}"))
+                .collect(),
+        })
+    }
+}
+
+/// Optional, reusable metadata about an assertion.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, serde::Deserialize)]
 pub struct Provenance {
     pub source_type: Option<SourceType>,
     pub source_detail: Option<String>,
     pub acquired_via: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub document_ref: Option<DocumentRef>,
     pub evidence_level: Option<EvidenceLevel>,
     pub confidence: Option<Confidence>,
 }
@@ -277,6 +333,7 @@ impl Provenance {
         source_type: Option<SourceType>,
         source_detail: Option<&str>,
         acquired_via: Option<&str>,
+        document_ref: Option<&str>,
         evidence_level: Option<EvidenceLevel>,
         confidence: Option<Confidence>,
     ) -> Result<Option<Self>> {
@@ -287,18 +344,25 @@ impl Provenance {
         };
         let source_detail = clean(source_detail);
         let acquired_via = clean(acquired_via);
+        let document_ref = clean(document_ref);
         if source_type.is_none()
             && (source_detail.is_some()
                 || acquired_via.is_some()
+                || document_ref.is_some()
                 || evidence_level.is_some()
                 || confidence.is_some())
         {
             anyhow::bail!("--source-type is required with other provenance metadata");
         }
+        let document_ref = document_ref
+            .as_deref()
+            .map(DocumentRef::resolve)
+            .transpose()?;
         let provenance = Provenance {
             source_type,
             source_detail,
             acquired_via,
+            document_ref,
             evidence_level,
             confidence,
         };
@@ -344,13 +408,14 @@ mod tests {
                 None,
                 Some("Example GP Practice"),
                 None,
+                None,
                 Some(EvidenceLevel::Documented),
                 None,
             )
             .is_err()
         );
         assert_eq!(
-            Provenance::from_parts(Some(SourceType::Sar), None, None, None, None).unwrap(),
+            Provenance::from_parts(Some(SourceType::Sar), None, None, None, None, None).unwrap(),
             Some(Provenance {
                 source_type: Some(SourceType::Sar),
                 ..Default::default()

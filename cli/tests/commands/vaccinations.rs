@@ -147,6 +147,7 @@ fn vaccination_add_records_provenance_only_when_supplied() -> Result<()> {
         Some(SourceType::PortalExtracted),
         Some("NHS App"),
         Some("ACQ-1"),
+        None,
         Some(EvidenceLevel::Documented),
         None,
     )?;

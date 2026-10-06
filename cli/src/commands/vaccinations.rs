@@ -56,6 +56,11 @@ pub enum VaccinationCommands {
         source_detail: Option<String>,
         #[arg(long, help = "Provenance: acquisition id (see `gitehr acquisitions`)")]
         acquired_via: Option<String>,
+        #[arg(
+            long,
+            help = "Provenance: existing file under documents/ or imaging/ that substantiates this (its sha256 is recorded)"
+        )]
+        document_ref: Option<String>,
         #[arg(long, value_enum, help = "Provenance: strength of evidence")]
         evidence_level: Option<EvidenceLevel>,
         #[arg(long, value_enum, help = "Provenance: confidence in the assertion")]
@@ -162,6 +167,7 @@ pub fn run(command: VaccinationCommands) -> Result<()> {
             source_type,
             source_detail,
             acquired_via,
+            document_ref,
             evidence_level,
             confidence,
         } => {
@@ -169,6 +175,7 @@ pub fn run(command: VaccinationCommands) -> Result<()> {
                 source_type,
                 source_detail.as_deref(),
                 acquired_via.as_deref(),
+                document_ref.as_deref(),
                 evidence_level,
                 confidence,
             )?;
