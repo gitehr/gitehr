@@ -23,7 +23,7 @@ gitehr allergies add --agent <agent> --reaction <reaction> [--severity <severity
 Severity is one of `low`, `moderate`, `high`, or `critical`; default is
 `moderate`.
 
-The optional `--source-type` (`self-reported`, `clinician-asserted`, `portal-extracted`, `sar`, `paper-transcribed`, `device`, `inferred`), `--source-detail`, `--acquired-via`, `--document-ref`, `--evidence-level` (`documented`, `inferred`, `assumed`) and `--confidence` (`high`, `medium`, `low`) flags record a `provenance` block on the entry. `--source-type` is required when supplying any other provenance flag. The block is omitted when none is given.
+The optional `--source-type` (`self-reported`, `clinician-asserted`, `portal-extracted`, `sar`, `paper-transcribed`, `device`, `inferred`), `--source-detail`, `--acquired-via`, `--document-ref`, `--evidence-level` (`documented`, `inferred`, `assumed`) and `--confidence` (`high`, `medium`, `low`) flags record a `provenance` block on the entry. `--source-type` is required when supplying any other provenance flag. The block is omitted when none is given. `--document-ref <path>` names an existing Document under `documents/` or `imaging/` (a regular file or manifest-backed directory) and records its path and SHA-256 as `document_ref`.
 
 ## gitehr allergies inactive
 

@@ -439,5 +439,52 @@ fn medication_provenance_document_ref_pins_file_sha256() -> Result<()> {
     assert!(
         Provenance::from_parts(None, None, None, Some("documents/letter.txt"), None, None).is_err()
     );
+
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::symlink;
+
+        std::fs::write("outside.txt", b"untrusted")?;
+        symlink("../outside.txt", "documents/link.txt")?;
+        assert!(
+            Provenance::from_parts(
+                Some(SourceType::Sar),
+                None,
+                None,
+                Some("documents/link.txt"),
+                None,
+                None,
+            )
+            .is_err()
+        );
+    }
+    Ok(())
+}
+
+#[test]
+#[serial]
+fn medication_provenance_document_ref_pins_directory_manifest() -> Result<()> {
+    use gitehr::commands::document::{MANIFEST_FILENAME, build_manifest};
+    use gitehr::commands::typed_state::{Provenance, SourceType};
+
+    let _temp_dir = setup_with_git()?;
+    std::fs::create_dir_all("imaging/study")?;
+    std::fs::write("imaging/study/scan.dcm", b"scan")?;
+    let (manifest, expected_sha256) = build_manifest(std::path::Path::new("imaging/study"))?;
+    std::fs::write(format!("imaging/study/{MANIFEST_FILENAME}"), manifest)?;
+
+    let provenance = Provenance::from_parts(
+        Some(SourceType::Sar),
+        None,
+        None,
+        Some("imaging/study"),
+        None,
+        None,
+    )?
+    .unwrap();
+    let document_ref = provenance.document_ref.unwrap();
+    assert_eq!(document_ref.path, "imaging/study");
+    assert_eq!(document_ref.sha256, expected_sha256);
+    assert!(document_ref.original_filename.is_none());
     Ok(())
 }

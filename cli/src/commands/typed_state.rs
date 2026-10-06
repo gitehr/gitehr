@@ -7,7 +7,7 @@ use std::fs;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
-use super::{git, journal};
+use super::{document, git, journal};
 
 pub fn ensure_gitehr_repository() -> Result<()> {
     if !Path::new(".gitehr").exists() {
@@ -260,59 +260,63 @@ pub enum Confidence {
     Low,
 }
 
-/// The artifact that substantiates an assertion: a repository-relative path
-/// under `documents/` or `imaging/`, pinned by the SHA-256 of its content.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, serde::Deserialize)]
-pub struct DocumentRef {
-    pub path: String,
-    pub sha256: String,
-}
+/// Resolves a provenance document reference and anchors it using the same
+/// path and hash contract as journal Document references.
+fn resolve_document_ref(path: &str) -> Result<journal::DocumentRef> {
+    use std::path::Component;
 
-impl DocumentRef {
-    /// Resolves `path` against the current repository root and hashes the file.
-    /// Only a regular file directly addressable under `documents/` or
-    /// `imaging/` is accepted; traversal, symlinks and directories are refused.
-    fn resolve(path: &str) -> Result<Self> {
-        use sha2::{Digest, Sha256};
-        use std::path::Component;
-
-        let candidate = Path::new(path.trim());
-        let mut components = candidate.components();
-        let root_ok = matches!(
-            components.next(),
-            Some(Component::Normal(root)) if root == "documents" || root == "imaging"
+    let candidate = Path::new(path.trim());
+    let mut components = candidate.components();
+    let root_ok = matches!(
+        components.next(),
+        Some(Component::Normal(root)) if document::DOCUMENT_ROOTS.iter().any(|allowed| root == *allowed)
+    );
+    if !root_ok
+        || components.clone().next().is_none()
+        || !components.all(|component| matches!(component, Component::Normal(_)))
+    {
+        anyhow::bail!(
+            "--document-ref must be a relative path to a Document under documents/ or imaging/"
         );
-        if !root_ok
-            || components.clone().next().is_none()
-            || !components.all(|c| matches!(c, Component::Normal(_)))
-        {
-            anyhow::bail!(
-                "--document-ref must be a relative path to a file under documents/ or imaging/"
-            );
-        }
-        refuse_symlinked_path(candidate)?;
-        let metadata = fs::metadata(candidate)
-            .with_context(|| format!("Document {} not found", candidate.display()))?;
-        if !metadata.is_file() {
-            anyhow::bail!(
-                "--document-ref {} is not a regular file (directory Documents are not supported)",
-                candidate.display()
-            );
-        }
-        let bytes = fs::read(candidate)
-            .with_context(|| format!("Failed to read {}", candidate.display()))?;
-        Ok(DocumentRef {
-            path: candidate
-                .components()
-                .map(|c| c.as_os_str().to_string_lossy())
-                .collect::<Vec<_>>()
-                .join("/"),
-            sha256: Sha256::digest(&bytes)
-                .iter()
-                .map(|b| format!("{b:02x}"))
-                .collect(),
-        })
     }
+    refuse_symlinked_path(candidate)?;
+    let metadata = fs::symlink_metadata(candidate)
+        .with_context(|| format!("Document {} not found", candidate.display()))?;
+    let sha256 = if metadata.file_type().is_file() {
+        document::hash_file(candidate)?
+    } else if metadata.file_type().is_dir() {
+        let manifest = candidate.join(document::MANIFEST_FILENAME);
+        refuse_symlinked_path(&manifest)?;
+        let manifest_metadata = fs::symlink_metadata(&manifest).with_context(|| {
+            format!(
+                "Directory Document {} has no {}",
+                candidate.display(),
+                document::MANIFEST_FILENAME
+            )
+        })?;
+        if !manifest_metadata.file_type().is_file() {
+            anyhow::bail!(
+                "Directory Document {} has an invalid {}",
+                candidate.display(),
+                document::MANIFEST_FILENAME
+            );
+        }
+        document::hash_file(&manifest)?
+    } else {
+        anyhow::bail!(
+            "--document-ref {} must be a regular file or manifest-backed directory Document",
+            candidate.display()
+        );
+    };
+    Ok(journal::DocumentRef {
+        path: candidate
+            .components()
+            .map(|component| component.as_os_str().to_string_lossy())
+            .collect::<Vec<_>>()
+            .join("/"),
+        sha256,
+        original_filename: None,
+    })
 }
 
 /// Optional, reusable metadata about an assertion.
@@ -322,7 +326,7 @@ pub struct Provenance {
     pub source_detail: Option<String>,
     pub acquired_via: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub document_ref: Option<DocumentRef>,
+    pub document_ref: Option<journal::DocumentRef>,
     pub evidence_level: Option<EvidenceLevel>,
     pub confidence: Option<Confidence>,
 }
@@ -356,7 +360,7 @@ impl Provenance {
         }
         let document_ref = document_ref
             .as_deref()
-            .map(DocumentRef::resolve)
+            .map(resolve_document_ref)
             .transpose()?;
         let provenance = Provenance {
             source_type,

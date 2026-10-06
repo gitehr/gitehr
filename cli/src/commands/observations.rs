@@ -66,7 +66,7 @@ pub enum ObservationCommands {
         acquired_via: Option<String>,
         #[arg(
             long,
-            help = "Provenance: existing file under documents/ or imaging/ that substantiates this (its sha256 is recorded)"
+            help = "Provenance: existing Document under documents/ or imaging/ that substantiates this (its sha256 is recorded)"
         )]
         document_ref: Option<String>,
         #[arg(long, value_enum, help = "Provenance: strength of evidence")]
