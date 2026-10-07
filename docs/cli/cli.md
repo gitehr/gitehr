@@ -15,13 +15,14 @@ Each command has its own page. Subcommands are sections within the parent comman
 
 | Command | Purpose |
 |---|---|
-| [`gitehr store`](store.md) | Manage the Store - subjects + MPI (`init`, `add`, `remove`, `list`) |
+| [`gitehr store`](store.md) | Manage the Store - subjects + MPI (`init`, `add`, `remove`, `list`, `search`, `link`, `unlink`, `merge`, `path`) |
 | [`gitehr config`](config.md) | Set local machine config such as the default Store path |
-| [`gitehr journal`](journal.md) | Append-only clinical journal (`add`, `show`, `cat`, `verify`) |
+| [`gitehr journal`](journal.md) | Append-only clinical journal (`add`, `list-entry`, `show`, `drafts`) |
 | [`gitehr document`](document.md) | Attach immutable source documents - PDFs, scans, imaging - referenced from journal entries |
 | [`gitehr import`](import.md) | Import journal entries or documents from a file or directory |
 | [`gitehr state`](state.md) | Mutable current state files (`list`, `get`, `set`) |
 | [`gitehr demographics`](demographics.md) | Typed patient demographics state for headers and automation |
+| [`gitehr acquisitions`](acquisitions.md) | Record-acquisition register (SARs, portal pulls, paper) and SAR letters |
 | [`gitehr allergies`](allergies.md) | Typed allergy/adverse-reaction state for clinical warning displays |
 | [`gitehr conditions`](conditions.md) | Typed condition and problem-list state for clinical summaries |
 | [`gitehr medications`](medications.md) | Typed medication state for prescribing and PHR display |
@@ -33,7 +34,7 @@ Each command has its own page. Subcommands are sections within the parent comman
 | [`gitehr encrypt`](encrypt.md) / [`gitehr decrypt`](decrypt.md) | Encryption markers (placeholder implementation) |
 | [`gitehr transport`](transport.md) | Bundle and unbundle the repository as a single archive |
 | [`gitehr gui`](gui.md) | Launch the bundled or system GUI |
-| [`gitehr upgrade`](upgrade.md) | Upgrade the repository and bundled binary |
+| [`gitehr upgrade`](upgrade.md) / [`gitehr upgrade-binary`](upgrade.md#gitehr-upgrade-binary) | Upgrade the repository and bundled binary, or refresh only the bundled binary |
 | [`gitehr version`](version.md) | Print the CLI and Git versions |
 | [`gitehr completions`](completions.md) | Generate shell completion scripts |
 | [`gitehr plugins`](plugins.md) | List installed `gitehr-*` plugins (Git-style `$PATH` extensibility) |

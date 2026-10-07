@@ -87,3 +87,7 @@ gitehr journal show 20260619T143012.123Z-<uuid>.md^    # one entry older than th
 
 - **Genesis without a false-genesis claim.** GitEHR has dropped per-entry front-matter linkage; tamper-evidence derives from Git history instead. A future refinement is to embed a random seed in the genesis entry's content together with a URL to an external genesis-registration record, so that the seed plus a registered, timestamped registration makes it computationally hard for anyone to fabricate an earlier "first" entry and backdate a false genesis claim.
 - **Shorter filename uniqueness token.** The `journal/<timestamp>-<uuid>.md` filename pairs a millisecond timestamp with a full UUID. Because the millisecond timestamp already provides strong uniqueness, the UUID could be shortened to a fragment of a hash or a short random suffix for shorter, more readable filenames.
+
+### `gitehr journal drafts [--approve <filename>] [--reject <filename>]`
+
+Reviews MCP-authored drafts ([ADR-0007](../adr/0007-mcp-writes-are-drafts-until-approved.md)). With no flags, lists pending uncommitted drafts (marked `mcp_draft: true` in front matter). `--approve <filename>` strips the draft marker, stages, and commits the entry; `--reject <filename>` deletes the uncommitted file. User-facing detail is in [`docs/cli/journal.md`](../../docs/cli/journal.md#gitehr-journal-drafts).
