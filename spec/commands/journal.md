@@ -44,6 +44,10 @@ gitehr journal show LATEST            # body of the most recent entry
 gitehr journal show LATEST^ --raw     # the previous entry, full file with front matter
 ```
 
+### `gitehr journal drafts [--approve <filename>] [--reject <filename>]`
+
+Reviews MCP-authored drafts ([ADR-0007](../adr/0007-mcp-writes-are-drafts-until-approved.md)). With no flags, lists pending uncommitted drafts (marked `mcp_draft: true` in front matter). `--approve <filename>` strips the draft marker, stages, and commits the entry; `--reject <filename>` deletes the uncommitted file. User-facing detail is in [`docs/cli/journal.md`](../../docs/cli/journal.md#gitehr-journal-drafts).
+
 ### Integrity
 
 There is no journal-specific verification subcommand. Each committed entry is its own Git commit, so the journal's history, ordering, and tamper-evidence derive from the underlying Git history rather than from a per-entry front-matter chain. A future repository policy checker may enforce the append-only and authorship invariants described in [`repository-verification.md`](../repository-verification.md).
