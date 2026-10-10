@@ -58,6 +58,7 @@ nav:
       - user: cli/user.md
       - remote: cli/remote.md
       - status: cli/status.md
+      - verify: cli/verify.md
       - encrypt: cli/encrypt.md
       - decrypt: cli/decrypt.md
       - transport: cli/transport.md

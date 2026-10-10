@@ -31,6 +31,7 @@ Each command has its own page. Subcommands are sections within the parent comman
 | [`gitehr user`](user.md) | Manage contributors and the active author |
 | [`gitehr remote`](remote.md) | Named remote repositories for sync |
 | [`gitehr status`](status.md) | Summarise the repository |
+| [`gitehr verify`](verify.md) | Check the Git history keeps the journal append-only |
 | [`gitehr encrypt`](encrypt.md) / [`gitehr decrypt`](decrypt.md) | Encryption markers (placeholder implementation) |
 | [`gitehr transport`](transport.md) | Bundle and unbundle the repository as a single archive |
 | [`gitehr gui`](gui.md) | Launch the bundled or system GUI |
