@@ -207,6 +207,8 @@ Restart your shell after installing completions."#
         #[command(subcommand)]
         command: VaccinationCommands,
     },
+    #[command(about = "Check that the Git history keeps the journal append-only")]
+    Verify,
     #[command(about = "Print the CLI and Git versions", visible_alias = "v")]
     Version,
     /// Run an installed `gitehr-<command>` plugin from PATH. Any subcommand
@@ -289,6 +291,7 @@ fn main() -> Result<()> {
         Commands::UpgradeBinary => commands::upgrade_binary::run()?,
         Commands::User { command } => commands::user::run(command)?,
         Commands::Vaccinations { command } => commands::vaccinations::run(command)?,
+        Commands::Verify => commands::verify::run()?,
         Commands::Version => commands::version::run(),
         Commands::External(args) => commands::plugin::run(args)?,
     }
@@ -398,6 +401,7 @@ fn apply_context(command: &mut Commands) -> Result<()> {
         | Commands::Encrypt { .. }
         | Commands::Decrypt { .. }
         | Commands::Status
+        | Commands::Verify
         | Commands::Transport { .. }
         | Commands::Document { .. }
         | Commands::Import { .. }

@@ -31,4 +31,5 @@ pub mod upgrade;
 pub mod upgrade_binary;
 pub mod user;
 pub mod vaccinations;
+pub mod verify;
 pub mod version;

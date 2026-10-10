@@ -59,7 +59,7 @@ The calculator engine lives in [clincalc](https://github.com/pacharanero/clincal
 
 ## Security and Integrity
 
-- [ ] **R40 - Design the repository policy checker and server-side guardian:** enforce append-only journal and authorised-authorship invariants as described in [`repository-verification.md`](repository-verification.md).
+- [~] **R40 - Design the repository policy checker and server-side guardian:** `gitehr verify` now ships the client-side append-only check (no commit modifies, deletes or renames a `journal/` file; `cli/src/commands/verify.rs`). Still to do: history-rewrite detection, authorised-authorship checks, and the server-side `pre-receive` guardian. Enforce append-only journal and authorised-authorship invariants as described in [`repository-verification.md`](repository-verification.md).
 - [ ] **R41 - Add hardware-backed contributor signing credentials:** support YubiKey/PIV/smartcard, TPM-backed keys, Secure Enclave, or equivalent, including recovery and revocation.
 - [ ] **R42 - Evaluate gittuf:** assess whether its policy-controlled refs, signed access, and rollback/rewrite protection should provide the server-side guardian.
 - [ ] **R67 - Decide encryption at rest and record an ADR:** choose the encryption boundary, integrity semantics, key custody and recipient lifecycle, FIPS requirement, AEAD, and acceptable metadata leakage (see [`encryption-at-rest.md`](encryption-at-rest.md)).
