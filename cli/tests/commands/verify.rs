@@ -11,12 +11,65 @@ use gitehr::commands::verify::check_append_only;
 
 fn git(args: &[&str]) {
     let ok = Command::new("git")
-        .args(["-c", "user.name=t", "-c", "user.email=t@t"])
+        .args([
+            "-c",
+            "commit.gpgsign=false",
+            "-c",
+            "user.name=t",
+            "-c",
+            "user.email=t@t",
+        ])
         .args(args)
         .status()
         .unwrap()
         .success();
     assert!(ok, "git {args:?} failed");
+}
+
+#[test]
+#[serial]
+fn detects_changes_to_a_journal_path_git_would_quote() -> Result<()> {
+    let dir = tempdir()?;
+    std::env::set_current_dir(&dir)?;
+    git(&["init", "-q"]);
+
+    fs::create_dir("journal")?;
+    let path = "journal/entry\nwith-newline.md";
+    fs::write(path, "one")?;
+    git(&["add", "."]);
+    git(&["commit", "-qm", "add"]);
+
+    fs::write(path, "changed")?;
+    git(&["commit", "-qam", "edit"]);
+
+    let violations = check_append_only()?;
+    assert_eq!(violations.len(), 1);
+    assert_eq!(violations[0].change, 'M');
+    assert_eq!(violations[0].path, path);
+    Ok(())
+}
+
+#[test]
+#[serial]
+fn detects_renamed_entries() -> Result<()> {
+    let dir = tempdir()?;
+    std::env::set_current_dir(&dir)?;
+    git(&["init", "-q"]);
+
+    fs::create_dir("journal")?;
+    fs::write("journal/original.md", "one")?;
+    git(&["add", "."]);
+    git(&["commit", "-qm", "add"]);
+
+    fs::rename("journal/original.md", "journal/renamed.md")?;
+    git(&["add", "-A"]);
+    git(&["commit", "-qm", "rename"]);
+
+    let violations = check_append_only()?;
+    assert_eq!(violations.len(), 1);
+    assert_eq!(violations[0].change, 'D');
+    assert_eq!(violations[0].path, "journal/original.md");
+    Ok(())
 }
 
 #[test]
