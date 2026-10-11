@@ -2,9 +2,10 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 //! Client-side policy check over Git history (R40, see
-//! `spec/repository-verification.md`). Currently asserts one invariant:
-//! no commit ever modified, deleted, or renamed a committed journal entry
-//! (ADR-0002, the record only grows). Object integrity is left to `git fsck`.
+//! `spec/repository-verification.md`). Asserts two invariants: no commit ever
+//! modified, deleted, or renamed a committed journal entry (ADR-0002, the
+//! record only grows), and journal entries are added in filename (timestamp)
+//! order. Object integrity is left to `git fsck`.
 
 use anyhow::{Context, Result};
 use std::process::Command;
@@ -17,20 +18,42 @@ pub struct Violation {
 }
 
 /// Parse NUL-delimited `git log --name-status --no-renames` output into the
-/// journal changes that are not additions. `-z` preserves unusual pathnames
+/// journal changes that are not additions, plus additions that sort before an
+/// earlier-added entry (change `O`). `-z` preserves unusual pathnames
 /// instead of Git's quoted display form, so a pathname cannot evade the check.
 fn parse_violations(log: &[u8]) -> Vec<Violation> {
     let mut violations = Vec::new();
     let mut commit = String::new();
     let mut pending_change = None;
+    let mut latest_added: Option<String> = None;
     for field in log.split(|byte| *byte == b'\0') {
         if let Some(change) = pending_change.take() {
-            if change != 'A' && field.starts_with(b"journal/") {
-                violations.push(Violation {
-                    commit: commit.clone(),
-                    change,
-                    path: String::from_utf8_lossy(field).into_owned(),
-                });
+            if field.starts_with(b"journal/") {
+                let path = String::from_utf8_lossy(field).into_owned();
+                if change != 'A' {
+                    violations.push(Violation {
+                        commit: commit.clone(),
+                        change,
+                        path,
+                    });
+                } else {
+                    if latest_added
+                        .as_deref()
+                        .is_some_and(|latest| path.as_str() < latest)
+                    {
+                        violations.push(Violation {
+                            commit: commit.clone(),
+                            change: 'O',
+                            path: path.clone(),
+                        });
+                    }
+                    if latest_added
+                        .as_deref()
+                        .is_none_or(|latest| path.as_str() > latest)
+                    {
+                        latest_added = Some(path);
+                    }
+                }
             }
             continue;
         }
@@ -79,7 +102,7 @@ pub fn check_append_only() -> Result<Vec<Violation>> {
 pub fn run() -> Result<()> {
     let violations = check_append_only()?;
     if violations.is_empty() {
-        println!("OK: no committed journal entry has been modified or deleted.");
+        println!("OK: journal history is append-only and in timestamp order.");
         return Ok(());
     }
     for v in &violations {
@@ -87,13 +110,14 @@ pub fn run() -> Result<()> {
             'M' => "modified",
             'D' => "deleted",
             'T' => "type-changed",
+            'O' => "added out of timestamp order",
             _ => "altered",
         };
         let short = &v.commit[..v.commit.len().min(12)];
         eprintln!("FAIL: {} {} in commit {}", v.path, kind, short);
     }
     anyhow::bail!(
-        "{} append-only violation(s) found in journal history",
+        "{} journal history violation(s) found in journal history",
         violations.len()
     )
 }
@@ -110,6 +134,14 @@ mod tests {
         assert_eq!(v[0].change, 'M');
         assert_eq!(v[1].change, 'D');
         assert_eq!(v[1].commit, "bbb");
+    }
+
+    #[test]
+    fn flags_an_entry_added_out_of_order() {
+        let log = b"\x01aaa\0\0\nA\0journal/2026-02.md\0\x01bbb\0\0\nA\0journal/2026-01.md\0\x01ccc\0\0\nA\0journal/2026-03.md\0";
+        let v = parse_violations(log);
+        assert_eq!(v.len(), 1);
+        assert_eq!((v[0].change, v[0].commit.as_str()), ('O', "bbb"));
     }
 
     #[test]

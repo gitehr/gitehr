@@ -102,3 +102,27 @@ fn detects_modified_and_deleted_entries() -> Result<()> {
     assert_eq!((v[1].change, v[1].path.as_str()), ('D', "journal/b.md"));
     Ok(())
 }
+
+#[test]
+#[serial]
+fn detects_entries_added_out_of_order() -> Result<()> {
+    let dir = tempdir()?;
+    std::env::set_current_dir(&dir)?;
+    git(&["init", "-q"]);
+
+    fs::create_dir("journal")?;
+    fs::write("journal/2026-02.md", "two")?;
+    git(&["add", "."]);
+    git(&["commit", "-qm", "add 02"]);
+    fs::write("journal/2026-01.md", "one")?;
+    git(&["add", "."]);
+    git(&["commit", "-qm", "add 01"]);
+
+    let v = check_append_only()?;
+    assert_eq!(v.len(), 1);
+    assert_eq!(
+        (v[0].change, v[0].path.as_str()),
+        ('O', "journal/2026-01.md")
+    );
+    Ok(())
+}
