@@ -99,7 +99,7 @@ gitehr vaccinations add --vaccine <name> --date <YYYY-MM-DD> [OPTIONS]
 gitehr vaccinations entered-in-error <id> [--reason <text>]
 ```
 
-The provenance flags are `--source-type`, `--source-detail`, `--acquired-via`, `--evidence-level`, and `--confidence`; `--source-type` is required when supplying any of the other four.
+The provenance flags are `--source-type`, `--source-detail`, `--acquired-via`, `--document-ref` (an existing file under `documents/` or `imaging/`; its path and SHA-256 are recorded), `--evidence-level`, and `--confidence`; `--source-type` is required when supplying any of the other five.
 
 `list` hides `entered-in-error` entries by default. `--all` includes them.
 
