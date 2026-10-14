@@ -83,7 +83,7 @@ gitehr medications stop <id> [--date <YYYY-MM-DD>] [--reason <text>]
 
 `list` hides `stopped` entries by default. `--all` includes them.
 
-`add` writes `state/medications.md` and a journal entry in one commit. `--started`, when given, must use `YYYY-MM-DD`. The provenance flags are `--source-type`, `--source-detail`, `--acquired-via`, `--evidence-level`, and `--confidence`; `--source-type` is required when supplying any of the other four.
+`add` writes `state/medications.md` and a journal entry in one commit. `--started`, when given, must use `YYYY-MM-DD`. The provenance flags are `--source-type`, `--source-detail`, `--acquired-via`, `--document-ref` (an existing file under `documents/` or `imaging/`; its path and SHA-256 are recorded), `--evidence-level`, and `--confidence`; `--source-type` is required when supplying any of the other five.
 
 `stop` never deletes a medication entry. It changes the current state row and writes a journal entry, preserving prior belief in Git history. `--date` defaults to today, must use `YYYY-MM-DD`, and cannot precede `started`. Repeated stopping is rejected so the original stop date and reason cannot be overwritten.
 

@@ -69,7 +69,7 @@ The calculator engine lives in [clincalc](https://github.com/pacharanero/clincal
 
 ## Documentation and Operations
 
-- [~] **R43 - Keep command documentation aligned with runtime behaviour.** 2026-10-07 audit of every command's subcommands against `docs/cli/` and `spec/commands/`: fixed the CLI overview table (stale `journal verify`, missing `acquisitions`, `upgrade-binary`, Store subcommands) and the missing `journal drafts` spec. Ongoing - flag-level drift is not yet audited.
+- [~] **R43 - Keep command documentation aligned with runtime behaviour.** 2026-10-07 audit of every command's subcommands against `docs/cli/` and `spec/commands/`: fixed the CLI overview table (stale `journal verify`, missing `acquisitions`, `upgrade-binary`, Store subcommands) and the missing `journal drafts` spec. 2026-10-14 flag-level audit (every `--flag` in `--help` against `docs/cli/` and `spec/commands/`): fixed `medications`/`vaccinations` specs omitting `--document-ref`; remaining gaps are specs that describe fields rather than flags, which is acceptable. Ongoing - argument-value and behaviour drift is not yet audited.
 - [ ] **R44 - Expand user-facing documentation:** installation, CLI reference, GUI walkthroughs, TUI, safety/Turva, and troubleshooting.
 - [ ] **R45 - Document CLI/GUI packaging, upgrade, and migration compatibility.**
 - [x] **R46 - Add a calculator usage guide:** include clinical examples and validation references. Published as [`docs/cli/clincalc.md`](../docs/cli/clincalc.md), now linked from CLI nav.
