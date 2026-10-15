@@ -7,7 +7,7 @@ use std::fs;
 use std::process::Command;
 use tempfile::tempdir;
 
-use gitehr::commands::verify::check_append_only;
+use gitehr::commands::verify::{check_append_only, check_history_rewrite};
 
 fn git(args: &[&str]) {
     let ok = Command::new("git")
@@ -100,5 +100,47 @@ fn detects_modified_and_deleted_entries() -> Result<()> {
     assert_eq!(v.len(), 2);
     assert_eq!((v[0].change, v[0].path.as_str()), ('M', "journal/a.md"));
     assert_eq!((v[1].change, v[1].path.as_str()), ('D', "journal/b.md"));
+    Ok(())
+}
+
+#[test]
+#[serial]
+fn no_upstream_means_no_rewrite_findings() -> Result<()> {
+    let dir = tempdir()?;
+    std::env::set_current_dir(&dir)?;
+    git(&["init", "-q"]);
+    assert!(check_history_rewrite()?.is_empty());
+    fs::write("a.md", "one")?;
+    git(&["add", "."]);
+    git(&["commit", "-qm", "add"]);
+    assert!(check_history_rewrite()?.is_empty());
+    Ok(())
+}
+
+#[test]
+#[serial]
+fn detects_divergence_from_upstream_after_a_rewrite() -> Result<()> {
+    let dir = tempdir()?;
+    let remote = dir.path().join("remote.git");
+    let work = dir.path().join("work");
+    git(&["init", "-q", "--bare", remote.to_str().unwrap()]);
+    git(&["init", "-q", work.to_str().unwrap()]);
+    std::env::set_current_dir(&work)?;
+    git(&["checkout", "-qb", "main"]);
+    fs::write("a.md", "one")?;
+    git(&["add", "."]);
+    git(&["commit", "-qm", "one"]);
+    fs::write("a.md", "two")?;
+    git(&["commit", "-qam", "two"]);
+    git(&["remote", "add", "origin", remote.to_str().unwrap()]);
+    git(&["push", "-q", "-u", "origin", "main"]);
+    assert!(check_history_rewrite()?.is_empty());
+
+    // Rewrite the last commit locally: now diverged from origin/main.
+    fs::write("a.md", "rewritten")?;
+    git(&["commit", "-qa", "--amend", "-m", "two'"]);
+    let findings = check_history_rewrite()?;
+    assert_eq!(findings.len(), 1, "{findings:?}");
+    assert!(findings[0].contains("diverged"));
     Ok(())
 }

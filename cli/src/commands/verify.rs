@@ -4,7 +4,9 @@
 //! Client-side policy check over Git history (R40, see
 //! `spec/repository-verification.md`). Currently asserts one invariant:
 //! no commit ever modified, deleted, or renamed a committed journal entry
-//! (ADR-0002, the record only grows). Object integrity is left to `git fsck`.
+//! (ADR-0002, the record only grows). It also flags likely history rewrites
+//! against the branch's upstream: divergence from it, or a forced update of
+//! its remote-tracking ref. Object integrity is left to `git fsck`.
 
 use anyhow::{Context, Result};
 use std::process::Command;
@@ -76,9 +78,52 @@ pub fn check_append_only() -> Result<Vec<Violation>> {
     Ok(parse_violations(&output.stdout))
 }
 
+/// Run git, returning trimmed stdout on success and `None` on any failure.
+fn git_stdout(args: &[&str]) -> Option<String> {
+    let output = Command::new("git").args(args).output().ok()?;
+    output
+        .status
+        .success()
+        .then(|| String::from_utf8_lossy(&output.stdout).trim().to_string())
+}
+
+/// Detect signs of a history rewrite relative to the current branch's
+/// upstream. Returns one human-readable finding per problem; a branch with no
+/// upstream (or a repository with no commits) has nothing to compare and
+/// yields none.
+pub fn check_history_rewrite() -> Result<Vec<String>> {
+    let mut findings = Vec::new();
+    let Some(upstream) = git_stdout(&["rev-parse", "--abbrev-ref", "@{upstream}"]) else {
+        return Ok(findings);
+    };
+    let is_ancestor = |a: &str, b: &str| {
+        Command::new("git")
+            .args(["merge-base", "--is-ancestor", a, b])
+            .status()
+            .map(|s| s.success())
+            .unwrap_or(false)
+    };
+    if !is_ancestor(&upstream, "HEAD") && !is_ancestor("HEAD", &upstream) {
+        findings.push(format!(
+            "HEAD and {upstream} have diverged (history was rewritten or written concurrently)"
+        ));
+    }
+    let reflog = git_stdout(&["reflog", "show", "--format=%gs", &upstream]).unwrap_or_default();
+    if reflog.lines().any(|l| l.contains("forced-update")) {
+        findings.push(format!(
+            "{upstream} was force-updated at some point (its reflog records a forced-update)"
+        ));
+    }
+    Ok(findings)
+}
+
 pub fn run() -> Result<()> {
     let violations = check_append_only()?;
-    if violations.is_empty() {
+    let rewrites = check_history_rewrite()?;
+    for finding in &rewrites {
+        eprintln!("FAIL: {finding}");
+    }
+    if violations.is_empty() && rewrites.is_empty() {
         println!("OK: no committed journal entry has been modified or deleted.");
         return Ok(());
     }
@@ -93,8 +138,9 @@ pub fn run() -> Result<()> {
         eprintln!("FAIL: {} {} in commit {}", v.path, kind, short);
     }
     anyhow::bail!(
-        "{} append-only violation(s) found in journal history",
-        violations.len()
+        "{} append-only violation(s) and {} history-rewrite finding(s)",
+        violations.len(),
+        rewrites.len()
     )
 }
 
