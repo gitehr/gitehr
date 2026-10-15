@@ -4,10 +4,12 @@
 //! Client-side policy check over Git history (R40, see
 //! `spec/repository-verification.md`). Currently asserts one invariant:
 //! no commit ever modified, deleted, or renamed a committed journal entry
-//! (ADR-0002, the record only grows). Object integrity is left to `git fsck`.
+//! (ADR-0002, the record only grows). It also flags likely history rewrites
+//! against the branch's upstream: divergence from it, or a forced update of
+//! its remote-tracking ref. Object integrity is left to `git fsck`.
 
 use anyhow::{Context, Result};
-use std::process::Command;
+use std::process::{Command, Output};
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Violation {
@@ -76,9 +78,87 @@ pub fn check_append_only() -> Result<Vec<Violation>> {
     Ok(parse_violations(&output.stdout))
 }
 
+fn git_output(args: &[&str]) -> Result<Output> {
+    Command::new("git")
+        .args(args)
+        .output()
+        .with_context(|| format!("Failed to run git {}", args.join(" ")))
+}
+
+fn git_stdout(args: &[&str]) -> Result<String> {
+    let output = git_output(args)?;
+    if !output.status.success() {
+        anyhow::bail!(
+            "git {} failed: {}",
+            args.join(" "),
+            String::from_utf8_lossy(&output.stderr).trim()
+        );
+    }
+    Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
+}
+
+fn upstream() -> Result<Option<String>> {
+    let output = git_output(&["symbolic-ref", "--quiet", "--short", "HEAD"])?;
+    if output.status.code() == Some(1) {
+        return Ok(None);
+    }
+    if !output.status.success() {
+        anyhow::bail!(
+            "git symbolic-ref failed: {}",
+            String::from_utf8_lossy(&output.stderr).trim()
+        );
+    }
+    let branch = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    let upstream = git_stdout(&[
+        "for-each-ref",
+        "--format=%(upstream:short)",
+        &format!("refs/heads/{branch}"),
+    ])?;
+    Ok((!upstream.is_empty()).then_some(upstream))
+}
+
+fn is_ancestor(ancestor: &str, descendant: &str) -> Result<bool> {
+    let output = git_output(&["merge-base", "--is-ancestor", ancestor, descendant])?;
+    match output.status.code() {
+        Some(0) => Ok(true),
+        Some(1) => Ok(false),
+        _ => anyhow::bail!(
+            "git merge-base failed: {}",
+            String::from_utf8_lossy(&output.stderr).trim()
+        ),
+    }
+}
+
+/// Detect signs of a history rewrite relative to the current branch's
+/// upstream. Returns one human-readable finding per problem; a branch with no
+/// upstream (or a repository with no commits) has nothing to compare and
+/// yields none.
+pub fn check_history_rewrite() -> Result<Vec<String>> {
+    let mut findings = Vec::new();
+    let Some(upstream) = upstream()? else {
+        return Ok(findings);
+    };
+    if !is_ancestor(&upstream, "HEAD")? && !is_ancestor("HEAD", &upstream)? {
+        findings.push(format!(
+            "HEAD and {upstream} have diverged (history was rewritten or written concurrently)"
+        ));
+    }
+    let reflog = git_stdout(&["reflog", "show", "--format=%gs", &upstream])?;
+    if reflog.lines().any(|l| l.contains("forced-update")) {
+        findings.push(format!(
+            "{upstream} was force-updated at some point (its reflog records a forced-update)"
+        ));
+    }
+    Ok(findings)
+}
+
 pub fn run() -> Result<()> {
     let violations = check_append_only()?;
-    if violations.is_empty() {
+    let rewrites = check_history_rewrite()?;
+    for finding in &rewrites {
+        eprintln!("FAIL: {finding}");
+    }
+    if violations.is_empty() && rewrites.is_empty() {
         println!("OK: no committed journal entry has been modified or deleted.");
         return Ok(());
     }
@@ -93,8 +173,9 @@ pub fn run() -> Result<()> {
         eprintln!("FAIL: {} {} in commit {}", v.path, kind, short);
     }
     anyhow::bail!(
-        "{} append-only violation(s) found in journal history",
-        violations.len()
+        "{} append-only violation(s) and {} history-rewrite finding(s)",
+        violations.len(),
+        rewrites.len()
     )
 }
 
