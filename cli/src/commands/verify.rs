@@ -9,7 +9,7 @@
 //! its remote-tracking ref. Object integrity is left to `git fsck`.
 
 use anyhow::{Context, Result};
-use std::process::Command;
+use std::process::{Command, Output};
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Violation {
@@ -78,13 +78,55 @@ pub fn check_append_only() -> Result<Vec<Violation>> {
     Ok(parse_violations(&output.stdout))
 }
 
-/// Run git, returning trimmed stdout on success and `None` on any failure.
-fn git_stdout(args: &[&str]) -> Option<String> {
-    let output = Command::new("git").args(args).output().ok()?;
-    output
-        .status
-        .success()
-        .then(|| String::from_utf8_lossy(&output.stdout).trim().to_string())
+fn git_output(args: &[&str]) -> Result<Output> {
+    Command::new("git")
+        .args(args)
+        .output()
+        .with_context(|| format!("Failed to run git {}", args.join(" ")))
+}
+
+fn git_stdout(args: &[&str]) -> Result<String> {
+    let output = git_output(args)?;
+    if !output.status.success() {
+        anyhow::bail!(
+            "git {} failed: {}",
+            args.join(" "),
+            String::from_utf8_lossy(&output.stderr).trim()
+        );
+    }
+    Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
+}
+
+fn upstream() -> Result<Option<String>> {
+    let output = git_output(&["symbolic-ref", "--quiet", "--short", "HEAD"])?;
+    if output.status.code() == Some(1) {
+        return Ok(None);
+    }
+    if !output.status.success() {
+        anyhow::bail!(
+            "git symbolic-ref failed: {}",
+            String::from_utf8_lossy(&output.stderr).trim()
+        );
+    }
+    let branch = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    let upstream = git_stdout(&[
+        "for-each-ref",
+        "--format=%(upstream:short)",
+        &format!("refs/heads/{branch}"),
+    ])?;
+    Ok((!upstream.is_empty()).then_some(upstream))
+}
+
+fn is_ancestor(ancestor: &str, descendant: &str) -> Result<bool> {
+    let output = git_output(&["merge-base", "--is-ancestor", ancestor, descendant])?;
+    match output.status.code() {
+        Some(0) => Ok(true),
+        Some(1) => Ok(false),
+        _ => anyhow::bail!(
+            "git merge-base failed: {}",
+            String::from_utf8_lossy(&output.stderr).trim()
+        ),
+    }
 }
 
 /// Detect signs of a history rewrite relative to the current branch's
@@ -93,22 +135,15 @@ fn git_stdout(args: &[&str]) -> Option<String> {
 /// yields none.
 pub fn check_history_rewrite() -> Result<Vec<String>> {
     let mut findings = Vec::new();
-    let Some(upstream) = git_stdout(&["rev-parse", "--abbrev-ref", "@{upstream}"]) else {
+    let Some(upstream) = upstream()? else {
         return Ok(findings);
     };
-    let is_ancestor = |a: &str, b: &str| {
-        Command::new("git")
-            .args(["merge-base", "--is-ancestor", a, b])
-            .status()
-            .map(|s| s.success())
-            .unwrap_or(false)
-    };
-    if !is_ancestor(&upstream, "HEAD") && !is_ancestor("HEAD", &upstream) {
+    if !is_ancestor(&upstream, "HEAD")? && !is_ancestor("HEAD", &upstream)? {
         findings.push(format!(
             "HEAD and {upstream} have diverged (history was rewritten or written concurrently)"
         ));
     }
-    let reflog = git_stdout(&["reflog", "show", "--format=%gs", &upstream]).unwrap_or_default();
+    let reflog = git_stdout(&["reflog", "show", "--format=%gs", &upstream])?;
     if reflog.lines().any(|l| l.contains("forced-update")) {
         findings.push(format!(
             "{upstream} was force-updated at some point (its reflog records a forced-update)"

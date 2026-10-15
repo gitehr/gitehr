@@ -144,3 +144,45 @@ fn detects_divergence_from_upstream_after_a_rewrite() -> Result<()> {
     assert!(findings[0].contains("diverged"));
     Ok(())
 }
+
+#[test]
+#[serial]
+fn detects_a_forced_update_of_the_upstream_tracking_ref() -> Result<()> {
+    let dir = tempdir()?;
+    let remote = dir.path().join("remote.git");
+    let work = dir.path().join("work");
+    let writer = dir.path().join("writer");
+    git(&["init", "-q", "--bare", remote.to_str().unwrap()]);
+    git(&["init", "-q", work.to_str().unwrap()]);
+    std::env::set_current_dir(&work)?;
+    git(&["checkout", "-qb", "main"]);
+    fs::write("a.md", "one")?;
+    git(&["add", "."]);
+    git(&["commit", "-qm", "one"]);
+    fs::write("a.md", "two")?;
+    git(&["commit", "-qam", "two"]);
+    git(&["remote", "add", "origin", remote.to_str().unwrap()]);
+    git(&["push", "-q", "-u", "origin", "main"]);
+    git(&[
+        "clone",
+        "-q",
+        "--branch",
+        "main",
+        remote.to_str().unwrap(),
+        writer.to_str().unwrap(),
+    ]);
+
+    std::env::set_current_dir(&writer)?;
+    git(&["reset", "-q", "--hard", "HEAD~"]);
+    fs::write("a.md", "rewritten")?;
+    git(&["commit", "-qam", "rewrite"]);
+    git(&["push", "-q", "--force", "origin", "main"]);
+
+    std::env::set_current_dir(&work)?;
+    git(&["fetch", "-q", "origin"]);
+    git(&["reset", "-q", "--hard", "origin/main"]);
+    let findings = check_history_rewrite()?;
+    assert_eq!(findings.len(), 1, "{findings:?}");
+    assert!(findings[0].contains("force-updated"));
+    Ok(())
+}
