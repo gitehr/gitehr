@@ -7,7 +7,7 @@ use std::fs;
 use std::process::Command;
 use tempfile::tempdir;
 
-use gitehr::commands::verify::{check_append_only, check_history_rewrite};
+use gitehr::commands::verify::{check_append_only, check_history_rewrite, check_monotonic_order};
 
 fn git(args: &[&str]) {
     let ok = Command::new("git")
@@ -100,6 +100,27 @@ fn detects_modified_and_deleted_entries() -> Result<()> {
     assert_eq!(v.len(), 2);
     assert_eq!((v[0].change, v[0].path.as_str()), ('M', "journal/a.md"));
     assert_eq!((v[1].change, v[1].path.as_str()), ('D', "journal/b.md"));
+    Ok(())
+}
+
+#[test]
+#[serial]
+fn detects_a_backdated_journal_entry() -> Result<()> {
+    let dir = tempdir()?;
+    std::env::set_current_dir(&dir)?;
+    git(&["init", "-q"]);
+    fs::create_dir("journal")?;
+    fs::write("journal/20260102T000000.000Z-b.md", "later")?;
+    git(&["add", "."]);
+    git(&["commit", "-qm", "add later entry"]);
+    fs::write("journal/20260101T000000.000Z-a.md", "earlier")?;
+    git(&["add", "."]);
+    git(&["commit", "-qm", "add backdated entry"]);
+
+    let violations = check_monotonic_order()?;
+    assert_eq!(violations.len(), 1);
+    assert_eq!(violations[0].path, "journal/20260101T000000.000Z-a.md");
+    assert_eq!(violations[0].latest_earlier, "20260102T000000.000Z");
     Ok(())
 }
 

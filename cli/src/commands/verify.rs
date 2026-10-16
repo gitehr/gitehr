@@ -5,9 +5,10 @@
 //! `spec/repository-verification.md`). Asserts two invariants: no commit ever
 //! modified, deleted, or renamed a committed journal entry (ADR-0002, the
 //! record only grows), and journal entries are added in timestamp order
-//! (a new entry is never named earlier than one already in the record). It also flags likely history rewrites
-//! against the branch's upstream: divergence from it, or a forced update of
-//! its remote-tracking ref. Object integrity is left to `git fsck`.
+//! (a new entry is never named earlier than one already in the record). It
+//! also flags likely history rewrites against the branch's upstream:
+//! divergence from it, or a forced update of its remote-tracking ref. Object
+//! integrity is left to `git fsck`.
 
 use anyhow::{Context, Result};
 use std::process::{Command, Output};
