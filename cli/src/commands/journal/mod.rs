@@ -16,7 +16,9 @@ use super::{contributor, git, typed_state};
 
 pub mod add;
 pub mod draft;
+pub mod extract;
 pub mod list;
+pub mod medmd;
 pub mod show;
 
 #[derive(Subcommand)]
@@ -45,6 +47,13 @@ pub enum JournalCommands {
         raw: bool,
         #[arg(long, help = "Print only the frontmatter")]
         metadata: bool,
+    },
+    #[command(
+        about = "Extract Medical Markdown CODE/ sections from an entry as JSON (read-only, derived)"
+    )]
+    Extract {
+        #[arg(help = "Journal entry filename (or LATEST, LATEST^, LATEST~N)")]
+        filename: String,
     },
     #[command(aliases = ["draft", "review"], about = "Review MCP-authored drafts (ADR-0007): list, approve, or reject")]
     Drafts {
@@ -78,6 +87,7 @@ pub fn run(command: JournalCommands) -> Result<()> {
             raw,
             metadata,
         } => show::run(filename, raw, metadata),
+        JournalCommands::Extract { filename } => extract::run(filename),
         JournalCommands::Drafts { approve, reject } => {
             draft::run(Path::new("."), approve.as_deref(), reject.as_deref())
         }
