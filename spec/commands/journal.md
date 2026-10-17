@@ -44,6 +44,18 @@ gitehr journal show LATEST            # body of the most recent entry
 gitehr journal show LATEST^ --raw     # the previous entry, full file with front matter
 ```
 
+### `gitehr journal extract <entry>`
+
+```text
+gitehr journal extract <entry>
+```
+
+Prints the [Medical Markdown](https://github.com/gitehr/gitehr/blob/main/spec/medical-markdown.md) structure of an entry as JSON: each top-level `CODE/` line becomes a key with its `notes`, indented sub-codes nest under it, and `_source_map` gives 1-based body line numbers. Read-only and derived from the body ([ADR-0004](https://github.com/gitehr/gitehr/blob/main/spec/adr/0004-medical-markdown-structured-data-is-derived.md)); the entry is never modified. Entries with no `CODE/` lines give an empty JSON object.
+
+```bash
+gitehr journal extract LATEST | jq '.PC.notes'
+```
+
 ### `gitehr journal drafts [--approve <filename>] [--reject <filename>]`
 
 Reviews MCP-authored drafts ([ADR-0007](../adr/0007-mcp-writes-are-drafts-until-approved.md)). With no flags, lists pending uncommitted drafts (marked `mcp_draft: true` in front matter). `--approve <filename>` strips the draft marker, stages, and commits the entry; `--reject <filename>` deletes the uncommitted file. User-facing detail is in [`docs/cli/journal.md`](../../docs/cli/journal.md#gitehr-journal-drafts).

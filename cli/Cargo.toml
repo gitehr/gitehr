@@ -33,6 +33,7 @@ chrono.workspace = true
 uuid.workspace = true
 sha2.workspace = true
 clap.workspace = true
+medical-markdown.workspace = true
 
 # CLI-specific dependencies
 clap_complete = "4.6"
