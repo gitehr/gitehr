@@ -28,6 +28,9 @@ uuid = { version = "1", features = ["v4", "v7"] }
 sha2 = "0.11"
 clap = { version = "4.6", features = ["derive"] }
 clincalc = { version = "=0.3.4", default-features = false, features = ["cli"] }
+# Medical Markdown has not yet published a crates.io release. Pin its official
+# repository to an immutable revision so released GitEHR builds remain reproducible.
+medical-markdown = { git = "https://github.com/pacharanero/medical-markdown", rev = "0297b4579ed117aaf0f49a1200a7a6d8a8293e24" }
 
 # Async runtime for MCP server
 tokio = { version = "1", features = ["full"] }

@@ -188,6 +188,28 @@ fn test_timestamp_uniqueness_and_ordering() -> Result<()> {
     Ok(())
 }
 
+#[test]
+#[serial]
+fn journal_extracts_medical_markdown_as_json() -> Result<()> {
+    let _temp_dir = setup_with_git()?;
+    fs::create_dir(".gitehr")?;
+    fs::write(
+        "journal/entry.md",
+        "---\ntimestamp: 2026-10-17T00:00:00Z\n---\nPC/ chest pain\nOE/ alert\n    RS/ clear\n",
+    )?;
+
+    let output = Command::new(env!("CARGO_BIN_EXE_gitehr"))
+        .args(["journal", "extract", "entry.md"])
+        .output()?;
+    assert!(output.status.success());
+
+    let extracted: serde_json::Value = serde_json::from_slice(&output.stdout)?;
+    assert_eq!(extracted["PC"]["notes"], "chest pain");
+    assert_eq!(extracted["OE"]["RS"], "clear");
+    assert_eq!(extracted["_source_map"]["OE.RS"], 3);
+    Ok(())
+}
+
 // ── ADR-0007: MCP drafts ──────────────────────────────────────────────────────
 
 #[test]

@@ -76,14 +76,14 @@ This is deliberately a *separate, explicit* step, not an automatic write. The cl
 
 ## Dependency wiring
 
-During co-development, before Medical Markdown is published to crates.io, GitEHR uses a path dependency in `Cargo.toml` workspace dependencies:
+Medical Markdown has not yet published a crates.io release. GitEHR uses its official repository at an immutable revision in `Cargo.toml` workspace dependencies, so CI and released builds do not require a sibling checkout:
 
 ```toml
 [workspace.dependencies]
-medical-markdown = { path = "../../medical-markdown" }
+medical-markdown = { git = "https://github.com/pacharanero/medical-markdown", rev = "<verified commit>" }
 ```
 
-For released builds this flips to a normal version dependency (`medical-markdown = "0.x"`). A `[patch.crates-io]` override can pin to the local checkout when both repositories are moving together. Only the `cli` crate (and later `mcp`) need the dependency; it is not added to crates that do not parse journal bodies.
+This flips to a normal version dependency (`medical-markdown = "0.x"`) when the crate is released. A `[patch.crates-io]` override can pin to a local checkout when both repositories are moving together. Only the `cli` crate (and later `mcp`) need the dependency; it is not added to crates that do not parse journal bodies.
 
 ## Phasing
 

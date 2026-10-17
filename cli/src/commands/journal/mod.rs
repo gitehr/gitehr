@@ -18,7 +18,7 @@ pub mod add;
 pub mod draft;
 pub mod extract;
 pub mod list;
-pub mod medmd;
+mod medmd;
 pub mod show;
 
 #[derive(Subcommand)]
