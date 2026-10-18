@@ -3,7 +3,7 @@
 
 //! MCP Tool Handlers
 //!
-//! Tools allow write operations on GitEHR repositories.
+//! Tools expose repository operations to MCP clients.
 
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
@@ -153,13 +153,11 @@ impl ToolHandler {
             _ => return Err(anyhow::anyhow!("Unknown tool: {}", name)),
         };
 
-        // Record a dedicated audit journal entry for every successful call
-        // (R33), as an uncommitted draft like the tool's own writes (ADR-0007):
-        // machine-authored content never enters the custody layer directly.
-        // Best-effort: never turns a successful tool call into a failure, and
-        // never runs on the error path so a tool call that fails before
-        // touching the repository has nothing to audit.
-        if let Ok(ok_result) = &result {
+        // Mutation calls are auditable drafts (R33). Read-only tools must not
+        // dirty the repository merely by inspecting it.
+        if let Ok(ok_result) = &result
+            && matches!(name, "add_journal_entry" | "update_state")
+        {
             let detail = ok_result
                 .content
                 .iter()
@@ -425,6 +423,12 @@ mod tests {
             .call_tool("check_repository_policy", serde_json::json!({}))
             .unwrap();
         assert_eq!(result.is_error, Some(false));
+        assert_eq!(
+            std::fs::read_dir(dir.path().join("journal"))
+                .unwrap()
+                .count(),
+            1
+        );
 
         std::fs::write(&entry, "two").unwrap();
         git(dir.path(), &["commit", "-am", "edit", "--no-gpg-sign"]);
@@ -434,6 +438,12 @@ mod tests {
         assert_eq!(result.is_error, Some(true));
         let ToolContent::Text { text } = &result.content[0];
         assert!(text.contains("modified"), "got: {text}");
+        assert_eq!(
+            std::fs::read_dir(dir.path().join("journal"))
+                .unwrap()
+                .count(),
+            1
+        );
     }
 
     #[test]
@@ -569,7 +579,7 @@ mod tests {
     }
 
     #[test]
-    fn test_search_repository_writes_an_audit_entry() {
+    fn test_search_repository_does_not_write_an_audit_entry() {
         let dir = tempfile::tempdir().unwrap();
         std::fs::create_dir(dir.path().join("journal")).unwrap();
         init_git_repo(dir.path());
@@ -579,13 +589,12 @@ mod tests {
             .call_tool("search_repository", serde_json::json!({"query": "x"}))
             .unwrap();
 
-        let audit_entries: Vec<_> = std::fs::read_dir(dir.path().join("journal"))
-            .unwrap()
-            .map(|e| std::fs::read_to_string(e.unwrap().path()).unwrap())
-            .filter(|content| content.contains("mcp_audit:"))
-            .collect();
-        assert_eq!(audit_entries.len(), 1);
-        assert!(audit_entries[0].contains("tool: search_repository"));
+        assert_eq!(
+            std::fs::read_dir(dir.path().join("journal"))
+                .unwrap()
+                .count(),
+            0
+        );
     }
 
     #[test]

@@ -14,7 +14,7 @@ The Model Context Protocol (MCP) provides a standardized way for LLM application
 2. **Structured data extraction**: Convert free-text journal entries into structured state data
 3. **Clinical decision support**: Integrate with clinical calculators and evidence-based guidelines
 4. **Interoperability**: Standard protocol for LLM-EHR integration across applications
-5. **Audit trail**: All LLM interactions are logged in the journal for transparency
+5. **Audit trail**: Successful repository mutations are logged as journal drafts for transparency; read-only resources and tools leave the repository unchanged
 
 ## Scope
 
@@ -33,7 +33,7 @@ GitEHR will implement the full MCP specification:
    - Add journal entry
    - Update state file
    - Run clinical calculators
-    - Verify repository policy (planned)
+    - Verify repository policy
    - Search repository content
    - Generate summaries
 
@@ -550,7 +550,6 @@ This is the target configuration model. The current R35 implementation supports 
     "add_journal_entry": { "enabled": true },
     "update_state": { "enabled": true },
     "calculate_clinical": { "enabled": true },
-    "verify_repository": { "enabled": true },
     "search_repository": { "enabled": true },
     "check_repository_policy": { "enabled": true }
   },

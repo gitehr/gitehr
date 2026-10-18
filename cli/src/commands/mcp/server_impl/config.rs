@@ -157,6 +157,7 @@ mod tests {
         assert!(config.is_tool_enabled("add_journal_entry"));
         assert!(config.is_tool_enabled("update_state"));
         assert!(config.is_tool_enabled("search_repository"));
+        assert!(config.is_tool_enabled("check_repository_policy"));
     }
 
     #[test]
@@ -167,7 +168,10 @@ mod tests {
             dir.path().join(".gitehr/mcp.json"),
             r#"{
                 "resources": { "imaging": { "enabled": false } },
-                "tools": { "update_state": { "enabled": false } }
+                "tools": {
+                    "update_state": { "enabled": false },
+                    "check_repository_policy": { "enabled": false }
+                }
             }"#,
         )
         .unwrap();
@@ -178,6 +182,7 @@ mod tests {
         assert!(!config.is_resource_enabled("imaging"));
         assert!(config.is_tool_enabled("add_journal_entry"));
         assert!(!config.is_tool_enabled("update_state"));
+        assert!(!config.is_tool_enabled("check_repository_policy"));
     }
 
     #[test]
