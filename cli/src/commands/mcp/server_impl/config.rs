@@ -60,6 +60,8 @@ pub struct ToolsConfig {
     pub update_state: FeatureFlag,
     #[serde(default, rename = "search_repository")]
     pub search_repository: FeatureFlag,
+    #[serde(default, rename = "check_repository_policy")]
+    pub check_repository_policy: FeatureFlag,
 }
 
 /// MCP server configuration loaded from `.gitehr/mcp.json`.
@@ -133,6 +135,7 @@ impl McpConfig {
             "add_journal_entry" => self.tools.add_journal_entry.enabled,
             "update_state" => self.tools.update_state.enabled,
             "search_repository" => self.tools.search_repository.enabled,
+            "check_repository_policy" => self.tools.check_repository_policy.enabled,
             _ => true,
         }
     }

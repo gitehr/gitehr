@@ -223,7 +223,7 @@ Tools allow **read-write** operations on the repository.
 1. **`add_journal_entry`**: Create new journal entry
 2. **`update_state`**: Update state file
 3. **`calculate_clinical`**: Run clinical calculator
-4. **`verify_repository`**: Check repository policy (planned)
+4. **`check_repository_policy`**: Read-only repository-policy check (same checks as `gitehr verify`); reports findings with `isError: true`
 5. **`search_repository`**: Full-text search across journal and state
 6. **`summarize_journal`**: Generate summary of recent entries
 7. **`extract_structured_data`**: Parse journal into structured state
@@ -551,7 +551,8 @@ This is the target configuration model. The current R35 implementation supports 
     "update_state": { "enabled": true },
     "calculate_clinical": { "enabled": true },
     "verify_repository": { "enabled": true },
-    "search_repository": { "enabled": true }
+    "search_repository": { "enabled": true },
+    "check_repository_policy": { "enabled": true }
   },
   "prompts": {
     "enabled": true,

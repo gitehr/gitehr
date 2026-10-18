@@ -112,6 +112,14 @@ impl ToolHandler {
                     "required": ["query"]
                 }),
             },
+            Tool {
+                name: "check_repository_policy".to_string(),
+                description: "Read-only check of the repository history against the append-only record policy (equivalent to `gitehr verify`)".to_string(),
+                input_schema: serde_json::json!({
+                    "type": "object",
+                    "properties": {}
+                }),
+            },
         ];
 
         let tools = candidates
@@ -141,6 +149,7 @@ impl ToolHandler {
             "add_journal_entry" => self.add_journal_entry(arguments),
             "update_state" => self.update_state(arguments),
             "search_repository" => self.search_repository(arguments),
+            "check_repository_policy" => self.check_repository_policy(),
             _ => return Err(anyhow::anyhow!("Unknown tool: {}", name)),
         };
 
@@ -224,6 +233,30 @@ impl ToolHandler {
                 text: format!("Updated state file: state/{}", filename),
             }],
             is_error: Some(false),
+        })
+    }
+
+    fn check_repository_policy(&self) -> anyhow::Result<ToolResult> {
+        let findings = crate::commands::verify::findings(&self.repo_path)?;
+        let (text, is_error) = if findings.is_empty() {
+            (
+                "OK: no committed journal entry has been modified or deleted, and entries are in order."
+                    .to_string(),
+                false,
+            )
+        } else {
+            (
+                format!(
+                    "{} policy finding(s):\n{}",
+                    findings.len(),
+                    findings.join("\n")
+                ),
+                true,
+            )
+        };
+        Ok(ToolResult {
+            content: vec![ToolContent::Text { text }],
+            is_error: Some(is_error),
         })
     }
 
@@ -366,6 +399,41 @@ mod tests {
                 .output()
                 .unwrap();
         }
+    }
+
+    fn git(dir: &std::path::Path, args: &[&str]) {
+        let out = std::process::Command::new("git")
+            .current_dir(dir)
+            .args(args)
+            .output()
+            .unwrap();
+        assert!(out.status.success(), "git {args:?} failed");
+    }
+
+    #[test]
+    fn test_check_repository_policy_reports_ok_then_modification() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::create_dir(dir.path().join("journal")).unwrap();
+        init_git_repo(dir.path());
+        let entry = dir.path().join("journal/20260101T000000.000Z-aaaa.md");
+        std::fs::write(&entry, "one").unwrap();
+        git(dir.path(), &["add", "-A"]);
+        git(dir.path(), &["commit", "-m", "add", "--no-gpg-sign"]);
+
+        let handler = ToolHandler::new(dir.path().to_path_buf(), McpConfig::default());
+        let result = handler
+            .call_tool("check_repository_policy", serde_json::json!({}))
+            .unwrap();
+        assert_eq!(result.is_error, Some(false));
+
+        std::fs::write(&entry, "two").unwrap();
+        git(dir.path(), &["commit", "-am", "edit", "--no-gpg-sign"]);
+        let result = handler
+            .call_tool("check_repository_policy", serde_json::json!({}))
+            .unwrap();
+        assert_eq!(result.is_error, Some(true));
+        let ToolContent::Text { text } = &result.content[0];
+        assert!(text.contains("modified"), "got: {text}");
     }
 
     #[test]

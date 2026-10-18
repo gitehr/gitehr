@@ -42,7 +42,7 @@ fn detects_changes_to_a_journal_path_git_would_quote() -> Result<()> {
     fs::write(path, "changed")?;
     git(&["commit", "-qam", "edit"]);
 
-    let violations = check_append_only()?;
+    let violations = check_append_only(std::path::Path::new("."))?;
     assert_eq!(violations.len(), 1);
     assert_eq!(violations[0].change, 'M');
     assert_eq!(violations[0].path, path);
@@ -65,7 +65,7 @@ fn detects_renamed_entries() -> Result<()> {
     git(&["add", "-A"]);
     git(&["commit", "-qm", "rename"]);
 
-    let violations = check_append_only()?;
+    let violations = check_append_only(std::path::Path::new("."))?;
     assert_eq!(violations.len(), 1);
     assert_eq!(violations[0].change, 'D');
     assert_eq!(violations[0].path, "journal/original.md");
@@ -78,25 +78,25 @@ fn detects_modified_and_deleted_entries() -> Result<()> {
     let dir = tempdir()?;
     std::env::set_current_dir(&dir)?;
     git(&["init", "-q"]);
-    assert!(check_append_only()?.is_empty());
+    assert!(check_append_only(std::path::Path::new("."))?.is_empty());
 
     fs::create_dir("journal")?;
     fs::write("journal/a.md", "one")?;
     git(&["add", "."]);
     git(&["commit", "-qm", "add"]);
-    assert!(check_append_only()?.is_empty());
+    assert!(check_append_only(std::path::Path::new("."))?.is_empty());
 
     fs::write("journal/b.md", "two")?;
     git(&["add", "."]);
     git(&["commit", "-qm", "add b"]);
-    assert!(check_append_only()?.is_empty());
+    assert!(check_append_only(std::path::Path::new("."))?.is_empty());
 
     fs::write("journal/a.md", "changed")?;
     git(&["commit", "-qam", "edit"]);
     fs::remove_file("journal/b.md")?;
     git(&["commit", "-qam", "delete"]);
 
-    let v = check_append_only()?;
+    let v = check_append_only(std::path::Path::new("."))?;
     assert_eq!(v.len(), 2);
     assert_eq!((v[0].change, v[0].path.as_str()), ('M', "journal/a.md"));
     assert_eq!((v[1].change, v[1].path.as_str()), ('D', "journal/b.md"));
@@ -117,7 +117,7 @@ fn detects_a_backdated_journal_entry() -> Result<()> {
     git(&["add", "."]);
     git(&["commit", "-qm", "add backdated entry"]);
 
-    let violations = check_monotonic_order()?;
+    let violations = check_monotonic_order(std::path::Path::new("."))?;
     assert_eq!(violations.len(), 1);
     assert_eq!(violations[0].path, "journal/20260101T000000.000Z-a.md");
     assert_eq!(violations[0].latest_earlier, "20260102T000000.000Z");
@@ -130,11 +130,11 @@ fn no_upstream_means_no_rewrite_findings() -> Result<()> {
     let dir = tempdir()?;
     std::env::set_current_dir(&dir)?;
     git(&["init", "-q"]);
-    assert!(check_history_rewrite()?.is_empty());
+    assert!(check_history_rewrite(std::path::Path::new("."))?.is_empty());
     fs::write("a.md", "one")?;
     git(&["add", "."]);
     git(&["commit", "-qm", "add"]);
-    assert!(check_history_rewrite()?.is_empty());
+    assert!(check_history_rewrite(std::path::Path::new("."))?.is_empty());
     Ok(())
 }
 
@@ -155,12 +155,12 @@ fn detects_divergence_from_upstream_after_a_rewrite() -> Result<()> {
     git(&["commit", "-qam", "two"]);
     git(&["remote", "add", "origin", remote.to_str().unwrap()]);
     git(&["push", "-q", "-u", "origin", "main"]);
-    assert!(check_history_rewrite()?.is_empty());
+    assert!(check_history_rewrite(std::path::Path::new("."))?.is_empty());
 
     // Rewrite the last commit locally: now diverged from origin/main.
     fs::write("a.md", "rewritten")?;
     git(&["commit", "-qa", "--amend", "-m", "two'"]);
-    let findings = check_history_rewrite()?;
+    let findings = check_history_rewrite(std::path::Path::new("."))?;
     assert_eq!(findings.len(), 1, "{findings:?}");
     assert!(findings[0].contains("diverged"));
     Ok(())
@@ -202,7 +202,7 @@ fn detects_a_forced_update_of_the_upstream_tracking_ref() -> Result<()> {
     std::env::set_current_dir(&work)?;
     git(&["fetch", "-q", "origin"]);
     git(&["reset", "-q", "--hard", "origin/main"]);
-    let findings = check_history_rewrite()?;
+    let findings = check_history_rewrite(std::path::Path::new("."))?;
     assert_eq!(findings.len(), 1, "{findings:?}");
     assert!(findings[0].contains("force-updated"));
     Ok(())

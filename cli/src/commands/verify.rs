@@ -11,6 +11,7 @@
 //! integrity is left to `git fsck`.
 
 use anyhow::{Context, Result};
+use std::path::Path;
 use std::process::{Command, Output};
 
 #[derive(Debug, PartialEq, Eq)]
@@ -55,8 +56,9 @@ fn parse_violations(log: &[u8]) -> Vec<Violation> {
 }
 
 /// Walk the whole history and return every non-additive change to `journal/`.
-pub fn check_append_only() -> Result<Vec<Violation>> {
+pub fn check_append_only(dir: &Path) -> Result<Vec<Violation>> {
     let output = Command::new("git")
+        .current_dir(dir)
         .args([
             "log",
             "--reverse",
@@ -137,19 +139,22 @@ fn parse_order_violations(log: &[u8]) -> Vec<OrderViolation> {
 /// timestamp earlier than one already in the record. Merge commits are diffed
 /// against their first parent, so entries brought in by a merge are checked
 /// when they land; a genuinely concurrent writer can therefore be reported.
-pub fn check_monotonic_order() -> Result<Vec<OrderViolation>> {
-    let output = git_output(&[
-        "log",
-        "--first-parent",
-        "-m",
-        "--reverse",
-        "--diff-filter=A",
-        "--name-only",
-        "-z",
-        "--format=%x01%H%x00",
-        "--",
-        "journal",
-    ])?;
+pub fn check_monotonic_order(dir: &Path) -> Result<Vec<OrderViolation>> {
+    let output = git_output(
+        dir,
+        &[
+            "log",
+            "--first-parent",
+            "-m",
+            "--reverse",
+            "--diff-filter=A",
+            "--name-only",
+            "-z",
+            "--format=%x01%H%x00",
+            "--",
+            "journal",
+        ],
+    )?;
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
         if stderr.contains("does not have any commits") {
@@ -160,15 +165,16 @@ pub fn check_monotonic_order() -> Result<Vec<OrderViolation>> {
     Ok(parse_order_violations(&output.stdout))
 }
 
-fn git_output(args: &[&str]) -> Result<Output> {
+fn git_output(dir: &Path, args: &[&str]) -> Result<Output> {
     Command::new("git")
+        .current_dir(dir)
         .args(args)
         .output()
         .with_context(|| format!("Failed to run git {}", args.join(" ")))
 }
 
-fn git_stdout(args: &[&str]) -> Result<String> {
-    let output = git_output(args)?;
+fn git_stdout(dir: &Path, args: &[&str]) -> Result<String> {
+    let output = git_output(dir, args)?;
     if !output.status.success() {
         anyhow::bail!(
             "git {} failed: {}",
@@ -179,8 +185,8 @@ fn git_stdout(args: &[&str]) -> Result<String> {
     Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
 }
 
-fn upstream() -> Result<Option<String>> {
-    let output = git_output(&["symbolic-ref", "--quiet", "--short", "HEAD"])?;
+fn upstream(dir: &Path) -> Result<Option<String>> {
+    let output = git_output(dir, &["symbolic-ref", "--quiet", "--short", "HEAD"])?;
     if output.status.code() == Some(1) {
         return Ok(None);
     }
@@ -191,16 +197,19 @@ fn upstream() -> Result<Option<String>> {
         );
     }
     let branch = String::from_utf8_lossy(&output.stdout).trim().to_string();
-    let upstream = git_stdout(&[
-        "for-each-ref",
-        "--format=%(upstream:short)",
-        &format!("refs/heads/{branch}"),
-    ])?;
+    let upstream = git_stdout(
+        dir,
+        &[
+            "for-each-ref",
+            "--format=%(upstream:short)",
+            &format!("refs/heads/{branch}"),
+        ],
+    )?;
     Ok((!upstream.is_empty()).then_some(upstream))
 }
 
-fn is_ancestor(ancestor: &str, descendant: &str) -> Result<bool> {
-    let output = git_output(&["merge-base", "--is-ancestor", ancestor, descendant])?;
+fn is_ancestor(dir: &Path, ancestor: &str, descendant: &str) -> Result<bool> {
+    let output = git_output(dir, &["merge-base", "--is-ancestor", ancestor, descendant])?;
     match output.status.code() {
         Some(0) => Ok(true),
         Some(1) => Ok(false),
@@ -215,17 +224,17 @@ fn is_ancestor(ancestor: &str, descendant: &str) -> Result<bool> {
 /// upstream. Returns one human-readable finding per problem; a branch with no
 /// upstream (or a repository with no commits) has nothing to compare and
 /// yields none.
-pub fn check_history_rewrite() -> Result<Vec<String>> {
+pub fn check_history_rewrite(dir: &Path) -> Result<Vec<String>> {
     let mut findings = Vec::new();
-    let Some(upstream) = upstream()? else {
+    let Some(upstream) = upstream(dir)? else {
         return Ok(findings);
     };
-    if !is_ancestor(&upstream, "HEAD")? && !is_ancestor("HEAD", &upstream)? {
+    if !is_ancestor(dir, &upstream, "HEAD")? && !is_ancestor(dir, "HEAD", &upstream)? {
         findings.push(format!(
             "HEAD and {upstream} have diverged (history was rewritten or written concurrently)"
         ));
     }
-    let reflog = git_stdout(&["reflog", "show", "--format=%gs", &upstream])?;
+    let reflog = git_stdout(dir, &["reflog", "show", "--format=%gs", &upstream])?;
     if reflog.lines().any(|l| l.contains("forced-update")) {
         findings.push(format!(
             "{upstream} was force-updated at some point (its reflog records a forced-update)"
@@ -234,10 +243,36 @@ pub fn check_history_rewrite() -> Result<Vec<String>> {
     Ok(findings)
 }
 
+/// Run every check against the repository at `dir` and return one
+/// human-readable finding per problem; empty means the policy holds. Read-only.
+pub fn findings(dir: &Path) -> Result<Vec<String>> {
+    let mut out = Vec::new();
+    for v in check_append_only(dir)? {
+        let kind = match v.change {
+            'M' => "modified",
+            'D' => "deleted",
+            'T' => "type-changed",
+            _ => "altered",
+        };
+        let short = &v.commit[..v.commit.len().min(12)];
+        out.push(format!("{} {} in commit {}", v.path, kind, short));
+    }
+    for v in check_monotonic_order(dir)? {
+        let short = &v.commit[..v.commit.len().min(12)];
+        out.push(format!(
+            "{} added out of order in commit {} (an entry stamped {} already exists)",
+            v.path, short, v.latest_earlier
+        ));
+    }
+    out.extend(check_history_rewrite(dir)?);
+    Ok(out)
+}
+
 pub fn run() -> Result<()> {
-    let violations = check_append_only()?;
-    let rewrites = check_history_rewrite()?;
-    let misordered = check_monotonic_order()?;
+    let dir = Path::new(".");
+    let violations = check_append_only(dir)?;
+    let rewrites = check_history_rewrite(dir)?;
+    let misordered = check_monotonic_order(dir)?;
     for v in &misordered {
         let short = &v.commit[..v.commit.len().min(12)];
         eprintln!(
