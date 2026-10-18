@@ -79,14 +79,15 @@ See [`clients/python/README.md`](https://github.com/gitehr/gitehr/blob/main/clie
   "tools": {
     "add_journal_entry": { "enabled": true },
     "update_state": { "enabled": false },
-    "search_repository": { "enabled": true }
+    "search_repository": { "enabled": true },
+    "check_repository_policy": { "enabled": true }
   }
 }
 ```
 
 - **`enabled`** (top-level): when `false`, `gitehr mcp serve` refuses to start and exits non-zero with a clear error, rather than silently serving nothing.
 - **`resources.{journal,state,documents,imaging}.enabled`**: when `false`, that group is omitted from `resources/list` and `resources/read` on any URI under it (including individual entries, e.g. `gitehr://repo/journal/<entry>`) fails with a "disabled by .gitehr/mcp.json" error. `status` has no flag and is always available.
-- **`tools.{add_journal_entry,update_state,search_repository}.enabled`**: when `false`, that tool is omitted from `tools/list` and `tools/call` fails the same way.
+- **`tools.{add_journal_entry,update_state,search_repository,check_repository_policy}.enabled`**: when `false`, that tool is omitted from `tools/list` and `tools/call` fails the same way.
 - The config is re-read only at server startup, matching how the repository path itself is fixed for the life of a `gitehr mcp serve` process.
 
 Only the fields shown above are supported. Unsupported or misspelled keys, including future `transport`, `auth`, `audit`, and prompt settings described in `spec/mcp.md`, fail startup rather than being ignored. An access-control setting that parses but has no effect would create false assurance. A malformed `.gitehr/mcp.json` also fails startup with a parse error instead of silently falling back to defaults.
@@ -155,6 +156,7 @@ Returns available tools:
 - `add_journal_entry` - Create a new journal entry
 - `update_state` - Update a state file
 - `search_repository` - Search journal and state
+- `check_repository_policy` - Read-only append-only/ordering/history-rewrite check (as `gitehr verify`)
 
 #### Call Tool: Add Journal Entry
 
@@ -270,6 +272,7 @@ Only the five top-level URIs are returned by `resources/list`; the `{filename}` 
 | `add_journal_entry` | `content` (string, required) — Markdown body; `author` (string, optional) — contributor ID, defaults to the target repository's active contributor | Writes `journal/{timestamp}-{uuid}.md` with proper YAML front matter **as an uncommitted draft** (ADR-0007): it is not staged or committed and is not part of the record until a human approves it with `gitehr journal drafts --approve`. Rejects empty/whitespace-only content. |
 | `update_state` | `filename` (string, required), `content` (string, required) | Writes `content` verbatim to `state/{filename}`, creating `state/` if needed. Overwrites any existing file at that path. No journal entry or commit is recorded. |
 | `search_repository` | `query` (string, required) | Case-insensitive substring search across `.md` files in `journal/` and every file in `state/`. Returns matching paths as `journal/{filename}` or `state/{filename}`. |
+| `check_repository_policy` | none | Read-only; runs the same checks as `gitehr verify` (no committed journal entry modified or deleted, entries added in order, no upstream history rewrite). Returns `OK` or one line per finding, with `isError: true` when any finding exists. |
 
 ### Prompts
 
@@ -332,7 +335,7 @@ cargo build --release
 - `gitehr mcp serve` refuses to start unless `--repo-path` (or the current directory) contains a `.gitehr` directory, and refuses to start against a repository marked `.gitehr/ENCRYPTED`, since encrypted-repository support does not exist yet. The marker is re-checked on every `resources/list`, `resources/read`, `tools/list`, and `tools/call`, because the server is long-lived and a repository can be marked after it has started serving; those requests then fail with a `Repository encrypted` error. Prompts keep working, as they never touch repository data. Note that the marker does not mean the contents are encrypted - encryption at rest is unimplemented (roadmap R67/R68) and any surviving marker is a stale artefact that `gitehr decrypt` removes. Point the server only at repositories you trust.
 - Stdio requests are limited to 1 MiB. Oversized requests are rejected and drained without buffering the remainder in memory.
 - Operations are logged to stderr via `RUST_LOG`, but logs include only protocol metadata and byte counts, never request or response bodies that may contain clinical data.
-- Every successful tool call is also recorded as a dedicated audit journal entry (front matter `mcp_audit: {method, tool, result}`, author `mcp-server`), separate from any journal entry the tool itself wrote. Client/session identity (client name/version, token, IP) is not yet tracked and so is not included - see [Limitations](#limitations-current-implementation).
+- Every successful mutation tool call is also recorded as a dedicated audit journal entry (front matter `mcp_audit: {method, tool, result}`, author `mcp-server`), separate from any journal entry the tool itself wrote. Read-only tools do not create audit drafts. Client/session identity (client name/version, token, IP) is not yet tracked and so is not included - see [Limitations](#limitations-current-implementation).
 - Runs with the same file permissions as the user running the command
 
 ## Debugging

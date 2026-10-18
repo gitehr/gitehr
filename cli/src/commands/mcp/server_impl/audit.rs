@@ -3,11 +3,12 @@
 
 //! MCP audit logging (R33).
 //!
-//! Every successful MCP tool call is recorded as a dedicated journal entry,
-//! distinct from any journal entry the tool itself may have written, per the
-//! `mcp_audit` front matter shape in `spec/mcp.md`. Fields that require
-//! client/session context GitEHR does not yet track (client name/version,
-//! token, IP - see R32) are omitted rather than faked.
+//! Every successful MCP mutation tool call is recorded as a dedicated journal
+//! entry, distinct from any journal entry the tool itself may have written,
+//! per the `mcp_audit` front matter shape in `spec/mcp.md`. Read-only tools
+//! never create audit drafts. Fields that require client/session context
+//! GitEHR does not yet track (client name/version, token, IP - see R32) are
+//! omitted rather than faked.
 
 use anyhow::Result;
 use chrono::Utc;
@@ -30,9 +31,10 @@ struct McpAudit {
     result: &'static str,
 }
 
-/// Record a successful `tools/call` invocation as an audit journal entry.
-/// Best-effort: a failure to write the audit trail is logged to stderr and
-/// never propagated, so it can't turn a successful tool call into a failure.
+/// Record a successful mutation `tools/call` invocation as an audit journal
+/// entry. Best-effort: a failure to write the audit trail is logged to stderr
+/// and never propagated, so it can't turn a successful tool call into a
+/// failure.
 pub fn record_tool_call(repo_path: &Path, tool: &str, detail: &str) {
     if let Err(e) = try_record(repo_path, tool, detail) {
         eprintln!("Warning: failed to write MCP audit entry: {e}");

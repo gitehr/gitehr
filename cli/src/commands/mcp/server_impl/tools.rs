@@ -3,7 +3,7 @@
 
 //! MCP Tool Handlers
 //!
-//! Tools allow write operations on GitEHR repositories.
+//! Tools expose repository operations to MCP clients.
 
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
@@ -112,6 +112,14 @@ impl ToolHandler {
                     "required": ["query"]
                 }),
             },
+            Tool {
+                name: "check_repository_policy".to_string(),
+                description: "Read-only check of the repository history against the append-only record policy (equivalent to `gitehr verify`)".to_string(),
+                input_schema: serde_json::json!({
+                    "type": "object",
+                    "properties": {}
+                }),
+            },
         ];
 
         let tools = candidates
@@ -141,16 +149,15 @@ impl ToolHandler {
             "add_journal_entry" => self.add_journal_entry(arguments),
             "update_state" => self.update_state(arguments),
             "search_repository" => self.search_repository(arguments),
+            "check_repository_policy" => self.check_repository_policy(),
             _ => return Err(anyhow::anyhow!("Unknown tool: {}", name)),
         };
 
-        // Record a dedicated audit journal entry for every successful call
-        // (R33), as an uncommitted draft like the tool's own writes (ADR-0007):
-        // machine-authored content never enters the custody layer directly.
-        // Best-effort: never turns a successful tool call into a failure, and
-        // never runs on the error path so a tool call that fails before
-        // touching the repository has nothing to audit.
-        if let Ok(ok_result) = &result {
+        // Mutation calls are auditable drafts (R33). Read-only tools must not
+        // dirty the repository merely by inspecting it.
+        if let Ok(ok_result) = &result
+            && matches!(name, "add_journal_entry" | "update_state")
+        {
             let detail = ok_result
                 .content
                 .iter()
@@ -224,6 +231,30 @@ impl ToolHandler {
                 text: format!("Updated state file: state/{}", filename),
             }],
             is_error: Some(false),
+        })
+    }
+
+    fn check_repository_policy(&self) -> anyhow::Result<ToolResult> {
+        let findings = crate::commands::verify::findings(&self.repo_path)?;
+        let (text, is_error) = if findings.is_empty() {
+            (
+                "OK: no committed journal entry has been modified or deleted, and entries are in order."
+                    .to_string(),
+                false,
+            )
+        } else {
+            (
+                format!(
+                    "{} policy finding(s):\n{}",
+                    findings.len(),
+                    findings.join("\n")
+                ),
+                true,
+            )
+        };
+        Ok(ToolResult {
+            content: vec![ToolContent::Text { text }],
+            is_error: Some(is_error),
         })
     }
 
@@ -368,6 +399,53 @@ mod tests {
         }
     }
 
+    fn git(dir: &std::path::Path, args: &[&str]) {
+        let out = std::process::Command::new("git")
+            .current_dir(dir)
+            .args(args)
+            .output()
+            .unwrap();
+        assert!(out.status.success(), "git {args:?} failed");
+    }
+
+    #[test]
+    fn test_check_repository_policy_reports_ok_then_modification() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::create_dir(dir.path().join("journal")).unwrap();
+        init_git_repo(dir.path());
+        let entry = dir.path().join("journal/20260101T000000.000Z-aaaa.md");
+        std::fs::write(&entry, "one").unwrap();
+        git(dir.path(), &["add", "-A"]);
+        git(dir.path(), &["commit", "-m", "add", "--no-gpg-sign"]);
+
+        let handler = ToolHandler::new(dir.path().to_path_buf(), McpConfig::default());
+        let result = handler
+            .call_tool("check_repository_policy", serde_json::json!({}))
+            .unwrap();
+        assert_eq!(result.is_error, Some(false));
+        assert_eq!(
+            std::fs::read_dir(dir.path().join("journal"))
+                .unwrap()
+                .count(),
+            1
+        );
+
+        std::fs::write(&entry, "two").unwrap();
+        git(dir.path(), &["commit", "-am", "edit", "--no-gpg-sign"]);
+        let result = handler
+            .call_tool("check_repository_policy", serde_json::json!({}))
+            .unwrap();
+        assert_eq!(result.is_error, Some(true));
+        let ToolContent::Text { text } = &result.content[0];
+        assert!(text.contains("modified"), "got: {text}");
+        assert_eq!(
+            std::fs::read_dir(dir.path().join("journal"))
+                .unwrap()
+                .count(),
+            1
+        );
+    }
+
     #[test]
     fn test_add_journal_entry_rejects_missing_content() {
         let handler = ToolHandler::new(PathBuf::from("."), McpConfig::default());
@@ -501,7 +579,7 @@ mod tests {
     }
 
     #[test]
-    fn test_search_repository_writes_an_audit_entry() {
+    fn test_search_repository_does_not_write_an_audit_entry() {
         let dir = tempfile::tempdir().unwrap();
         std::fs::create_dir(dir.path().join("journal")).unwrap();
         init_git_repo(dir.path());
@@ -511,13 +589,12 @@ mod tests {
             .call_tool("search_repository", serde_json::json!({"query": "x"}))
             .unwrap();
 
-        let audit_entries: Vec<_> = std::fs::read_dir(dir.path().join("journal"))
-            .unwrap()
-            .map(|e| std::fs::read_to_string(e.unwrap().path()).unwrap())
-            .filter(|content| content.contains("mcp_audit:"))
-            .collect();
-        assert_eq!(audit_entries.len(), 1);
-        assert!(audit_entries[0].contains("tool: search_repository"));
+        assert_eq!(
+            std::fs::read_dir(dir.path().join("journal"))
+                .unwrap()
+                .count(),
+            0
+        );
     }
 
     #[test]
