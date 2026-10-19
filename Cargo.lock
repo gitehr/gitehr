@@ -758,7 +758,8 @@ dependencies = [
 [[package]]
 name = "medical-markdown"
 version = "0.1.0"
-source = "git+https://github.com/pacharanero/medical-markdown?rev=0297b4579ed117aaf0f49a1200a7a6d8a8293e24#0297b4579ed117aaf0f49a1200a7a6d8a8293e24"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "25a2c03cc0ebff83fed34dc61ffe3d07b4193ce3e5296f50750ad520761a131a"
 dependencies = [
  "markdown-it",
  "serde",
