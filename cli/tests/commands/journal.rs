@@ -219,6 +219,7 @@ fn journal_show_structured_matches_extract() -> Result<()> {
         "journal/entry.md",
         "---\ntimestamp: 2026-10-17T00:00:00Z\n---\nPC/ chest pain\n",
     )?;
+    let original = fs::read("journal/entry.md")?;
 
     let shown = Command::new(env!("CARGO_BIN_EXE_gitehr"))
         .args(["journal", "show", "entry.md", "--structured"])
@@ -228,6 +229,7 @@ fn journal_show_structured_matches_extract() -> Result<()> {
         .args(["journal", "extract", "entry.md"])
         .output()?;
     assert_eq!(shown.stdout, extracted.stdout);
+    assert_eq!(fs::read("journal/entry.md")?, original);
 
     let conflict = Command::new(env!("CARGO_BIN_EXE_gitehr"))
         .args(["journal", "show", "entry.md", "--structured", "--raw"])
