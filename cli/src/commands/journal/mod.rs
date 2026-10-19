@@ -47,6 +47,12 @@ pub enum JournalCommands {
         raw: bool,
         #[arg(long, help = "Print only the frontmatter")]
         metadata: bool,
+        #[arg(
+            long,
+            conflicts_with_all = ["raw", "metadata"],
+            help = "Print the Medical Markdown structure as JSON (same as `journal extract`)"
+        )]
+        structured: bool,
     },
     #[command(
         about = "Extract Medical Markdown CODE/ sections from an entry as JSON (read-only, derived)"
@@ -86,7 +92,8 @@ pub fn run(command: JournalCommands) -> Result<()> {
             filename,
             raw,
             metadata,
-        } => show::run(filename, raw, metadata),
+            structured,
+        } => show::run(filename, raw, metadata, structured),
         JournalCommands::Extract { filename } => extract::run(filename),
         JournalCommands::Drafts { approve, reject } => {
             draft::run(Path::new("."), approve.as_deref(), reject.as_deref())

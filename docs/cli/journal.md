@@ -33,10 +33,10 @@ Aliases: `list-entry`, `ls`. Lists entry filenames, oldest first, with a `(N ent
 ## gitehr journal show
 
 ```text
-gitehr journal show <entry> [--raw | --metadata]
+gitehr journal show <entry> [--raw | --metadata | --structured]
 ```
 
-Alias: `cat`. Prints a single entry: by default just the body, `--raw` the whole file (including front matter), `--metadata` only the front matter. `<entry>` is a filename or a relative reference (below).
+Alias: `cat`. Prints a single entry: by default just the body, `--raw` the whole file (including front matter), `--metadata` only the front matter, `--structured` the Medical Markdown JSON (same as `journal extract`). `<entry>` is a filename or a relative reference (below).
 
 ```bash
 gitehr journal show LATEST            # body of the most recent entry

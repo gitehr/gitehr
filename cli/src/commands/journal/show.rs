@@ -6,7 +6,11 @@ use std::{fs, path::PathBuf};
 
 use super::parse_journal_file;
 
-pub fn run(filename: String, raw: bool, metadata: bool) -> Result<()> {
+pub fn run(filename: String, raw: bool, metadata: bool, structured: bool) -> Result<()> {
+    if structured {
+        return super::extract::run(filename);
+    }
+
     let filename = super::resolve_entry(&filename)?;
     let path = PathBuf::from("journal").join(&filename);
 
