@@ -210,6 +210,32 @@ fn journal_extracts_medical_markdown_as_json() -> Result<()> {
     Ok(())
 }
 
+#[test]
+#[serial]
+fn journal_show_structured_matches_extract() -> Result<()> {
+    let _temp_dir = setup_with_git()?;
+    fs::create_dir(".gitehr")?;
+    fs::write(
+        "journal/entry.md",
+        "---\ntimestamp: 2026-10-17T00:00:00Z\n---\nPC/ chest pain\n",
+    )?;
+
+    let shown = Command::new(env!("CARGO_BIN_EXE_gitehr"))
+        .args(["journal", "show", "entry.md", "--structured"])
+        .output()?;
+    assert!(shown.status.success());
+    let extracted = Command::new(env!("CARGO_BIN_EXE_gitehr"))
+        .args(["journal", "extract", "entry.md"])
+        .output()?;
+    assert_eq!(shown.stdout, extracted.stdout);
+
+    let conflict = Command::new(env!("CARGO_BIN_EXE_gitehr"))
+        .args(["journal", "show", "entry.md", "--structured", "--raw"])
+        .output()?;
+    assert!(!conflict.status.success());
+    Ok(())
+}
+
 // ── ADR-0007: MCP drafts ──────────────────────────────────────────────────────
 
 #[test]

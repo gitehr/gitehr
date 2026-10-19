@@ -36,6 +36,7 @@ Shows a single journal entry. `<entry>` is a filename or a [relative entry refer
 |--------|-------------|
 | `--raw` | Print the raw file, including the YAML front matter |
 | `--metadata` | Print only the YAML front matter block |
+| `--structured` | Print the Medical Markdown structure as JSON, identical to `journal extract`; conflicts with `--raw` and `--metadata` |
 
 By default (no flags) it prints just the entry body (the clinical narrative). `--raw` prints the whole file; `--metadata` prints only the front matter. The two flags are mutually exclusive in practice (`--raw` takes precedence).
 

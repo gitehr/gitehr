@@ -4,9 +4,9 @@
 use anyhow::Result;
 use std::{fs, path::PathBuf};
 
-use super::parse_journal_file;
+use super::{medmd, parse_journal_file};
 
-pub fn run(filename: String, raw: bool, metadata: bool) -> Result<()> {
+pub fn run(filename: String, raw: bool, metadata: bool, structured: bool) -> Result<()> {
     let filename = super::resolve_entry(&filename)?;
     let path = PathBuf::from("journal").join(&filename);
 
@@ -27,6 +27,15 @@ pub fn run(filename: String, raw: bool, metadata: bool) -> Result<()> {
             anyhow::bail!("No frontmatter found in: {}", filename);
         }
         println!("---{}---", parts[1]);
+        return Ok(());
+    }
+
+    if structured {
+        let parsed = parse_journal_file(&path)?;
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&medmd::extract(&parsed.content))?
+        );
         return Ok(());
     }
 
