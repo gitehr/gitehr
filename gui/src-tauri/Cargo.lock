@@ -1644,7 +1644,7 @@ dependencies = [
 
 [[package]]
 name = "gitehr"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "anyhow",
  "base64 0.23.1",
@@ -1672,7 +1672,7 @@ dependencies = [
 
 [[package]]
 name = "gitehr-gui"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "chrono",
  "gitehr",
@@ -1901,9 +1901,9 @@ dependencies = [
 
 [[package]]
 name = "http-range"
-version = "0.1.5"
+version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "21dec9db110f5f872ed9699c3ecf50cf16f423502706ba5c72462e28d3157573"
+checksum = "2149c4b4b83390c71fab669730347d578ec6bdf759f2160c581ad8b8819733b4"
 
 [[package]]
 name = "httparse"
@@ -2606,7 +2606,8 @@ dependencies = [
 [[package]]
 name = "medical-markdown"
 version = "0.1.0"
-source = "git+https://github.com/pacharanero/medical-markdown?rev=0297b4579ed117aaf0f49a1200a7a6d8a8293e24#0297b4579ed117aaf0f49a1200a7a6d8a8293e24"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "25a2c03cc0ebff83fed34dc61ffe3d07b4193ce3e5296f50750ad520761a131a"
 dependencies = [
  "markdown-it",
  "serde",
@@ -5037,9 +5038,9 @@ dependencies = [
 
 [[package]]
 name = "tauri-winres"
-version = "0.3.6"
+version = "0.3.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cc65d45c68858bfe420dd29e834b5d15dbecf8a07a8a16cf4d532c7b1f69d4b6"
+checksum = "c52bb6904475a6ca662f15ef787f18ade61d5740a1ee12c45d3b748efdb6f796"
 dependencies = [
  "dunce",
  "embed-resource",

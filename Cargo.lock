@@ -515,7 +515,7 @@ dependencies = [
 
 [[package]]
 name = "gitehr"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "anyhow",
  "base64",
@@ -545,7 +545,7 @@ dependencies = [
 
 [[package]]
 name = "gitehr-clincalc"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "anyhow",
  "chrono",
