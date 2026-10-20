@@ -31,7 +31,7 @@ describe('GitEHR Store and Record View', () => {
 
   describe('Record view after Open', () => {
     it('should open the record and show typed allergies', async () => {
-      const openButton = await $('button*=Open');
+      const openButton = await $('//p[contains(normalize-space(), "e2e")]/ancestor::div[contains(@class, "mantine-Card-root")][1]//button[normalize-space()="Open"]');
       await openButton.waitForDisplayed({ timeout: 10000 });
       await openButton.click();
 
