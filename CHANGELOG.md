@@ -5,6 +5,12 @@ All notable changes to GitEHR are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Releases are grouped from conventional-commit messages by [git-cliff](https://git-cliff.org).
 
+## [0.4.1] - 2026-10-19
+
+### CI / dependencies
+
+- **deps**: Use published medical-markdown ([5c30861](https://github.com/gitehr/gitehr/commit/5c3086126aa3173d5f540e5755b98ad20202ad96))
+
 ## [0.4.0] - 2026-10-19
 
 ### Bug fixes
