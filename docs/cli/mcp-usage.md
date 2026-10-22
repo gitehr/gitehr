@@ -80,14 +80,15 @@ See [`clients/python/README.md`](https://github.com/gitehr/gitehr/blob/main/clie
     "add_journal_entry": { "enabled": true },
     "update_state": { "enabled": false },
     "search_repository": { "enabled": true },
-    "check_repository_policy": { "enabled": true }
+    "check_repository_policy": { "enabled": true },
+    "extract_journal_entry": { "enabled": true }
   }
 }
 ```
 
 - **`enabled`** (top-level): when `false`, `gitehr mcp serve` refuses to start and exits non-zero with a clear error, rather than silently serving nothing.
 - **`resources.{journal,state,documents,imaging}.enabled`**: when `false`, that group is omitted from `resources/list` and `resources/read` on any URI under it (including individual entries, e.g. `gitehr://repo/journal/<entry>`) fails with a "disabled by .gitehr/mcp.json" error. `status` has no flag and is always available.
-- **`tools.{add_journal_entry,update_state,search_repository,check_repository_policy}.enabled`**: when `false`, that tool is omitted from `tools/list` and `tools/call` fails the same way.
+- **`tools.{add_journal_entry,update_state,search_repository,check_repository_policy,extract_journal_entry}.enabled`**: when `false`, that tool is omitted from `tools/list` and `tools/call` fails the same way.
 - The config is re-read only at server startup, matching how the repository path itself is fixed for the life of a `gitehr mcp serve` process.
 
 Only the fields shown above are supported. Unsupported or misspelled keys, including future `transport`, `auth`, `audit`, and prompt settings described in `spec/mcp.md`, fail startup rather than being ignored. An access-control setting that parses but has no effect would create false assurance. A malformed `.gitehr/mcp.json` also fails startup with a parse error instead of silently falling back to defaults.
@@ -157,6 +158,7 @@ Returns available tools:
 - `update_state` - Update a state file
 - `search_repository` - Search journal and state
 - `check_repository_policy` - Read-only append-only/ordering/history-rewrite check (as `gitehr verify`)
+- `extract_journal_entry` - Read-only Medical Markdown extraction of a journal entry as JSON (as `gitehr journal extract`)
 
 #### Call Tool: Add Journal Entry
 
@@ -273,6 +275,7 @@ Only the five top-level URIs are returned by `resources/list`; the `{filename}` 
 | `update_state` | `filename` (string, required), `content` (string, required) | Writes `content` verbatim to `state/{filename}`, creating `state/` if needed. Overwrites any existing file at that path. No journal entry or commit is recorded. |
 | `search_repository` | `query` (string, required) | Case-insensitive substring search across `.md` files in `journal/` and every file in `state/`. Returns matching paths as `journal/{filename}` or `state/{filename}`. |
 | `check_repository_policy` | none | Read-only; runs the same checks as `gitehr verify` (no committed journal entry modified or deleted, entries added in order, no upstream history rewrite). Returns `OK` or one line per finding, with `isError: true` when any finding exists. |
+| `extract_journal_entry` | `filename` (string, required) — bare journal entry filename | Read-only; returns the entry's Medical Markdown structure as JSON, as `gitehr journal extract`. Rejects separators, `..`, and symlinked paths; never modifies the entry. |
 
 ### Prompts
 
