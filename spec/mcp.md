@@ -224,6 +224,7 @@ Tools allow **read-write** operations on the repository.
 2. **`update_state`**: Update state file
 3. **`calculate_clinical`**: Run clinical calculator
 4. **`check_repository_policy`**: Read-only repository-policy check (same checks as `gitehr verify`); reports findings with `isError: true`
+4a. **`extract_journal_entry`**: Read-only Medical Markdown extraction of one journal entry as JSON (same output as `gitehr journal extract`); takes a bare `filename`, rejects traversal, never modifies the entry
 5. **`search_repository`**: Full-text search across journal and state
 6. **`summarize_journal`**: Generate summary of recent entries
 7. **`extract_structured_data`**: Parse journal into structured state
@@ -551,7 +552,8 @@ This is the target configuration model. The current R35 implementation supports 
     "update_state": { "enabled": true },
     "calculate_clinical": { "enabled": true },
     "search_repository": { "enabled": true },
-    "check_repository_policy": { "enabled": true }
+    "check_repository_policy": { "enabled": true },
+    "extract_journal_entry": { "enabled": true }
   },
   "prompts": {
     "enabled": true,
