@@ -256,10 +256,13 @@ impl ToolHandler {
             .ok_or_else(|| anyhow::anyhow!("Missing 'filename' parameter"))?;
         let filename = super::resources::safe_filename(filename)?;
 
-        let path = self.repo_path.join("journal").join(filename);
+        let journal_dir = self.repo_path.join("journal");
+        super::resources::reject_symlink(&journal_dir, "the journal directory")?;
+        let path = journal_dir.join(filename);
         if !path.is_file() {
             return Err(anyhow::anyhow!("Journal entry not found: {filename}"));
         }
+        super::resources::reject_symlink(&path, "the journal entry")?;
 
         let parsed = journal::parse_journal_file(&path)?;
         let structured = journal::medmd::extract(&parsed.content);
@@ -674,5 +677,32 @@ mod tests {
             )
             .unwrap_err();
         assert!(err.to_string().contains("Invalid filename"));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn test_extract_journal_entry_rejects_symlinked_entry() {
+        use std::os::unix::fs::symlink;
+
+        let dir = tempfile::tempdir().unwrap();
+        let journal_dir = dir.path().join("journal");
+        std::fs::create_dir(&journal_dir).unwrap();
+        let outside_entry = dir.path().join("outside.md");
+        std::fs::write(
+            &outside_entry,
+            "---\ntimestamp: 2026-01-01T10:00:00Z\n---\n\nPC/ Chest pain\n",
+        )
+        .unwrap();
+        symlink(&outside_entry, journal_dir.join("entry.md")).unwrap();
+
+        let handler = ToolHandler::new(dir.path().to_path_buf(), McpConfig::default());
+        let err = handler
+            .call_tool(
+                "extract_journal_entry",
+                serde_json::json!({"filename": "entry.md"}),
+            )
+            .unwrap_err();
+
+        assert!(err.to_string().contains("it is a symlink"));
     }
 }

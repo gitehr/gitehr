@@ -7,7 +7,7 @@
 
 use base64::Engine;
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use crate::commands::document::{DOCUMENT_ROOTS, MANIFEST_FILENAME};
 
@@ -75,6 +75,19 @@ pub(super) fn safe_filename(name: &str) -> anyhow::Result<&str> {
     match (components.next(), components.next()) {
         (Some(std::path::Component::Normal(_)), None) if !name.contains('\\') => Ok(name),
         _ => Err(anyhow::anyhow!("Invalid filename: {name}")),
+    }
+}
+
+/// Refuse repository paths that a received repository could redirect outside
+/// its own boundary through a symbolic link.
+pub(super) fn reject_symlink(path: &Path, subject: &str) -> anyhow::Result<()> {
+    match std::fs::symlink_metadata(path) {
+        Ok(metadata) if metadata.file_type().is_symlink() => Err(anyhow::anyhow!(
+            "Refusing to read {subject}: it is a symlink, which could point outside the repository."
+        )),
+        Ok(_) => Ok(()),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        Err(error) => Err(error.into()),
     }
 }
 
@@ -243,11 +256,14 @@ impl ResourceHandler {
 
     fn read_journal_entry(&self, entry_id: &str) -> anyhow::Result<ResourcesRead> {
         let entry_id = safe_filename(entry_id)?;
-        let entry_path = self.repo_path.join("journal").join(entry_id);
+        let journal_dir = self.repo_path.join("journal");
+        reject_symlink(&journal_dir, "the journal directory")?;
+        let entry_path = journal_dir.join(entry_id);
 
         if !entry_path.exists() {
             return Err(anyhow::anyhow!("Journal entry not found: {}", entry_id));
         }
+        reject_symlink(&entry_path, "the journal entry")?;
 
         let content_text = std::fs::read_to_string(&entry_path)?;
         let content = ResourceContent::Text { text: content_text };
@@ -295,11 +311,14 @@ impl ResourceHandler {
 
     fn read_state_file(&self, filename: &str) -> anyhow::Result<ResourcesRead> {
         let filename = safe_filename(filename)?;
-        let file_path = self.repo_path.join("state").join(filename);
+        let state_dir = self.repo_path.join("state");
+        reject_symlink(&state_dir, "the state directory")?;
+        let file_path = state_dir.join(filename);
 
         if !file_path.exists() {
             return Err(anyhow::anyhow!("State file not found: {}", filename));
         }
+        reject_symlink(&file_path, "the state file")?;
 
         let content_text = std::fs::read_to_string(&file_path)?;
         let content = ResourceContent::Text { text: content_text };
@@ -514,6 +533,29 @@ mod tests {
                 err.to_string().contains("Invalid filename"),
                 "expected rejection for {name:?}"
             );
+        }
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn test_read_journal_and_state_reject_symlinked_files() {
+        use std::os::unix::fs::symlink;
+
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::create_dir(dir.path().join("journal")).unwrap();
+        std::fs::create_dir(dir.path().join("state")).unwrap();
+        let outside = dir.path().join("outside.txt");
+        std::fs::write(&outside, "not repository content").unwrap();
+        symlink(&outside, dir.path().join("journal/entry.md")).unwrap();
+        symlink(&outside, dir.path().join("state/summary.md")).unwrap();
+
+        let handler = ResourceHandler::new(dir.path().to_path_buf(), McpConfig::default());
+        for uri in [
+            "gitehr://repo/journal/entry.md",
+            "gitehr://repo/state/summary.md",
+        ] {
+            let err = handler.read_resource(uri).unwrap_err();
+            assert!(err.to_string().contains("it is a symlink"), "{uri}: {err}");
         }
     }
 

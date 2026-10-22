@@ -275,7 +275,7 @@ Only the five top-level URIs are returned by `resources/list`; the `{filename}` 
 | `update_state` | `filename` (string, required), `content` (string, required) | Writes `content` verbatim to `state/{filename}`, creating `state/` if needed. Overwrites any existing file at that path. No journal entry or commit is recorded. |
 | `search_repository` | `query` (string, required) | Case-insensitive substring search across `.md` files in `journal/` and every file in `state/`. Returns matching paths as `journal/{filename}` or `state/{filename}`. |
 | `check_repository_policy` | none | Read-only; runs the same checks as `gitehr verify` (no committed journal entry modified or deleted, entries added in order, no upstream history rewrite). Returns `OK` or one line per finding, with `isError: true` when any finding exists. |
-| `extract_journal_entry` | `filename` (string, required) — bare journal entry filename | Read-only; returns the entry's Medical Markdown structure as JSON, as `gitehr journal extract`. Rejects separators and `..`; never modifies the entry. |
+| `extract_journal_entry` | `filename` (string, required) — bare journal entry filename | Read-only; returns the entry's Medical Markdown structure as JSON, as `gitehr journal extract`. Rejects separators, `..`, and symlinked paths; never modifies the entry. |
 
 ### Prompts
 
