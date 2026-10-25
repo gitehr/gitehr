@@ -259,10 +259,10 @@ impl ToolHandler {
         let journal_dir = self.repo_path.join("journal");
         super::resources::reject_symlink(&journal_dir, "the journal directory")?;
         let path = journal_dir.join(filename);
+        super::resources::reject_symlink(&path, "the journal entry")?;
         if !path.is_file() {
             return Err(anyhow::anyhow!("Journal entry not found: {filename}"));
         }
-        super::resources::reject_symlink(&path, "the journal entry")?;
 
         let parsed = journal::parse_journal_file(&path)?;
         let structured = journal::medmd::extract(&parsed.content);

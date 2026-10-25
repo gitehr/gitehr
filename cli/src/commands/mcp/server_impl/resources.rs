@@ -265,10 +265,10 @@ impl ResourceHandler {
         reject_symlink(&journal_dir, "the journal directory")?;
         let entry_path = journal_dir.join(entry_id);
 
+        reject_symlink(&entry_path, "the journal entry")?;
         if !entry_path.exists() {
             return Err(anyhow::anyhow!("Journal entry not found: {}", entry_id));
         }
-        reject_symlink(&entry_path, "the journal entry")?;
 
         let content_text = std::fs::read_to_string(&entry_path)?;
         let content = ResourceContent::Text { text: content_text };
@@ -290,10 +290,10 @@ impl ResourceHandler {
         reject_symlink(&journal_dir, "the journal directory")?;
         let entry_path = journal_dir.join(entry_id);
 
+        reject_symlink(&entry_path, "the journal entry")?;
         if !entry_path.is_file() {
             return Err(anyhow::anyhow!("Journal entry not found: {}", entry_id));
         }
-        reject_symlink(&entry_path, "the journal entry")?;
 
         let parsed = crate::commands::journal::parse_journal_file(&entry_path)?;
         let structured = crate::commands::journal::medmd::extract(&parsed.content);
@@ -596,7 +596,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         std::fs::create_dir(dir.path().join("journal")).unwrap();
         let entry = dir.path().join("journal/entry.md");
-        let body = "---\ntimestamp: 2026-01-01T00:00:00.000Z\n---\n\nBP 120/80\n";
+        let body = "---\ntimestamp: 2026-01-01T00:00:00.000Z\n---\n\nPC/ Chest pain\n";
         std::fs::write(&entry, body).unwrap();
 
         let handler = ResourceHandler::new(dir.path().to_path_buf(), McpConfig::default());
@@ -607,6 +607,12 @@ mod tests {
             read.contents[0].mime_type.as_deref(),
             Some("application/json")
         );
+        let ResourceContent::Text { text } = &read.contents[0].content else {
+            panic!("expected text content");
+        };
+        let structured: serde_json::Value = serde_json::from_str(text).unwrap();
+        assert_eq!(structured["PC"]["notes"], "Chest pain");
+        assert_eq!(structured["_source_map"]["PC"], 1);
         assert_eq!(std::fs::read_to_string(&entry).unwrap(), body);
 
         for uri in [
@@ -615,6 +621,29 @@ mod tests {
             "gitehr://repo/journal/missing.md/extract",
         ] {
             assert!(handler.read_resource(uri).is_err(), "{uri}");
+        }
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn test_read_journal_extract_rejects_live_and_dangling_symlinks() {
+        use std::os::unix::fs::symlink;
+
+        for dangling in [false, true] {
+            let dir = tempfile::tempdir().unwrap();
+            let journal_dir = dir.path().join("journal");
+            std::fs::create_dir(&journal_dir).unwrap();
+            let outside = dir.path().join("outside.md");
+            if !dangling {
+                std::fs::write(&outside, "outside repository").unwrap();
+            }
+            symlink(&outside, journal_dir.join("entry.md")).unwrap();
+
+            let handler = ResourceHandler::new(dir.path().to_path_buf(), McpConfig::default());
+            let err = handler
+                .read_resource("gitehr://repo/journal/entry.md/extract")
+                .unwrap_err();
+            assert!(err.to_string().contains("it is a symlink"));
         }
     }
 
