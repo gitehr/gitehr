@@ -208,7 +208,12 @@ impl ResourceHandler {
             "documents" => self.read_document_root("documents"),
             "imaging" => self.read_document_root("imaging"),
             _ => {
-                if let Some(entry_id) = rest.strip_prefix("journal/") {
+                if let Some(entry_id) = rest
+                    .strip_prefix("journal/")
+                    .and_then(|r| r.strip_suffix("/extract"))
+                {
+                    self.read_journal_extract(entry_id)
+                } else if let Some(entry_id) = rest.strip_prefix("journal/") {
                     self.read_journal_entry(entry_id)
                 } else if let Some(filename) = rest.strip_prefix("state/") {
                     self.read_state_file(filename)
@@ -260,10 +265,10 @@ impl ResourceHandler {
         reject_symlink(&journal_dir, "the journal directory")?;
         let entry_path = journal_dir.join(entry_id);
 
+        reject_symlink(&entry_path, "the journal entry")?;
         if !entry_path.exists() {
             return Err(anyhow::anyhow!("Journal entry not found: {}", entry_id));
         }
-        reject_symlink(&entry_path, "the journal entry")?;
 
         let content_text = std::fs::read_to_string(&entry_path)?;
         let content = ResourceContent::Text { text: content_text };
@@ -273,6 +278,33 @@ impl ResourceHandler {
                 uri: format!("gitehr://repo/journal/{}", entry_id),
                 mime_type: Some("text/markdown".to_string()),
                 content,
+            }],
+        })
+    }
+
+    /// Read-only structured Medical Markdown extraction of one journal entry
+    /// (R65), the resource counterpart of the `extract_journal_entry` tool.
+    fn read_journal_extract(&self, entry_id: &str) -> anyhow::Result<ResourcesRead> {
+        let entry_id = safe_filename(entry_id)?;
+        let journal_dir = self.repo_path.join("journal");
+        reject_symlink(&journal_dir, "the journal directory")?;
+        let entry_path = journal_dir.join(entry_id);
+
+        reject_symlink(&entry_path, "the journal entry")?;
+        if !entry_path.is_file() {
+            return Err(anyhow::anyhow!("Journal entry not found: {}", entry_id));
+        }
+
+        let parsed = crate::commands::journal::parse_journal_file(&entry_path)?;
+        let structured = crate::commands::journal::medmd::extract(&parsed.content);
+
+        Ok(ResourcesRead {
+            contents: vec![ResourceReadContent {
+                uri: format!("gitehr://repo/journal/{}/extract", entry_id),
+                mime_type: Some("application/json".to_string()),
+                content: ResourceContent::Text {
+                    text: serde_json::to_string_pretty(&structured)?,
+                },
             }],
         })
     }
@@ -556,6 +588,62 @@ mod tests {
         ] {
             let err = handler.read_resource(uri).unwrap_err();
             assert!(err.to_string().contains("it is a symlink"), "{uri}: {err}");
+        }
+    }
+
+    #[test]
+    fn test_read_journal_extract_is_read_only_and_rejects_traversal() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::create_dir(dir.path().join("journal")).unwrap();
+        let entry = dir.path().join("journal/entry.md");
+        let body = "---\ntimestamp: 2026-01-01T00:00:00.000Z\n---\n\nPC/ Chest pain\n";
+        std::fs::write(&entry, body).unwrap();
+
+        let handler = ResourceHandler::new(dir.path().to_path_buf(), McpConfig::default());
+        let read = handler
+            .read_resource("gitehr://repo/journal/entry.md/extract")
+            .unwrap();
+        assert_eq!(
+            read.contents[0].mime_type.as_deref(),
+            Some("application/json")
+        );
+        let ResourceContent::Text { text } = &read.contents[0].content else {
+            panic!("expected text content");
+        };
+        let structured: serde_json::Value = serde_json::from_str(text).unwrap();
+        assert_eq!(structured["PC"]["notes"], "Chest pain");
+        assert_eq!(structured["_source_map"]["PC"], 1);
+        assert_eq!(std::fs::read_to_string(&entry).unwrap(), body);
+
+        for uri in [
+            "gitehr://repo/journal/../x.md/extract",
+            "gitehr://repo/journal/a/b.md/extract",
+            "gitehr://repo/journal/missing.md/extract",
+        ] {
+            assert!(handler.read_resource(uri).is_err(), "{uri}");
+        }
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn test_read_journal_extract_rejects_live_and_dangling_symlinks() {
+        use std::os::unix::fs::symlink;
+
+        for dangling in [false, true] {
+            let dir = tempfile::tempdir().unwrap();
+            let journal_dir = dir.path().join("journal");
+            std::fs::create_dir(&journal_dir).unwrap();
+            let outside = dir.path().join("outside.md");
+            if !dangling {
+                std::fs::write(&outside, "outside repository").unwrap();
+            }
+            symlink(&outside, journal_dir.join("entry.md")).unwrap();
+
+            let handler = ResourceHandler::new(dir.path().to_path_buf(), McpConfig::default());
+            let err = handler
+                .read_resource("gitehr://repo/journal/entry.md/extract")
+                .unwrap_err();
+            assert!(err.to_string().contains("it is a symlink"));
         }
     }
 

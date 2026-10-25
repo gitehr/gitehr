@@ -118,6 +118,7 @@ Returns available resources:
 
 Four further URI patterns are readable but not listed by `resources/list` - read them directly by URI:
 - `gitehr://repo/journal/{filename}` - Content of one journal entry (e.g. `gitehr://repo/journal/20260101T000000.000Z-abc123.md`)
+- `gitehr://repo/journal/{filename}/extract` - Read-only structured Medical Markdown extraction of one journal entry as JSON
 - `gitehr://repo/state/{filename}` - Content of one state file (e.g. `gitehr://repo/state/demographics.json`)
 - `gitehr://repo/documents/{name}` - Content of one non-imaging Document, or the manifest for a directory Document
 - `gitehr://repo/imaging/{name}` - Content of one imaging Document, or the manifest for a directory study
@@ -257,6 +258,7 @@ Arguments must be an object containing only the fields declared by `prompts/list
 | --- | --- | --- |
 | `gitehr://repo/journal` | JSON array of journal entry filenames | `application/json` |
 | `gitehr://repo/journal/{filename}` | Raw Markdown content of one journal entry | `text/markdown` |
+| `gitehr://repo/journal/{filename}/extract` | Read-only Medical Markdown structure of one journal entry, as `gitehr journal extract` | `application/json` |
 | `gitehr://repo/state` | JSON array of state filenames (excludes `README.md`) | `application/json` |
 | `gitehr://repo/state/{filename}` | Raw content of one state file | `text/plain` |
 | `gitehr://repo/status` | Repository status: `version`, `encrypted`, `journal_entry_count`, `state_files` | `application/json` |
