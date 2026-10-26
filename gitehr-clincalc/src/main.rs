@@ -9,7 +9,7 @@ use std::io::{Read, Write};
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
 
-const CLINCALC_VERSION: &str = "0.3.4";
+const CLINCALC_VERSION: &str = "0.4.0";
 
 #[derive(Parser)]
 #[command(name = "gitehr-clincalc")]
@@ -254,7 +254,7 @@ mod tests {
         let body = render_journal_body(&evidence).unwrap();
 
         assert!(body.contains("# Clinical calculation: feverpain"));
-        assert!(body.contains("\"clincalc_version\": \"0.3.4\""));
+        assert!(body.contains(&format!("\"clincalc_version\": \"{CLINCALC_VERSION}\"")));
         assert!(body.contains("\"input\""));
         assert!(body.contains("\"response\""));
         assert!(body.contains("\"reference\""));
