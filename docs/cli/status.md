@@ -11,7 +11,7 @@ Alias: `st`.
 Output includes:
 
 - Repository version from `.gitehr/GITEHR_VERSION`
-- Encryption state (presence of `.gitehr/ENCRYPTED`)
+- Encryption state: always reported as not implemented (roadmap R67/R68); if a stale legacy `.gitehr/ENCRYPTED` marker is present the line says so, and notes that no file is actually encrypted
 - Journal entry count
 - State file list (excluding `README.md`)
 - Git working directory status, when the directory is also a Git repository
