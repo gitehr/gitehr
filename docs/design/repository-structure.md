@@ -23,7 +23,7 @@ Common files include:
 - `gitehr` - bundled CLI binary
 - `contributors.json` - contributor roster and active author
 - `remotes.json` - named remotes
-- `ENCRYPTED` - encryption marker (placeholder)
+- `ENCRYPTED` - legacy stale marker from an earlier placeholder; no longer written (encryption not implemented)
 
 ## journal/
 

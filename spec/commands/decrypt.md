@@ -4,12 +4,12 @@
 
 ### `gitehr decrypt [--key <source>]`
 
-Removes the encryption marker for the repository. This is a placeholder implementation for future full-file decryption.
+Removes a stale `.gitehr/ENCRYPTED` marker written by an earlier placeholder `gitehr encrypt`. Nothing was ever encrypted, so nothing is decrypted.
 
 Options:
-- `--key <source>`: Key source identifier (for example, `local` or a remote URL). Defaults to `local` when omitted.
+- `--key <source>`: Accepted but ignored until encryption is implemented.
 
 Behavior:
 - Fails if the current directory is not a GitEHR repository.
-- Fails if the repository is not marked as encrypted.
-- Removes `.gitehr/ENCRYPTED` and prints a note that full decryption is pending.
+- Fails if no marker exists.
+- Removes `.gitehr/ENCRYPTED` and prints a note that no data was encrypted.

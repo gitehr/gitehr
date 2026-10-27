@@ -85,9 +85,9 @@ Restart your shell after installing completions."#
         #[command(subcommand)]
         command: ConfigCommands,
     },
-    #[command(about = "Remove the repository encryption marker")]
+    #[command(about = "Remove a stale legacy encryption marker")]
     Decrypt {
-        #[arg(long, help = "Key source (local or remote URL)")]
+        #[arg(long, help = "Key source (currently ignored)")]
         key: Option<String>,
     },
     #[command(
@@ -107,9 +107,9 @@ Restart your shell after installing completions."#
         #[command(subcommand)]
         command: DocumentCommands,
     },
-    #[command(about = "Create the repository encryption marker")]
+    #[command(about = "Report that encryption at rest is not implemented")]
     Encrypt {
-        #[arg(long, help = "Key source (local or remote URL)")]
+        #[arg(long, help = "Key source (currently ignored)")]
         key: Option<String>,
     },
     #[command(about = "Launch the GitEHR graphical interface")]
