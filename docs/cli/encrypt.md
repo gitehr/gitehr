@@ -4,14 +4,15 @@
 gitehr encrypt [--key <source>]
 ```
 
-Marks the repository as encrypted.
+Encryption at rest is **not yet implemented** (roadmap R67/R68). The command always refuses and changes nothing.
 
-!!! warning "Placeholder implementation"
-    The current implementation writes only a `.gitehr/ENCRYPTED` marker. End-to-end repository encryption is on the roadmap but not yet implemented.
+!!! warning "Not implemented"
+    `gitehr encrypt` no longer writes a `.gitehr/ENCRYPTED` marker, because a marker with plaintext files would falsely suggest the record is protected.
 
 Behavior:
 
-- Writes `.gitehr/ENCRYPTED` containing `encrypted_at` (current timestamp) and `key_source` (the value of `--key`, or `local` if omitted).
-- Prints a notice that full encryption is pending.
+- Fails if the current directory is not a GitEHR repository.
+- Fails with "Repository is already encrypted." if a legacy `.gitehr/ENCRYPTED` marker exists.
+- Otherwise fails with a "not yet implemented" message; no files are changed. `--key` is accepted but ignored.
 
-To remove the marker, see [`gitehr decrypt`](decrypt.md).
+To clear a stale marker left by an earlier version, see [`gitehr decrypt`](decrypt.md).

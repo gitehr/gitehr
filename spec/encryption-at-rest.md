@@ -4,7 +4,7 @@
 
 **Status:** Research and design discussion. No decision made yet. This document surveys how the wider healthcare-software industry achieves encryption at rest, explains why GitEHR's file-and-git model needs a different approach from the dominant database-backed one, and lays out the candidate approaches and open questions. It is intended to feed a future grilling session and an ADR once a direction is chosen.
 
-Related: `gitehr encrypt` / `gitehr decrypt` are currently placeholders (they write a `.gitehr/ENCRYPTED` marker and state an intent to encrypt `journal/`, `state/`, `imaging/`, and `documents/` with AES-256-GCM, leaving `.gitehr/` in the clear). The immutability and verifiability model that encryption must not break is recorded in the Documents ADRs ([ADR-0002](adr/0002-record-only-grows.md): the record only grows; [ADR-0003](adr/0003-directory-documents-with-manifest.md): SHA-256 references anchor integrity).
+Related: `gitehr encrypt` / `gitehr decrypt` are currently placeholders (legacy: they wrote a `.gitehr/ENCRYPTED` marker and stated an intent to encrypt `journal/`, `state/`, `imaging/`, and `documents/` with AES-256-GCM, leaving `.gitehr/` in the clear). The immutability and verifiability model that encryption must not break is recorded in the Documents ADRs ([ADR-0002](adr/0002-record-only-grows.md): the record only grows; [ADR-0003](adr/0003-directory-documents-with-manifest.md): SHA-256 references anchor integrity).
 
 ## Why encryption at rest matters for GitEHR
 

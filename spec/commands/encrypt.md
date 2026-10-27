@@ -4,13 +4,12 @@
 
 ### `gitehr encrypt [--key <source>]`
 
-Marks the repository as encrypted and records the key source. This is a placeholder implementation for future full-file encryption.
+Not yet implemented (R67/R68). Always refuses, so the repository is never falsely marked as encrypted (R79).
 
 Options:
-- `--key <source>`: Key source identifier (for example, `local` or a remote URL). Defaults to `local` when omitted.
+- `--key <source>`: Accepted but ignored until encryption is implemented.
 
 Behavior:
 - Fails if the current directory is not a GitEHR repository.
-- Fails if the repository is already marked as encrypted.
-- Writes `.gitehr/ENCRYPTED` with `encrypted_at` and `key_source` metadata.
-- Prints the planned encryption scope (journal, state, imaging, documents) and notes that full encryption is pending.
+- Fails if a legacy `.gitehr/ENCRYPTED` marker exists ("already encrypted").
+- Otherwise fails with a "not yet implemented" message and changes no files.
