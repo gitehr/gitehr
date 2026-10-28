@@ -40,6 +40,12 @@ Environment overrides:
 | `GITEHR_CONFIG` | Use a specific config file |
 | `GITEHR_STORE_PATH` | Override the Store path for this process |
 
+## Output
+
+`gitehr config show` prints one `key: value` line each for `config_path`, `store_path` and `document_whitelist`. An unset Store prints `<unset>`; an unset whitelist prints `<unset> (any format accepted)`; a whitelist prints its normalised (lowercase, no leading dot) extensions, comma-separated. `store_path` reflects `GITEHR_STORE_PATH` when that is set. `show` fails with a configuration error if the whitelist is unusable.
+
+`gitehr config set-store` accepts a relative path or one starting with `~`, stores it as an absolute path, and leaves other settings (such as `document_whitelist`) unchanged. It fails if the path does not contain `gitehr-mpi.json`.
+
 ## Default Store
 
 Set the default Store once:

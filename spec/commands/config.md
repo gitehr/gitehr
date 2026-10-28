@@ -32,7 +32,9 @@ gitehr config show
 gitehr config set-store <path>
 ```
 
-`set-store` requires an existing Store root containing `gitehr-mpi.json`.
+`set-store` requires an existing Store root containing `gitehr-mpi.json`. A leading `~` is expanded and a relative path is resolved against the current directory, so `store_path` is always saved as an absolute path. Other settings in the file (for example `document_whitelist`) are preserved.
+
+`show` prints `config_path`, `store_path` and `document_whitelist` as `key: value` lines. `store_path` is the effective value, so `GITEHR_STORE_PATH` takes precedence over the file. Unset values print as `<unset>` (the whitelist adds `(any format accepted)`). `show` reports a configuration error when the whitelist is unusable.
 
 ## Context resolution
 
