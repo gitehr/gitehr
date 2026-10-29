@@ -17,6 +17,8 @@ Upgrades an existing GitEHR repository to the latest version.
    - Records the upgrade in the journal for auditability.
 5. Prints confirmation of completion.
 
+If `.gitehr/GITEHR_VERSION` is missing, the current version is reported as `unknown` and the upgrade proceeds. The command (and `upgrade-binary`) refuses to read or write `.gitehr/GITEHR_VERSION` or `.gitehr/gitehr` if either is a symlink.
+
 ## Example
 
 ```bash

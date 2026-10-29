@@ -5,12 +5,14 @@ use anyhow::Result;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use super::upgrade::reject_symlink;
+use super::upgrade::{reject_control_path_symlinks, reject_symlink};
 
 pub fn run() -> Result<()> {
     if !PathBuf::from(".gitehr").exists() {
         anyhow::bail!("Not a GitEHR repository (or not in the repository root).");
     }
+
+    reject_control_path_symlinks()?;
 
     let cli_version = env!("CARGO_PKG_VERSION");
     let bundled_path = PathBuf::from(".gitehr/gitehr");

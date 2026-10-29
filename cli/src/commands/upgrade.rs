@@ -27,6 +27,13 @@ pub(super) fn reject_symlink(path: &Path) -> Result<()> {
     Ok(())
 }
 
+/// Validate both repository-controlled upgrade destinations before either
+/// command can modify one of them.
+pub(super) fn reject_control_path_symlinks() -> Result<()> {
+    reject_symlink(Path::new(".gitehr/GITEHR_VERSION"))?;
+    reject_symlink(Path::new(".gitehr/gitehr"))
+}
+
 fn get_current_version() -> Result<Option<String>> {
     let path = Path::new(".gitehr/GITEHR_VERSION");
     reject_symlink(path)?;
@@ -60,6 +67,8 @@ pub fn run() -> Result<()> {
     if !is_gitehr_repo() {
         anyhow::bail!("Not a GitEHR repository (or not in the repository root).");
     }
+
+    reject_control_path_symlinks()?;
 
     let current_version = get_current_version()?;
     let new_version = env!("CARGO_PKG_VERSION");

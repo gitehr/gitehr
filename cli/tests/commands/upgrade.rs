@@ -112,9 +112,30 @@ fn test_upgrade_repository_already_latest() -> Result<()> {
 
     initialise()?;
 
+    let binary_before = fs::read(".gitehr/gitehr")?;
+    let journal_entries_before = fs::read_dir("journal")?
+        .filter_map(|entry| entry.ok())
+        .count();
+
     upgrade_repository()?;
 
-    assert_eq!((), (), "Should succeed even if already latest");
+    assert_eq!(
+        fs::read_to_string(".gitehr/GITEHR_VERSION")?.trim(),
+        env!("CARGO_PKG_VERSION"),
+        "The matching version should be preserved"
+    );
+    assert_eq!(
+        fs::read(".gitehr/gitehr")?,
+        binary_before,
+        "The bundled binary should not be copied again"
+    );
+    assert_eq!(
+        fs::read_dir("journal")?
+            .filter_map(|entry| entry.ok())
+            .count(),
+        journal_entries_before,
+        "A no-op upgrade should not create a journal entry"
+    );
 
     Ok(())
 }
@@ -209,17 +230,32 @@ fn test_upgrade_preserves_other_files() -> Result<()> {
 
 #[test]
 #[serial]
-#[ignore]
 fn test_upgrade_handles_missing_current_version() -> Result<()> {
     let _temp_dir = setup();
 
-    fs::create_dir_all(".gitehr")?;
-    fs::create_dir_all("journal")?;
+    initialise()?;
+    fs::remove_file(".gitehr/GITEHR_VERSION")?;
 
     upgrade_repository()?;
 
-    let version = fs::read_to_string(".gitehr/GITEHR_VERSION")?;
-    assert!(!version.is_empty(), "Should write version even if missing");
+    assert_eq!(
+        fs::read_to_string(".gitehr/GITEHR_VERSION")?.trim(),
+        env!("CARGO_PKG_VERSION"),
+        "A missing version should be upgraded to the CLI version"
+    );
+
+    let mut found_unknown_upgrade = false;
+    for entry in fs::read_dir("journal")? {
+        let content = fs::read_to_string(entry?.path())?;
+        if content.contains("Repository upgraded from unknown") {
+            found_unknown_upgrade = true;
+            break;
+        }
+    }
+    assert!(
+        found_unknown_upgrade,
+        "The upgrade journal entry should record the missing version as unknown"
+    );
 
     Ok(())
 }
@@ -312,6 +348,82 @@ fn test_upgrade_binary_refuses_symlinked_destination() -> Result<()> {
     assert_eq!(
         secret_contents, "not a real binary",
         "Symlink target must not be overwritten"
+    );
+
+    Ok(())
+}
+
+#[cfg(unix)]
+#[test]
+#[serial]
+fn test_upgrade_repository_preflights_symlinked_binary_destination() -> Result<()> {
+    use std::os::unix::fs::symlink;
+
+    let _temp_dir = setup();
+
+    initialise()?;
+    fs::write(".gitehr/GITEHR_VERSION", "0.1.0")?;
+    let journal_entries_before = fs::read_dir("journal")?
+        .filter_map(|entry| entry.ok())
+        .count();
+    fs::remove_file(".gitehr/gitehr")?;
+
+    let secret_dir = tempdir()?;
+    let secret_path = secret_dir.path().join("secret-binary");
+    fs::write(&secret_path, "not a real binary")?;
+    symlink(&secret_path, ".gitehr/gitehr")?;
+
+    let result = upgrade_repository();
+    assert!(result.is_err(), "Should refuse a symlinked bundled binary");
+    assert_eq!(
+        fs::read_to_string(".gitehr/GITEHR_VERSION")?.trim(),
+        "0.1.0",
+        "The version file must not change when another control path is unsafe"
+    );
+    assert_eq!(
+        fs::read_dir("journal")?
+            .filter_map(|entry| entry.ok())
+            .count(),
+        journal_entries_before,
+        "A refused upgrade must not create a journal entry"
+    );
+    assert_eq!(
+        fs::read_to_string(&secret_path)?,
+        "not a real binary",
+        "The symlink target must not be overwritten"
+    );
+
+    Ok(())
+}
+
+#[cfg(unix)]
+#[test]
+#[serial]
+fn test_upgrade_binary_preflights_symlinked_version_file() -> Result<()> {
+    use std::os::unix::fs::symlink;
+
+    let _temp_dir = setup();
+
+    initialise()?;
+    let binary_before = fs::read(".gitehr/gitehr")?;
+    fs::remove_file(".gitehr/GITEHR_VERSION")?;
+
+    let secret_dir = tempdir()?;
+    let secret_path = secret_dir.path().join("secret-version");
+    fs::write(&secret_path, "not a version")?;
+    symlink(&secret_path, ".gitehr/GITEHR_VERSION")?;
+
+    let result = upgrade_binary();
+    assert!(result.is_err(), "Should refuse a symlinked version file");
+    assert_eq!(
+        fs::read(".gitehr/gitehr")?,
+        binary_before,
+        "The bundled binary must not change when another control path is unsafe"
+    );
+    assert_eq!(
+        fs::read_to_string(&secret_path)?,
+        "not a version",
+        "The symlink target must not be overwritten"
     );
 
     Ok(())

@@ -4,4 +4,4 @@
 
 Aliases: `v`
 
-Prints the current GitEHR version shared by the CLI and GUI (see [src/main.rs](../../src/main.rs) and [Cargo.toml](../../Cargo.toml)).
+Prints the GitEHR CLI version (`GitEHR: <version>`) followed by the Git version found on `$PATH` (`Git <version>`), or `Git (not found or not installed)` if Git is unavailable. See [cli/src/commands/version.rs](../../cli/src/commands/version.rs).
