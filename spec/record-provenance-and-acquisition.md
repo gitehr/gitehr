@@ -68,15 +68,15 @@ An acquisition register as typed-state (or a dedicated `acquisitions/` area), on
   identifiers_provided: [NHS: <...>, MRN: <...>]
   date_sent: <date>
   id_provided: <what ID was attached>
-  ack_date: <date>          # statutory clock start
-  due_date: <date>          # one month from receipt/ID; note weekends/bank holidays
+  ack_date: <date>          # acknowledgement, if received
+  due_date: <date>          # currently one month from date_sent; see Q2
   status: drafted | sent | acknowledged | received | partial | nil-destroyed | refused
   outcome: <free text>
   filed_to: [<refs to journal entries / documents>]
   notes: <free text>
 ```
 
-On "received", imported documents and journal entries carry `provenance.acquired_via = <acq-id>`, linking Parts 1 and 2.
+The current command uses `date_sent` as the conservative automatic due-date basis because receipt is ordinarily unobservable; acknowledgement does not move it. Whether the enduring model should represent receipt and identity-completion dates separately is unresolved in [Q2](queries.md#q2-acquisition-due-date-basis). On "received", imported documents and journal entries carry `provenance.acquired_via = <acq-id>`, linking Parts 1 and 2.
 
 Optional helpers:
 
