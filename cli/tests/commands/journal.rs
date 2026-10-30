@@ -323,6 +323,73 @@ fn mcp_draft_reject_deletes_the_file() -> Result<()> {
     Ok(())
 }
 
+#[test]
+fn mcp_draft_review_refuses_traversal_filenames() -> Result<()> {
+    let repo = tempdir()?;
+    let outside = repo.path().join("victim.md");
+    fs::create_dir(repo.path().join("journal"))?;
+    fs::write(&outside, "---\nmcp_draft: true\n---\nkeep me")?;
+
+    for bad in [
+        "../victim.md",
+        "journal/../victim.md",
+        "sub/2026-01-01T00-00-00.md",
+        "..\\victim.md",
+        "notes.md",
+    ] {
+        assert!(
+            approve_mcp_draft(repo.path(), bad).is_err(),
+            "approve {bad}"
+        );
+        assert!(reject_mcp_draft(repo.path(), bad).is_err(), "reject {bad}");
+    }
+    assert!(outside.exists());
+    assert!(fs::read_to_string(&outside)?.contains("keep me"));
+    Ok(())
+}
+
+#[cfg(unix)]
+#[test]
+fn mcp_draft_review_refuses_symlinks() -> Result<()> {
+    use std::os::unix::fs::symlink;
+
+    let repo = tempdir()?;
+    let target = tempdir()?;
+    let victim = target.path().join("victim.md");
+    fs::write(&victim, "---\nmcp_draft: true\n---\nkeep me")?;
+    let name = "2026-01-01T00-00-00.md";
+
+    // Live and dangling file symlinks inside journal/.
+    fs::create_dir(repo.path().join("journal"))?;
+    let link = repo.path().join("journal").join(name);
+    symlink(&victim, &link)?;
+    assert!(approve_mcp_draft(repo.path(), name).is_err());
+    assert!(reject_mcp_draft(repo.path(), name).is_err());
+    assert!(mcp_drafts(repo.path())?.is_empty(), "symlink is not listed");
+    fs::remove_file(&link)?;
+    symlink(target.path().join("missing.md"), &link)?;
+    assert!(approve_mcp_draft(repo.path(), name).is_err());
+    assert!(reject_mcp_draft(repo.path(), name).is_err());
+    assert!(victim.exists());
+    assert!(fs::read_to_string(&victim)?.contains("keep me"));
+
+    // Live and dangling journal/ directory symlinks.
+    let other = tempdir()?;
+    fs::write(
+        other.path().join(name),
+        "---\nmcp_draft: true\n---\nkeep me",
+    )?;
+    for dir_target in [other.path().to_path_buf(), other.path().join("missing")] {
+        let repo2 = tempdir()?;
+        symlink(&dir_target, repo2.path().join("journal"))?;
+        assert!(mcp_drafts(repo2.path()).is_err());
+        assert!(approve_mcp_draft(repo2.path(), name).is_err());
+        assert!(reject_mcp_draft(repo2.path(), name).is_err());
+    }
+    assert!(other.path().join(name).exists());
+    Ok(())
+}
+
 #[cfg(unix)]
 #[test]
 fn journal_writes_refuse_live_and_dangling_directory_symlinks() -> Result<()> {
