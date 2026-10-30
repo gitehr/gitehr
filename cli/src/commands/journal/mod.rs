@@ -415,6 +415,7 @@ pub fn create_mcp_draft_entry(
 /// Every unapproved MCP draft in `repo_path`, oldest first.
 pub fn mcp_drafts(repo_path: &Path) -> Result<Vec<(String, ParsedEntry)>> {
     let journal_dir = repo_path.join("journal");
+    refuse_symlink(&journal_dir)?;
     if !journal_dir.exists() {
         return Ok(Vec::new());
     }
@@ -426,7 +427,7 @@ pub fn mcp_drafts(repo_path: &Path) -> Result<Vec<(String, ParsedEntry)>> {
         let Some(name) = path.file_name().and_then(|n| n.to_str()) else {
             continue;
         };
-        if !is_journal_entry_file(name) {
+        if !is_journal_entry_file(name) || entry.file_type()?.is_symlink() {
             continue;
         }
         let Ok(parsed) = parse_journal_file(&path) else {
@@ -442,11 +443,41 @@ pub fn mcp_drafts(repo_path: &Path) -> Result<Vec<(String, ParsedEntry)>> {
 
 /// Accept a draft filename either bare (`<name>.md`, as `journal drafts`
 /// lists it) or repo-relative (`journal/<name>.md`, as the MCP tool reports it).
-fn draft_filename(filename: &str) -> String {
-    filename
-        .strip_prefix("journal/")
-        .unwrap_or(filename)
-        .to_string()
+/// Anything else (separators, `..`, non-journal names) is refused so a
+/// caller-supplied name can never leave `journal/` (R86).
+fn draft_filename(filename: &str) -> Result<String> {
+    let name = filename.strip_prefix("journal/").unwrap_or(filename);
+    let mut components = Path::new(name).components();
+    let is_bare = matches!(
+        (components.next(), components.next()),
+        (Some(std::path::Component::Normal(_)), None)
+    );
+    if !is_bare || name.contains(['/', '\\']) || !is_journal_entry_file(name) {
+        anyhow::bail!("Invalid draft filename: {filename}");
+    }
+    Ok(name.to_string())
+}
+
+/// Refuse a path that is itself a symlink, live or dangling.
+fn refuse_symlink(path: &Path) -> Result<()> {
+    match path.symlink_metadata() {
+        Ok(m) if m.file_type().is_symlink() => {
+            anyhow::bail!("Refusing to access through symlink {}", path.display())
+        }
+        Ok(_) => Ok(()),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        Err(e) => Err(e).with_context(|| format!("Failed to inspect {}", path.display())),
+    }
+}
+
+/// Resolve a draft's path under `journal/`, refusing symlinked directory or file.
+fn draft_path(repo_path: &Path, filename: &str) -> Result<(String, PathBuf)> {
+    let filename = draft_filename(filename)?;
+    let journal_dir = repo_path.join("journal");
+    refuse_symlink(&journal_dir)?;
+    let path = journal_dir.join(&filename);
+    refuse_symlink(&path)?;
+    Ok((filename, path))
 }
 
 /// Approve a draft: strip `mcp_draft: true`, stage, and commit. The human
@@ -454,8 +485,7 @@ fn draft_filename(filename: &str) -> String {
 /// are committed in the same commit, so the audit trail for an approved
 /// machine action is preserved alongside the content it describes.
 pub fn approve_mcp_draft(repo_path: &Path, filename: &str) -> Result<()> {
-    let filename = draft_filename(filename);
-    let path = repo_path.join("journal").join(&filename);
+    let (filename, path) = draft_path(repo_path, filename)?;
     if !path.is_file() {
         anyhow::bail!("Draft not found: journal/{filename}");
     }
@@ -480,6 +510,9 @@ pub fn approve_mcp_draft(repo_path: &Path, filename: &str) -> Result<()> {
     for entry in fs::read_dir(repo_path.join("journal"))? {
         let entry = entry?;
         let p = entry.path();
+        if entry.file_type()?.is_symlink() {
+            continue;
+        }
         let Ok(content) = fs::read_to_string(&p) else {
             continue;
         };
@@ -510,8 +543,7 @@ pub fn approve_mcp_draft(repo_path: &Path, filename: &str) -> Result<()> {
 /// Reject a draft by deleting the file. The record only grows (ADR-0002): an
 /// unapproved draft never entered the record, so deleting it loses nothing.
 pub fn reject_mcp_draft(repo_path: &Path, filename: &str) -> Result<()> {
-    let filename = draft_filename(filename);
-    let path = repo_path.join("journal").join(&filename);
+    let (filename, path) = draft_path(repo_path, filename)?;
     if !path.is_file() {
         anyhow::bail!("Draft not found: journal/{filename}");
     }
