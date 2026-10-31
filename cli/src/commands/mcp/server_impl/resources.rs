@@ -391,6 +391,7 @@ impl ResourceHandler {
         // through a symlink planted in the Documents tree. Also skip
         // symlinked entries when listing, so the listing cannot advertise a
         // link that the item read will refuse.
+        reject_symlink(&root_dir, "the Documents root")?;
         if root_dir.exists() {
             for entry in std::fs::read_dir(&root_dir)? {
                 let entry = entry?;
@@ -427,11 +428,15 @@ impl ResourceHandler {
     fn read_document_item(&self, root: &str, name: &str) -> anyhow::Result<ResourcesRead> {
         debug_assert!(DOCUMENT_ROOTS.contains(&root));
         let name = safe_filename(name)?;
-        let path = self.repo_path.join(root).join(name);
+        let root_dir = self.repo_path.join(root);
+        reject_symlink(&root_dir, "the Documents root")?;
+        let path = root_dir.join(name);
+        reject_symlink(&path, "the Document")?;
         let uri = format!("gitehr://repo/{}/{}", root, name);
 
         if path.is_dir() {
             let manifest_path = path.join(MANIFEST_FILENAME);
+            reject_symlink(&manifest_path, "the Document manifest")?;
             let text = std::fs::read_to_string(&manifest_path)
                 .map_err(|_| anyhow::anyhow!("Manifest not found for study Document: {}", name))?;
 
@@ -721,5 +726,37 @@ mod tests {
             panic!("expected text content");
         };
         assert_eq!(text, manifest);
+    }
+
+    #[test]
+    fn test_documents_reject_symlinked_roots_directories_and_manifests() {
+        use std::os::unix::fs::symlink;
+        let outside = tempfile::tempdir().unwrap();
+        std::fs::write(outside.path().join(MANIFEST_FILENAME), "secret").unwrap();
+        std::fs::write(outside.path().join("secret.txt"), "secret").unwrap();
+
+        let dir = tempfile::tempdir().unwrap();
+        symlink(outside.path(), dir.path().join("documents")).unwrap();
+        let study = dir.path().join("imaging");
+        std::fs::create_dir_all(&study).unwrap();
+        symlink(outside.path(), study.join("linked-study")).unwrap();
+        let real = study.join("real-study");
+        std::fs::create_dir_all(&real).unwrap();
+        symlink(
+            outside.path().join(MANIFEST_FILENAME),
+            real.join(MANIFEST_FILENAME),
+        )
+        .unwrap();
+
+        let handler = ResourceHandler::new(dir.path().to_path_buf(), McpConfig::default());
+        for uri in [
+            "gitehr://repo/documents",
+            "gitehr://repo/documents/secret.txt",
+            "gitehr://repo/imaging/linked-study",
+            "gitehr://repo/imaging/real-study",
+        ] {
+            let err = handler.read_resource(uri).unwrap_err();
+            assert!(err.to_string().contains("it is a symlink"), "{uri}: {err}");
+        }
     }
 }
