@@ -728,6 +728,7 @@ mod tests {
         assert_eq!(text, manifest);
     }
 
+    #[cfg(unix)]
     #[test]
     fn test_documents_reject_symlinked_roots_directories_and_manifests() {
         use std::os::unix::fs::symlink;
