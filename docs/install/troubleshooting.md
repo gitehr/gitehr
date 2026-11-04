@@ -4,9 +4,15 @@ Common messages from the `gitehr` CLI and what to do about them. Every message b
 
 ## Repository and Store errors
 
-### `Not a GitEHR repository (or not in the repository root).`
+### No repository or Store found
 
-Commands such as `journal`, `status`, `encrypt` and `decrypt` must be run from the root of a GitEHR repository (the directory containing `.gitehr/`). Change into the repository root and try again. To create a new repository, run `gitehr store init` in an empty directory. `gitehr status` prints a hint to do this instead of failing.
+```text
+Not a GitEHR repository or Store. Run `gitehr store init` to create one, or set one with `gitehr config set-store <path>`.
+```
+
+Repo-level commands such as `journal`, `status`, `encrypt` and `decrypt` look for a `.gitehr/` directory in the current directory or an ancestor, so they work from subdirectories too. They also auto-target the only subject when run from a Store with one subject, or use a configured default Store. With a Store containing multiple subjects, change into the subject's repository before running a repo-level command.
+
+To create a Store and its first subject repository, run `gitehr store init [name]` in an empty directory. `gitehr status` prints a setup hint instead of failing when no repository or Store can be found.
 
 ### `This directory is already a GitEHR Store (...)`
 
@@ -16,9 +22,13 @@ Commands such as `journal`, `status`, `encrypt` and `decrypt` must be run from t
 
 `gitehr store init` was run inside a single-subject repository. Create a Store in a separate, empty directory.
 
+### `Not inside a GitEHR Store (no gitehr-mpi.json found).`
+
+A `gitehr store` subcommand could not find a Store in the current directory or an ancestor, and no valid default Store is configured. Run it from inside a Store, create one with `gitehr store init`, or configure one with `gitehr config set-store <path>`.
+
 ### `Not a GitEHR Store root (... not found)`
 
-A `gitehr store` subcommand was run outside a Store root. Change to the directory that holds the Store's MPI file.
+`GITEHR_MPI_PATH` names an MPI file that does not exist. Unset it to use the Store's default `gitehr-mpi.json`, or set it to an existing MPI file.
 
 ### `GitEHR repository already exists in this directory`
 
@@ -71,4 +81,4 @@ The text after the colon is Git's own message. Run the same Git command by hand 
 
 ## Still stuck?
 
-Run `gitehr version` and `gitehr status`, then include their output and the exact error text in an [issue](https://github.com/gitehr/gitehr/issues). Do not paste patient-identifiable data.
+Run `gitehr version` and `gitehr status`, then include their redacted output and the exact error text in an [issue](https://github.com/gitehr/gitehr/issues). Do not paste patient-identifiable data or file paths that could identify a person.
