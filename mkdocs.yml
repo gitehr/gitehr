@@ -40,6 +40,7 @@ nav:
       - Overview: install/install.md
       - CLI: install/cli.md
       - GUI: install/gui.md
+      - Troubleshooting: install/troubleshooting.md
   - CLI:
       - Overview: cli/cli.md
       - store: cli/store.md
