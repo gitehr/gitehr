@@ -6,13 +6,16 @@ This walkthrough describes the current reference GUI. It is designed for develop
 
 If the GUI cannot detect a GitEHR repo or configured Store, it shows an Open Repository screen. Select either a Store root containing `gitehr-mpi.json` or a subject repo containing `.gitehr`.
 
+## Patient Index
+
+Opening a Store root shows the Patient Index: a searchable list of subjects (name, ID, NHS number, MRN) with an **Add Subject** control. Opening a subject shows its record; **Patient list** returns to the index.
+
 ## Main layout
 
-The current reference GUI is organized around the working journal demo:
-
-- Header: GitEHR identity plus typed patient demographics, active allergies, and identifiers.
-- Left and right sidebars: reserved layout regions, intentionally empty until their workflows are real.
-- Main area: journal entry creation, document attachment, and recent journal review.
+- Header: GitEHR identity plus typed patient demographics, all active allergies, and identifiers.
+- Left sidebar: the **Patient list** button when a Store is open; otherwise empty.
+- Right sidebar: reserved, intentionally empty until its workflows are real.
+- Main area: read-only Problems, Medications, Observations and Vaccinations cards, then the Journal panel.
 
 ## Journal panel
 
