@@ -6,57 +6,44 @@ GitEHR is designed to give you ownership and a clear history of your health info
 
 ## Before You Begin
 
-This is a developer preview. Currently, the application cannot create new record folders from within the interface. 
-
-To use this guide, you should already have a GitEHR record folder on your computer (likely provided by an administrator or created for testing). This folder contains all the health data for a single individual.
+This is a developer preview. You can create a new Store from the opening screen, or open an existing Store or subject repository. The GUI needs the `gitehr` CLI installed and on your `PATH`; if it cannot find it, it shows a warning.
 
 ## 1. Open the GitEHR Application
 
-Launch the GitEHR app on your computer. When it starts, it will look for a Store or health record to display.
-
-If you have a regular local Store, set it once:
+Launch the app. If a Store is configured, the GUI opens it automatically. To set one once:
 
 ```bash
 gitehr config set-store ~/gitehr-store
 ```
 
-After that, the GUI can open the configured Store automatically.
+## 2. Open or Create a Store
 
-## 2. Select a Record Folder
+If nothing is detected, the **No GitEHR Repository Detected** screen appears:
 
-If the app doesn't automatically load a Store or record, it will ask you to choose one:
+1. To open existing data, select **Open Repository** and choose either a Store root (contains `gitehr-mpi.json`) or a subject repository (contains `.gitehr`).
+2. To start fresh, type a name in **First subject name** (a person, family member, or pet) and select **Create New Store**.
 
-1. Click the **Open** or **Select Folder** button.
-2. Navigate to the folder on your computer that contains the health record.
-3. Select the folder and confirm. 
+## 3. Choose a Subject
 
-*Note: The app looks for either a Store root containing `gitehr-mpi.json` or a subject repo containing `.gitehr`. If you select a folder without either marker, the app will let you know.*
+A Store opens on the **Patient Index**. Use the search box to filter by subject name, ID, NHS number or MRN. Type a name and select **Add Subject** to create another subject in the Store. Open a subject from the list to view their record. Select **Patient list** in the left sidebar to go back.
 
-## 3. Verify the Patient Record
+## 4. Verify the Record
 
-Once the record is loaded, the interface will display the current status.
-- Check the **Summary** panel on the right.
-- Ensure the information matches the record you intended to open (such as the patient identifier or current health status).
+The header shows the subject's name, title, date of birth, address, allergies and identifiers. Check these match the person you intended to open. Allergies show every recorded allergen; "None recorded" means no allergy has been recorded, not that none exists.
 
-## 4. Add a Journal Entry
+## 5. Review the Current State
 
-The **Journal** is a permanent, chronological log of clinical events and notes.
+Below the heading, four read-only cards show Problems, Medications, Observations and Vaccinations. They are changed through the CLI (for example `gitehr medications add`), not in the GUI.
 
-1. Navigate to the **Journal** tab in the main view.
-2. You will see a list of previous entries. To add a new one, find the text box at the bottom.
-3. Type your note or observation.
-4. Click **Add** to save it to the record.
+## 6. Add a Journal Entry
 
-Your new entry will appear at the top of the list with a timestamp.
+The **Journal** is a permanent, chronological log.
 
-## 5. Understanding the Health Summary
+1. Type in the text box ("Write a new journal entry...").
+2. Select **Add** to append it to the record.
+3. To attach files, select **Document** and choose them. Any text in the box is saved with the files as a single entry.
 
-The right-hand panel provides a "State Summary." This shows the most up-to-date information extracted from the record, such as:
-- Current Medications
-- Known Allergies
-- Active Health Problems
-
-In this preview version, the summary panel is **read-only**. Updates to these specific fields are currently managed through administrative tools, while the Journal remains the primary way to add new narrative information.
+Recent entries appear with a timestamp and author. Existing entries cannot be edited.
 
 ## Next steps
 
