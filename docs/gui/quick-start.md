@@ -21,7 +21,7 @@ gitehr config set-store ~/gitehr-store
 If nothing is detected, the **No GitEHR Repository Detected** screen appears:
 
 1. To open existing data, select **Open Repository** and choose either a Store root (contains `gitehr-mpi.json`) or a subject repository (contains `.gitehr`).
-2. To start fresh, type a name in **First subject name** (a person, family member, or pet) and select **Create New Store**.
+2. To start fresh, type a name in **First subject name** (a person, family member, or pet), select **Create New Store**, then choose an empty folder to use as the Store root.
 
 ## 3. Choose a Subject
 
@@ -29,7 +29,7 @@ A Store opens on the **Patient Index**. Use the search box to filter by subject 
 
 ## 4. Verify the Record
 
-The header shows the subject's name, title, date of birth, address, allergies and identifiers. Check these match the person you intended to open. Allergies show every recorded allergen; "None recorded" means no allergy has been recorded, not that none exists.
+The header shows the subject's name, title, date of birth, address, active allergies and identifiers. Check these match the person you intended to open. Allergies show every currently active allergen; "None recorded" means no active allergy has been recorded, not that none exists.
 
 ## 5. Review the Current State
 
