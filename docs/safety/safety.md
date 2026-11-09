@@ -45,6 +45,10 @@ Every organisation caring for a patient holds a full clone of the record. Loss o
 
 The record is fully usable without connectivity. A clinician with an offline clone can read and write the record; sync happens when connectivity is restored. This avoids a common failure mode where a system "fails safe" by refusing to operate when the network is down, leaving clinicians without a record at the moment they need it most.
 
+## Controls that ship today
+
+See [Safety controls in practice](controls-in-practice.md) for the checks and workflows available now, including their limits and known exceptions.
+
 ## Turva
 
 [Turva](https://github.com/pacharanero/turva) is the in-progress clinical safety case for GitEHR. It will cover hazard analysis, conformance against the relevant safety standards (DCB0129 / DCB0160 in England, ISO 14971), and the safety case argument structure.
