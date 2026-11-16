@@ -2,7 +2,7 @@
 
 Bundle and unbundle a GitEHR repository as a single `tar.gz` archive for transport.
 
-All subcommands require a GitEHR repository.
+`gitehr transport create` requires a GitEHR repository. `gitehr transport extract` can run from any directory.
 
 ## gitehr transport create
 
