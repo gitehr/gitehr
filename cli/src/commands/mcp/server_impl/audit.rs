@@ -66,7 +66,18 @@ fn try_record(repo_path: &Path, tool: &str, detail: &str) -> Result<()> {
         Uuid::new_v4()
     );
 
-    std::fs::write(repo_path.join(&relative_filename), file_content)?;
+    // R74: never follow a symlinked `journal/` out of the repository, and
+    // never write through anything already at the (UUID-unique) target.
+    super::resources::reject_symlink_for(
+        &repo_path.join("journal"),
+        "the journal directory",
+        "write",
+    )?;
+    let mut file = std::fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(repo_path.join(&relative_filename))?;
+    std::io::Write::write_all(&mut file, file_content.as_bytes())?;
     Ok(())
 }
 
@@ -87,6 +98,24 @@ mod tests {
                 .output()
                 .unwrap();
         }
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn record_tool_call_refuses_a_symlinked_journal_dir() {
+        let dir = tempfile::tempdir().unwrap();
+        let repo = dir.path().join("repo");
+        std::fs::create_dir(&repo).unwrap();
+        let outside = dir.path().join("outside");
+        std::fs::create_dir(&outside).unwrap();
+        std::os::unix::fs::symlink(&outside, repo.join("journal")).unwrap();
+
+        let err = try_record(&repo, "update_state", "x").unwrap_err();
+        assert!(
+            err.to_string()
+                .contains("Refusing to write the journal directory")
+        );
+        assert_eq!(std::fs::read_dir(&outside).unwrap().count(), 0);
     }
 
     #[test]
