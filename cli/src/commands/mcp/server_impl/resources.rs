@@ -81,9 +81,16 @@ pub(super) fn safe_filename(name: &str) -> anyhow::Result<&str> {
 /// Refuse repository paths that a received repository could redirect outside
 /// its own boundary through a symbolic link.
 pub(super) fn reject_symlink(path: &Path, subject: &str) -> anyhow::Result<()> {
+    reject_symlink_for(path, subject, "read")
+}
+
+/// As [`reject_symlink`], naming the attempted operation (`read`, `write`)
+/// in the error. Dangling symlinks are rejected too: `symlink_metadata` does
+/// not follow the link, so a link to a missing target is still a symlink.
+pub(super) fn reject_symlink_for(path: &Path, subject: &str, verb: &str) -> anyhow::Result<()> {
     match std::fs::symlink_metadata(path) {
         Ok(metadata) if metadata.file_type().is_symlink() => Err(anyhow::anyhow!(
-            "Refusing to read {subject}: it is a symlink, which could point outside the repository."
+            "Refusing to {verb} {subject}: it is a symlink, which could point outside the repository."
         )),
         Ok(_) => Ok(()),
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),

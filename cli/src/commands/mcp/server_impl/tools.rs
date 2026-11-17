@@ -45,6 +45,37 @@ pub struct ToolsList {
     pub tools: Vec<Tool>,
 }
 
+/// Write `content` to `dir/filename` without following whatever is at the
+/// target path: the bytes go to a freshly created (`create_new`, which never
+/// follows a symlink) temporary file in `dir`, which is then renamed over the
+/// target. A rename replaces a symlink or hard link at the target rather than
+/// writing through it, so a link swapped in after the caller's symlink check
+/// still cannot redirect the write outside the repository.
+fn write_replacing(dir: &std::path::Path, filename: &str, content: &str) -> anyhow::Result<()> {
+    use std::io::Write;
+
+    let nanos = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_nanos())
+        .unwrap_or(0);
+    let tmp_path = dir.join(format!(".{filename}.{}-{nanos}.tmp", std::process::id()));
+
+    let result = (|| -> anyhow::Result<()> {
+        let mut file = std::fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&tmp_path)?;
+        file.write_all(content.as_bytes())?;
+        file.sync_all()?;
+        std::fs::rename(&tmp_path, dir.join(filename))?;
+        Ok(())
+    })();
+    if result.is_err() {
+        let _ = std::fs::remove_file(&tmp_path);
+    }
+    result
+}
+
 /// Tool handler for GitEHR repositories
 pub struct ToolHandler {
     repo_path: PathBuf,
@@ -233,13 +264,18 @@ impl ToolHandler {
             .and_then(|v| v.as_str())
             .ok_or_else(|| anyhow::anyhow!("Missing 'content' parameter"))?;
 
+        // R74: an untrusted repository must not be able to redirect this
+        // write outside itself via a symlinked (live or dangling) `state/`
+        // directory or target file.
         let state_dir = self.repo_path.join("state");
+        super::resources::reject_symlink_for(&state_dir, "the state directory", "write")?;
         if !state_dir.exists() {
             std::fs::create_dir_all(&state_dir)?;
         }
 
         let file_path = state_dir.join(filename);
-        std::fs::write(&file_path, content)?;
+        super::resources::reject_symlink_for(&file_path, "the state file", "write")?;
+        write_replacing(&state_dir, filename, content)?;
 
         Ok(ToolResult {
             content: vec![ToolContent::Text {
@@ -677,6 +713,117 @@ mod tests {
             )
             .unwrap_err();
         assert!(err.to_string().contains("Invalid filename"));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn test_update_state_rejects_symlinked_state_file() {
+        use std::os::unix::fs::symlink;
+
+        let dir = tempfile::tempdir().unwrap();
+        let repo = dir.path().join("repo");
+        std::fs::create_dir_all(repo.join("state")).unwrap();
+        let outside = dir.path().join("outside.md");
+        std::fs::write(&outside, "original").unwrap();
+        symlink(&outside, repo.join("state/live.md")).unwrap();
+        symlink(
+            dir.path().join("missing.md"),
+            repo.join("state/dangling.md"),
+        )
+        .unwrap();
+
+        let handler = ToolHandler::new(repo.clone(), McpConfig::default());
+        for filename in ["live.md", "dangling.md"] {
+            let err = handler
+                .call_tool(
+                    "update_state",
+                    serde_json::json!({"filename": filename, "content": "pwned"}),
+                )
+                .unwrap_err();
+            assert!(
+                err.to_string().contains("Refusing to write the state file"),
+                "expected rejection for {filename:?}: {err}"
+            );
+        }
+        assert_eq!(std::fs::read_to_string(&outside).unwrap(), "original");
+        assert!(!dir.path().join("missing.md").exists());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn test_update_state_rejects_symlinked_state_dir() {
+        use std::os::unix::fs::symlink;
+
+        let dir = tempfile::tempdir().unwrap();
+        let repo = dir.path().join("repo");
+        std::fs::create_dir(&repo).unwrap();
+        let outside_dir = dir.path().join("outside");
+        std::fs::create_dir(&outside_dir).unwrap();
+        symlink(&outside_dir, repo.join("state")).unwrap();
+
+        let handler = ToolHandler::new(repo.clone(), McpConfig::default());
+        let err = handler
+            .call_tool(
+                "update_state",
+                serde_json::json!({"filename": "problems.md", "content": "pwned"}),
+            )
+            .unwrap_err();
+        assert!(
+            err.to_string()
+                .contains("Refusing to write the state directory")
+        );
+        assert_eq!(std::fs::read_dir(&outside_dir).unwrap().count(), 0);
+
+        // A dangling `state` symlink must be refused rather than followed.
+        let dangling_repo = dir.path().join("dangling-repo");
+        std::fs::create_dir(&dangling_repo).unwrap();
+        symlink(dir.path().join("nowhere"), dangling_repo.join("state")).unwrap();
+        let handler = ToolHandler::new(dangling_repo, McpConfig::default());
+        let err = handler
+            .call_tool(
+                "update_state",
+                serde_json::json!({"filename": "problems.md", "content": "pwned"}),
+            )
+            .unwrap_err();
+        assert!(
+            err.to_string()
+                .contains("Refusing to write the state directory")
+        );
+        assert!(!dir.path().join("nowhere").exists());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn test_update_state_does_not_write_through_a_hard_link() {
+        let dir = tempfile::tempdir().unwrap();
+        let repo = dir.path().join("repo");
+        std::fs::create_dir_all(repo.join("state")).unwrap();
+        let outside = dir.path().join("outside.md");
+        std::fs::write(&outside, "original").unwrap();
+        std::fs::hard_link(&outside, repo.join("state/problems.md")).unwrap();
+
+        let handler = ToolHandler::new(repo.clone(), McpConfig::default());
+        handler
+            .call_tool(
+                "update_state",
+                serde_json::json!({"filename": "problems.md", "content": "updated"}),
+            )
+            .unwrap();
+
+        assert_eq!(std::fs::read_to_string(&outside).unwrap(), "original");
+        assert_eq!(
+            std::fs::read_to_string(repo.join("state/problems.md")).unwrap(),
+            "updated"
+        );
+        let leftovers: Vec<_> = std::fs::read_dir(repo.join("state"))
+            .unwrap()
+            .map(|e| e.unwrap().file_name().into_string().unwrap())
+            .filter(|name| name.ends_with(".tmp"))
+            .collect();
+        assert!(
+            leftovers.is_empty(),
+            "temporary file left behind: {leftovers:?}"
+        );
     }
 
     #[cfg(unix)]
