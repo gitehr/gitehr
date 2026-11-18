@@ -4,20 +4,27 @@
 use std::process::Command;
 
 #[test]
-fn completions_generate_and_install() {
+fn completions_generate_for_every_supported_shell() {
     let bin = env!("CARGO_BIN_EXE_gitehr");
-    let out_dir =
-        std::env::temp_dir().join(format!("gitehr-completions-test-{}", std::process::id()));
-    let _ = std::fs::remove_dir_all(&out_dir);
+    for shell in ["bash", "zsh", "fish", "powershell", "elvish"] {
+        let output = Command::new(bin)
+            .args(["completions", shell])
+            .output()
+            .unwrap_or_else(|error| panic!("run gitehr completions {shell}: {error}"));
+        assert!(output.status.success(), "generate {shell} completions");
+        let script = String::from_utf8(output.stdout)
+            .unwrap_or_else(|error| panic!("{shell} completions are UTF-8: {error}"));
+        assert!(
+            script.contains("completions"),
+            "{shell} completions include the completions command"
+        );
+    }
+}
 
-    let output = Command::new(bin)
-        .args(["completions", "bash"])
-        .output()
-        .expect("run gitehr completions bash");
-    assert!(output.status.success());
-    let bash = String::from_utf8(output.stdout).expect("bash completions are utf8");
-    assert!(bash.contains("complete"));
-    assert!(bash.contains("completions"));
+#[test]
+fn completions_install_writes_shell_filename() {
+    let bin = env!("CARGO_BIN_EXE_gitehr");
+    let out_dir = tempfile::tempdir().expect("create completion directory");
 
     let output = Command::new(bin)
         .args([
@@ -26,10 +33,10 @@ fn completions_generate_and_install() {
             "--shell",
             "zsh",
             "--dir",
-            out_dir.to_str().expect("temp path"),
+            out_dir.path().to_str().expect("temp path"),
         ])
         .output()
         .expect("run gitehr completions install");
     assert!(output.status.success());
-    assert!(out_dir.join("_gitehr").exists());
+    assert!(out_dir.path().join("_gitehr").exists());
 }

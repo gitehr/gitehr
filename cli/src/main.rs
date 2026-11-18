@@ -70,12 +70,12 @@ Examples:
   gitehr completions zsh --dir ~/.zfunc
   gitehr completions bash > ~/.local/share/bash-completion/completions/gitehr
 
-Restart your shell after installing completions."#
+After `install`, follow its printed setup note, then restart your shell."#
     )]
     Completions {
         #[command(subcommand)]
         command: Option<commands::completions::CompletionCommand>,
-        #[arg(help = "Shell type (bash, zsh, fish, powershell)")]
+        #[arg(help = "Shell type (bash, zsh, fish, powershell, elvish)")]
         shell: Option<clap_complete::Shell>,
         #[arg(long, short = 'd', help = "Output directory")]
         dir: Option<PathBuf>,
