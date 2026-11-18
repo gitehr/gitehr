@@ -37,4 +37,4 @@ gitehr completions --dir ~/.elvish/lib elvish
 
 Without `--dir`, the script is printed to stdout. Passing `--dir` without a shell is an error (`missing shell`); use `install` if you want the shell detected. Writing a completion file creates the directory if needed and replaces any existing file of the same name.
 
-Restart your shell after installing or refreshing the completion script.
+After `install`, follow the printed shell-specific setup note. Then restart your shell after installing or refreshing the completion script.

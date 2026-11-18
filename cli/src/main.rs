@@ -70,7 +70,7 @@ Examples:
   gitehr completions zsh --dir ~/.zfunc
   gitehr completions bash > ~/.local/share/bash-completion/completions/gitehr
 
-Restart your shell after installing completions."#
+After `install`, follow its printed setup note, then restart your shell."#
     )]
     Completions {
         #[command(subcommand)]
