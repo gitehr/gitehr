@@ -75,7 +75,7 @@ Restart your shell after installing completions."#
     Completions {
         #[command(subcommand)]
         command: Option<commands::completions::CompletionCommand>,
-        #[arg(help = "Shell type (bash, zsh, fish, powershell)")]
+        #[arg(help = "Shell type (bash, zsh, fish, powershell, elvish)")]
         shell: Option<clap_complete::Shell>,
         #[arg(long, short = 'd', help = "Output directory")]
         dir: Option<PathBuf>,
