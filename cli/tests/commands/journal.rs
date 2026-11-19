@@ -404,7 +404,8 @@ fn journal_writes_refuse_live_and_dangling_directory_symlinks() -> Result<()> {
         symlink(&outside, temp.path().join("journal"))?;
         let error = create_mcp_draft_entry(temp.path(), "draft", None).unwrap_err();
         assert!(error.to_string().contains("symlink"));
-        let error = create_journal_entry_at(temp.path(), "entry", Vec::new(), None).unwrap_err();
+        let error =
+            create_journal_entry_at(temp.path(), "entry", Vec::new(), None, &[]).unwrap_err();
         assert!(error.to_string().contains("symlink"));
         if !dangling {
             assert_eq!(fs::read_dir(&outside)?.count(), 0);

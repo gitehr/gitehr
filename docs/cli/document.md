@@ -25,7 +25,7 @@ Behavior:
 - Computes the SHA-256 of each source. A single file hashes its bytes; a directory builds a `manifest.json` listing the hash of every file within and hashes that manifest.
 - Copies each source into `documents/` (or `imaging/`) as `YYYY-MM-DD-<slug>-<hash8>.<ext>`. The hash suffix makes name collisions between offline contributors impossible.
 - Adding identical content on the same day produces the same name and is rejected - Documents are write-once.
-- Stages the Document(s) with `git add` and writes one journal entry recording every reference (`path`, `sha256`, `original_filename`) under `documents:` in the front matter.
+- Writes one journal entry recording every reference (`path`, `sha256`, `original_filename`) under `documents:` in the front matter, and commits it together with the stored Document(s) in a single commit; other staged changes are not included.
 
 Examples:
 

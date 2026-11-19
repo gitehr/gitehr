@@ -179,3 +179,45 @@ fn import_documents_accepts_whitelist_entries_written_with_a_leading_dot() -> Re
     assert!(!PathBuf::from("documents/notes.txt").exists());
     Ok(())
 }
+
+/// Paths changed by the most recent commit, and the porcelain status of the
+/// working tree, for checking what a command actually committed.
+fn head_files_and_status() -> Result<(String, String)> {
+    let files = std::process::Command::new("git")
+        .args(["show", "--name-only", "--format=", "HEAD"])
+        .output()?;
+    let status = std::process::Command::new("git")
+        .args(["status", "--porcelain", "--", "documents", "journal"])
+        .output()?;
+    Ok((
+        String::from_utf8(files.stdout)?,
+        String::from_utf8(status.stdout)?,
+    ))
+}
+
+#[test]
+#[serial]
+fn import_documents_commits_each_document_with_its_journal_entry() -> Result<()> {
+    let (_temp_dir, _guard) = setup_with_git()?;
+    let _config_dir = write_config("");
+
+    let source = tempdir()?;
+    fs::write(source.path().join("scan.pdf"), b"pdf content")?;
+
+    import_run(ImportMode::Documents, source.path())?;
+
+    let (head_files, status) = head_files_and_status()?;
+    assert!(
+        head_files.lines().any(|l| l == "documents/scan.pdf"),
+        "document missing from the import commit: {head_files}"
+    );
+    assert!(
+        head_files.lines().any(|l| l.starts_with("journal/")),
+        "journal entry missing from the import commit: {head_files}"
+    );
+    assert!(
+        status.is_empty(),
+        "import left changes uncommitted: {status}"
+    );
+    Ok(())
+}

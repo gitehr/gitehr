@@ -110,7 +110,7 @@ fn import_journal(files: &[PathBuf]) -> Result<()> {
         fs::copy(file, &dest).with_context(|| format!("Failed to copy {}", file.display()))?;
         let dest_str = dest.to_string_lossy().to_string();
         git::git_add(&dest_str)?;
-        git::git_commit(&format!("Import journal entry: {}", filename))?;
+        git::git_commit_paths(&format!("Import journal entry: {}", filename), &[&dest_str])?;
         println!("Imported journal entry: {}", filename);
         imported += 1;
     }
@@ -125,7 +125,8 @@ fn import_journal(files: &[PathBuf]) -> Result<()> {
 }
 
 /// Copy each file into `documents/` and create a journal entry whose body is
-/// just a markdown link to the document — no `documents:` frontmatter. Files
+/// just a markdown link to the document — no `documents:` frontmatter. The
+/// document and its entry are committed together. Files
 /// already present in `documents/` are skipped. When a `document_whitelist`
 /// is configured (see `spec/commands/config.md`), only files whose extension
 /// appears in it are imported; with no whitelist configured, any format is
@@ -163,7 +164,7 @@ fn import_documents(files: &[PathBuf]) -> Result<()> {
 
         // Body link only — the GUI decides whether to follow it.
         let body = format!("[{0}](/documents/{0})", filename);
-        journal::create_journal_entry_with_documents(&body, Vec::new())?;
+        journal::create_journal_entry_with_documents(&body, Vec::new(), &[&dest_str])?;
         println!("Imported document: documents/{}", filename);
         imported += 1;
     }

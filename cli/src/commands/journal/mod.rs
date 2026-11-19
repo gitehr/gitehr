@@ -290,18 +290,24 @@ pub fn parsed_entries() -> Result<Vec<ParsedEntry>> {
 }
 
 pub fn create_journal_entry(content: &str) -> Result<()> {
-    create_journal_entry_with_documents(content, Vec::new())
+    create_journal_entry_with_documents(content, Vec::new(), &[])
 }
 
+/// Create a journal entry and commit it together with `co_commit_paths`
+/// (repo-relative files the caller has already written and staged, such as
+/// the Document files an entry refers to), so the entry never lands in
+/// history without the files it describes.
 pub fn create_journal_entry_with_documents(
     content: &str,
     documents: Vec<DocumentRef>,
+    co_commit_paths: &[&str],
 ) -> Result<()> {
     let filename = create_journal_entry_at(
         Path::new("."),
         content,
         documents,
         contributor::get_current_contributor(),
+        co_commit_paths,
     )?;
     println!("Created journal entry: {}", filename);
     Ok(())
@@ -309,8 +315,8 @@ pub fn create_journal_entry_with_documents(
 
 /// Create a journal entry rooted at `repo_path`, without depending on the
 /// process's current directory (the MCP server may be given a `--repo-path`
-/// that differs from cwd). Writes the entry, stages it, and commits it, then
-/// returns the entry's repo-relative filename (e.g. `journal/<name>.md`).
+/// that differs from cwd). Writes the entry, stages it, and commits it
+/// (along with any already-staged `co_commit_paths`), then returns the entry's repo-relative filename (e.g. `journal/<name>.md`).
 ///
 /// Unlike [`create_journal_entry_with_documents`], this does not print to
 /// stdout: an MCP server speaking JSON-RPC over stdio would have any stray
@@ -320,12 +326,15 @@ pub fn create_journal_entry_at(
     content: &str,
     documents: Vec<DocumentRef>,
     author: Option<String>,
+    co_commit_paths: &[&str],
 ) -> Result<String> {
     let relative_filename = write_journal_entry_at(repo_path, content, documents, author, false)?;
 
     git::git_add_in(repo_path, &relative_filename)?;
     let commit_message = format!("Journal entry: {relative_filename}");
-    git::git_commit_paths_in(repo_path, &commit_message, &[&relative_filename])?;
+    let mut paths: Vec<&str> = vec![&relative_filename];
+    paths.extend_from_slice(co_commit_paths);
+    git::git_commit_paths_in(repo_path, &commit_message, &paths)?;
 
     Ok(relative_filename)
 }
