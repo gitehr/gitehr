@@ -181,13 +181,13 @@ fn import_documents_accepts_whitelist_entries_written_with_a_leading_dot() -> Re
 }
 
 /// Paths changed by the most recent commit, and the porcelain status of the
-/// working tree, for checking what a command actually committed.
+/// working tree, for checking that imports commit only their own files.
 fn head_files_and_status() -> Result<(String, String)> {
     let files = std::process::Command::new("git")
         .args(["show", "--name-only", "--format=", "HEAD"])
         .output()?;
     let status = std::process::Command::new("git")
-        .args(["status", "--porcelain", "--", "documents", "journal"])
+        .args(["status", "--porcelain"])
         .output()?;
     Ok((
         String::from_utf8(files.stdout)?,
@@ -200,6 +200,11 @@ fn head_files_and_status() -> Result<(String, String)> {
 fn import_documents_commits_each_document_with_its_journal_entry() -> Result<()> {
     let (_temp_dir, _guard) = setup_with_git()?;
     let _config_dir = write_config("");
+
+    fs::write("unrelated.txt", "keep staged")?;
+    std::process::Command::new("git")
+        .args(["add", "unrelated.txt"])
+        .output()?;
 
     let source = tempdir()?;
     fs::write(source.path().join("scan.pdf"), b"pdf content")?;
@@ -216,8 +221,34 @@ fn import_documents_commits_each_document_with_its_journal_entry() -> Result<()>
         "journal entry missing from the import commit: {head_files}"
     );
     assert!(
-        status.is_empty(),
-        "import left changes uncommitted: {status}"
+        !head_files.lines().any(|line| line == "unrelated.txt"),
+        "import committed unrelated staged work: {head_files}"
     );
+    assert_eq!(status, "A  unrelated.txt\n");
+    Ok(())
+}
+
+#[test]
+#[serial]
+fn import_journal_commits_only_the_imported_entry() -> Result<()> {
+    let (_temp_dir, _guard) = setup_with_git()?;
+
+    fs::write("unrelated.txt", "keep staged")?;
+    std::process::Command::new("git")
+        .args(["add", "unrelated.txt"])
+        .output()?;
+
+    let source = tempdir()?;
+    let filename = "20260101T000000.000Z-imported.md";
+    fs::write(
+        source.path().join(filename),
+        "---\ntimestamp: 2026-01-01T00:00:00Z\n---\nImported journal entry\n",
+    )?;
+
+    import_run(ImportMode::Journal, source.path())?;
+
+    let (head_files, status) = head_files_and_status()?;
+    assert_eq!(head_files, format!("journal/{filename}\n"));
+    assert_eq!(status, "A  unrelated.txt\n");
     Ok(())
 }
