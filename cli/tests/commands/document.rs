@@ -65,6 +65,42 @@ fn test_add_file_document() -> Result<()> {
 
 #[test]
 #[serial]
+fn test_add_commits_document_with_its_journal_entry() -> Result<()> {
+    let _temp_dir = setup_with_git()?;
+
+    fs::write("unrelated.txt", "keep staged")?;
+    std::process::Command::new("git")
+        .args(["add", "unrelated.txt"])
+        .output()?;
+
+    fs::write("Scan0001.pdf", b"%PDF-1.4 fake content")?;
+    let stored = add_document(Path::new("Scan0001.pdf"), None, false, None)?;
+
+    let head = std::process::Command::new("git")
+        .args(["show", "--name-only", "--format=", "HEAD"])
+        .output()?;
+    let head_files = String::from_utf8(head.stdout)?;
+    assert!(
+        head_files.lines().any(|l| l == stored),
+        "Document missing from the commit: {head_files}"
+    );
+    assert!(
+        head_files.lines().any(|l| l.starts_with("journal/")),
+        "journal entry missing from the commit: {head_files}"
+    );
+
+    assert!(!head_files.lines().any(|line| line == "unrelated.txt"));
+
+    let status = std::process::Command::new("git")
+        .args(["status", "--porcelain"])
+        .output()?;
+    let status = String::from_utf8(status.stdout)?;
+    assert_eq!(status, "A  unrelated.txt\n?? Scan0001.pdf\n");
+    Ok(())
+}
+
+#[test]
+#[serial]
 fn test_add_file_with_title_and_imaging() -> Result<()> {
     let _temp_dir = setup_with_git()?;
 

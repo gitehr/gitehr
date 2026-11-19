@@ -46,20 +46,10 @@ pub fn git_add(file_path: &str) -> Result<()> {
     git_add_in(Path::new("."), file_path)
 }
 
-/// Create a commit with the given message, in the process's current directory.
-pub fn git_commit(message: &str) -> Result<()> {
-    git_commit_in(Path::new("."), message)
-}
-
 /// Stage a file for commit in a specific repository directory.
 pub fn git_add_in(repo_path: &Path, file_path: &str) -> Result<()> {
     // `--` stops git parsing a path that begins with `-` as an option.
     run_git_command_in(repo_path, &["add", "--", file_path])
-}
-
-/// Create a commit with the given message in a specific repository directory.
-pub fn git_commit_in(repo_path: &Path, message: &str) -> Result<()> {
-    run_git_command_in(repo_path, &["commit", "-m", message])
 }
 
 /// Return the porcelain status for one path, or an empty string when clean.

@@ -112,7 +112,11 @@ pub fn run_many_with_sources(
         })
         .collect();
 
-    journal::create_journal_entry_with_documents(&body, document_refs)?;
+    let stored_paths: Vec<&str> = stored_documents
+        .iter()
+        .map(|document| document.path.as_str())
+        .collect();
+    journal::create_journal_entry_with_documents(&body, document_refs, &stored_paths)?;
 
     for document in &stored_documents {
         println!("Added Document: {}", document.path);
