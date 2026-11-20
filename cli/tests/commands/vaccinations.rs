@@ -165,3 +165,39 @@ fn vaccination_add_records_provenance_only_when_supplied() -> Result<()> {
     assert!(plain_found.provenance.is_none());
     Ok(())
 }
+
+/// The state file and its journal entry must land in the same commit, with
+/// nothing left staged (regression: the state file used to stay staged).
+fn assert_committed_with_journal_entry(state_path: &str) -> Result<()> {
+    let status = std::process::Command::new("git")
+        .args(["status", "--porcelain", "--", state_path, "journal"])
+        .output()?;
+    assert!(
+        status.stdout.is_empty(),
+        "uncommitted after mutation: {}",
+        String::from_utf8_lossy(&status.stdout)
+    );
+    let head = std::process::Command::new("git")
+        .args(["show", "--name-only", "--format=", "HEAD"])
+        .output()?;
+    let files = String::from_utf8_lossy(&head.stdout);
+    assert!(files.lines().any(|line| line == state_path), "{files}");
+    assert!(
+        files.lines().any(|line| line.starts_with("journal/")),
+        "{files}"
+    );
+    Ok(())
+}
+
+#[test]
+#[serial]
+fn vaccination_mutations_commit_state_with_journal_entry() -> Result<()> {
+    let _temp_dir = setup_with_git()?;
+
+    let vaccination = add(vaccination_input())?;
+    assert_committed_with_journal_entry("state/vaccinations.md")?;
+    entered_in_error(&vaccination.id, Some("Wrong patient"))?;
+    assert_committed_with_journal_entry("state/vaccinations.md")?;
+
+    Ok(())
+}

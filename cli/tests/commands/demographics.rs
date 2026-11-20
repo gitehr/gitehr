@@ -79,3 +79,81 @@ fn demographics_update_rejects_invalid_date() -> Result<()> {
 
     Ok(())
 }
+
+/// The state file and its journal entry must land in the same commit, with
+/// nothing left staged (regression: the state file used to stay staged).
+fn assert_committed_with_journal_entry(state_path: &str) -> Result<()> {
+    let status = std::process::Command::new("git")
+        .args(["status", "--porcelain", "--", state_path, "journal"])
+        .output()?;
+    assert!(
+        status.stdout.is_empty(),
+        "uncommitted after mutation: {}",
+        String::from_utf8_lossy(&status.stdout)
+    );
+    let head = std::process::Command::new("git")
+        .args(["show", "--name-only", "--format=", "HEAD"])
+        .output()?;
+    let files = String::from_utf8_lossy(&head.stdout);
+    assert!(files.lines().any(|line| line == state_path), "{files}");
+    assert!(
+        files.lines().any(|line| line.starts_with("journal/")),
+        "{files}"
+    );
+    Ok(())
+}
+
+#[test]
+#[serial]
+fn demographics_update_commits_state_with_journal_entry() -> Result<()> {
+    let _temp_dir = setup_with_git()?;
+
+    update(DemographicsUpdate {
+        full_name: Some("Alex Smith".to_string()),
+        ..DemographicsUpdate::default()
+    })?;
+    assert_committed_with_journal_entry("state/demographics.md")?;
+
+    Ok(())
+}
+
+#[test]
+#[serial]
+fn demographics_update_accepts_pristine_scaffold_template() -> Result<()> {
+    let _temp_dir = setup_with_git()?;
+    fs::write(
+        "state/demographics.md",
+        "---\ntitle:\nfull_name:\npreferred_name:\naddress:\ndate_of_birth:\nnhs_number:\nidentifiers: []\n---\n",
+    )?;
+
+    update(DemographicsUpdate {
+        full_name: Some("Alex Smith".to_string()),
+        ..DemographicsUpdate::default()
+    })?;
+    assert_committed_with_journal_entry("state/demographics.md")?;
+
+    Ok(())
+}
+
+#[test]
+#[serial]
+fn demographics_update_refuses_uncommitted_state_changes() -> Result<()> {
+    let _temp_dir = setup_with_git()?;
+    fs::write(
+        "state/demographics.md",
+        "---\nfull_name: Hand edited\n---\n",
+    )?;
+
+    let error = update(DemographicsUpdate {
+        full_name: Some("Alex Smith".to_string()),
+        ..DemographicsUpdate::default()
+    })
+    .unwrap_err();
+    assert!(error.to_string().contains("uncommitted changes"), "{error}");
+    assert_eq!(
+        fs::read_to_string("state/demographics.md")?,
+        "---\nfull_name: Hand edited\n---\n"
+    );
+
+    Ok(())
+}

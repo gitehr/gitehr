@@ -8,9 +8,14 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use super::typed_state::{Confidence, EvidenceLevel, Provenance, SourceType};
-use super::{contributor, git, journal, typed_state};
+use super::{contributor, typed_state};
 
 const STATE_FILE: &str = "allergies.md";
+const PRISTINE_STATE_FILES: &[&[u8]] = &[
+    b"",
+    b"---\nallergies: []\n---\n",
+    b"---\r\nallergies: []\r\n---\r\n",
+];
 
 #[derive(Subcommand)]
 pub enum AllergyCommands {
@@ -229,10 +234,7 @@ pub fn inactive(id: &str, reason: Option<&str>) -> Result<Allergy> {
 }
 
 fn persist_with_journal(state: &AllergiesState, journal_body: &str) -> Result<()> {
-    let path = typed_state::write_front_matter(STATE_FILE, state)?;
-    git::git_add(&path.to_string_lossy())?;
-    journal::create_journal_entry(journal_body)?;
-    Ok(())
+    typed_state::write_with_journal(STATE_FILE, state, journal_body, PRISTINE_STATE_FILES)
 }
 
 fn require_text<'a>(value: &'a str, label: &str) -> Result<&'a str> {

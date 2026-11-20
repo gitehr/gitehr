@@ -3,7 +3,9 @@
 Manage current allergies and adverse reactions in `state/allergies.md`.
 
 This is typed state for GUI warning bars and automation. Mutations update the
-state file and create a journal entry in the same commit.
+state file and create a journal entry in the same isolated commit, leaving
+unrelated staged work untouched. The command refuses to overwrite a state file
+with uncommitted changes, and restores the previous state if the commit fails.
 
 ## gitehr allergies list
 

@@ -7,9 +7,14 @@ use clap::{Subcommand, ValueEnum};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use super::{contributor, git, journal, typed_state};
+use super::{contributor, typed_state};
 
 const STATE_FILE: &str = "acquisitions.md";
+const PRISTINE_STATE_FILES: &[&[u8]] = &[
+    b"",
+    b"---\nacquisitions: []\n---\n",
+    b"---\r\nacquisitions: []\r\n---\r\n",
+];
 const DEFAULT_RIGHT_INVOKED: &str = "UK-GDPR-Art-15";
 
 #[derive(Subcommand)]
@@ -546,10 +551,7 @@ fn add_one_calendar_month(date: &str) -> Option<String> {
 }
 
 fn persist_with_journal(state: &AcquisitionsState, journal_body: &str) -> Result<()> {
-    let path = typed_state::write_front_matter(STATE_FILE, state)?;
-    git::git_add(&path.to_string_lossy())?;
-    journal::create_journal_entry(journal_body)?;
-    Ok(())
+    typed_state::write_with_journal(STATE_FILE, state, journal_body, PRISTINE_STATE_FILES)
 }
 
 fn parse_date(value: &str, label: &str) -> Result<()> {

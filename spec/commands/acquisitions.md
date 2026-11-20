@@ -103,6 +103,11 @@ provenance-and-acquisition proposal.
 `add` writes `state/acquisitions.md`, stages it, writes a journal entry, and
 commits both together. New acquisitions start with status `sent`.
 
+Mutation commits contain only the state file and the generated journal entry,
+leaving unrelated staged work untouched. A mutation refuses a dirty state file
+(an untracked, unmodified scaffold template is accepted) and restores the prior
+file and index state if writing or committing fails.
+
 `update` requires at least one of `--status`, `--ack-date`, `--due-date`,
 `--outcome`, `--filed-to`, or `--notes`. It never deletes an acquisition entry;
 it changes the current-state row and writes a journal entry, preserving the

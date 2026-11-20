@@ -73,6 +73,11 @@ Behavior:
 - Stages `state/allergies.md`, writes a journal entry describing the inactivation,
   and commits both together.
 
+Mutation commits contain only `state/allergies.md` and the generated journal
+entry, leaving unrelated staged work untouched. A mutation refuses a dirty state
+file (an untracked, unmodified scaffold template is accepted) and restores the
+prior file and index state if writing or committing fails.
+
 Examples:
 
 ```bash

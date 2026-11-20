@@ -6,9 +6,14 @@ use chrono::NaiveDate;
 use clap::Subcommand;
 use serde::{Deserialize, Serialize};
 
-use super::{git, journal, typed_state};
+use super::typed_state;
 
 const STATE_FILE: &str = "demographics.md";
+const PRISTINE_STATE_FILES: &[&[u8]] = &[
+    b"",
+    b"---\ntitle:\nfull_name:\npreferred_name:\naddress:\ndate_of_birth:\nnhs_number:\nidentifiers: []\n---\n",
+    b"---\r\ntitle:\r\nfull_name:\r\npreferred_name:\r\naddress:\r\ndate_of_birth:\r\nnhs_number:\r\nidentifiers: []\r\n---\r\n",
+];
 
 #[derive(Subcommand)]
 pub enum DemographicsCommands {
@@ -139,12 +144,10 @@ pub fn update(update: DemographicsUpdate) -> Result<Demographics> {
 
     let mut demographics = load()?;
     apply(update, &mut demographics);
-    let path = typed_state::write_front_matter(STATE_FILE, &demographics)?;
-    git::git_add(&path.to_string_lossy())?;
     let body = note.unwrap_or_else(|| {
         state_change_body("Updated demographics", demographics.full_name.as_deref())
     });
-    journal::create_journal_entry(&body)?;
+    typed_state::write_with_journal(STATE_FILE, &demographics, &body, PRISTINE_STATE_FILES)?;
     println!("Updated demographics");
     Ok(demographics)
 }

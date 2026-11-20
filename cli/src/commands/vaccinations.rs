@@ -10,9 +10,14 @@ use std::path::PathBuf;
 use uuid::Uuid;
 
 use super::typed_state::{Confidence, EvidenceLevel, Provenance, SourceType};
-use super::{contributor, git, journal, typed_state};
+use super::{contributor, typed_state};
 
 const STATE_FILE: &str = "vaccinations.md";
+const PRISTINE_STATE_FILES: &[&[u8]] = &[
+    b"",
+    b"---\nvaccinations: []\n---\n",
+    b"---\r\nvaccinations: []\r\n---\r\n",
+];
 
 #[derive(Subcommand)]
 #[allow(clippy::large_enum_variant)]
@@ -303,10 +308,7 @@ pub fn entered_in_error(id: &str, reason: Option<&str>) -> Result<Vaccination> {
 }
 
 fn persist_with_journal(state: &VaccinationsState, journal_body: &str) -> Result<()> {
-    let path = typed_state::write_front_matter(STATE_FILE, state)?;
-    git::git_add(&path.to_string_lossy())?;
-    journal::create_journal_entry(journal_body)?;
-    Ok(())
+    typed_state::write_with_journal(STATE_FILE, state, journal_body, PRISTINE_STATE_FILES)
 }
 
 fn read_fhir_json(path: &PathBuf) -> Result<JsonValue> {
