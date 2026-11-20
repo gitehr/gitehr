@@ -56,7 +56,15 @@ Behavior:
   command line, then writes the file back as YAML front matter.
 - Validates `--date-of-birth` is parseable as `YYYY-MM-DD`.
 - Stages `state/demographics.md`, writes a journal entry describing the state
-  change, and commits both together.
+  change, and commits both together in an isolated commit, leaving unrelated
+  staged work untouched. Refuses a dirty `state/demographics.md` (an untracked,
+  unmodified scaffold template is accepted) and restores the prior file and
+  index state if writing or committing fails.
+- Ignores blank values, so a field cannot be cleared with this command.
+- `--nhs-number` also upserts the `NHS` identifier; `--identifier` replaces an
+  existing identifier whose type matches case-insensitively, otherwise appends.
+- The human-readable `show` output omits `title` and `address`; `--json`
+  includes every field.
 - The raw `gitehr state get|set` commands remain available, but GUI-facing code
   should prefer this typed command.
 

@@ -106,5 +106,10 @@ The provenance flags are `--source-type`, `--source-detail`, `--acquired-via`, `
 `add` writes `state/vaccinations.md`, stages it, writes a journal entry, and
 commits both together.
 
+Mutation commits contain only the state file and the generated journal entry,
+leaving unrelated staged work untouched. A mutation refuses a dirty state file
+(an untracked, unmodified scaffold template is accepted) and restores the prior
+file and index state if writing or committing fails.
+
 `entered-in-error` never deletes a vaccination entry. It changes the current
 state row and writes a journal entry, preserving prior belief in Git history.

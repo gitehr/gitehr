@@ -10,8 +10,10 @@ requested from a data controller and waited for. This is the on-ramp that
 populates the record; the repository stays empty until you acquire. See
 [`spec/record-provenance-and-acquisition.md`](https://github.com/gitehr/gitehr/blob/main/spec/record-provenance-and-acquisition.md)
 for the background (Part 2 - record acquisition workflow). Mutations update
-the state file and create a journal entry in the same commit, same as
-`gitehr allergies` and `gitehr conditions`.
+the state file and create a journal entry in the same isolated commit, same as
+`gitehr allergies` and `gitehr conditions`. The command refuses to overwrite a
+state file with uncommitted changes, and restores the previous state if the
+commit fails.
 
 ## gitehr acquisitions list
 

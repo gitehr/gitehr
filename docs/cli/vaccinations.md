@@ -3,7 +3,10 @@
 Manage recorded vaccinations and immunisations in `state/vaccinations.md`.
 
 This is typed state for current clinical summaries, GUI display, automation, and
-future FHIR export. Mutations update the state file and create a journal entry.
+future FHIR export. Mutations update the state file and create a journal entry
+in the same isolated commit, leaving unrelated staged work untouched. The command
+refuses to overwrite a state file with uncommitted changes, and restores the
+previous state if the commit fails.
 Use `gitehr immunisations` or `gitehr immunizations` as aliases if that spelling
 is more natural.
 
