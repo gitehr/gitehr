@@ -54,12 +54,22 @@ fn save_config(config: &ContributorConfig) -> Result<()> {
     Ok(())
 }
 
+/// The current contributor ID, unless that contributor is recorded as
+/// disabled. Older versions of `user disable` left `current_contributor`
+/// pointing at a contributor they had just disabled; refusing it here stops
+/// such a stale pointer from stamping a disabled author onto new entries.
+fn enabled_current(config: ContributorConfig) -> Option<String> {
+    let id = config.current_contributor?;
+    match config.contributors.get(&id) {
+        Some(c) if !c.enabled => None,
+        _ => Some(id),
+    }
+}
+
 /// Get the currently active contributor, if any.
 /// Returns the contributor ID.
 pub fn get_current_contributor() -> Option<String> {
-    load_config()
-        .ok()
-        .and_then(|config| config.current_contributor)
+    load_config().ok().and_then(enabled_current)
 }
 
 /// Get the currently active contributor within `repo_path`, without relying
@@ -69,7 +79,7 @@ pub fn get_current_contributor_at(repo_path: &Path) -> Option<String> {
     let config_path = repo_path.join(".gitehr/contributors.json");
     let content = fs::read_to_string(config_path).ok()?;
     let config: ContributorConfig = serde_json::from_str(&content).ok()?;
-    config.current_contributor
+    enabled_current(config)
 }
 
 pub fn add_contributor(
@@ -140,6 +150,9 @@ pub fn disable_contributor(id: &str) -> Result<()> {
 
     contributor.enabled = false;
     contributor.active = false;
+    if config.current_contributor.as_deref() == Some(id) {
+        config.current_contributor = None;
+    }
     save_config(&config)?;
 
     println!("Disabled user '{}'", id);
@@ -206,8 +219,12 @@ pub fn list_contributors() -> Result<()> {
         return Ok(());
     }
 
+    let mut ids: Vec<&String> = config.contributors.keys().collect();
+    ids.sort();
+
     println!("Users:");
-    for (id, contributor) in &config.contributors {
+    for id in ids {
+        let contributor = &config.contributors[id];
         let status = match (contributor.enabled, contributor.active) {
             (true, true) => "[active]",
             (true, false) => "[enabled]",
