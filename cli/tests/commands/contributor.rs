@@ -9,7 +9,7 @@ use tempfile::tempdir;
 
 use gitehr::commands::contributor::{
     activate_contributor, add_contributor, deactivate_contributor, disable_contributor,
-    enable_contributor, get_current_contributor,
+    enable_contributor, get_current_contributor, get_current_contributor_at,
 };
 
 fn setup() -> tempfile::TempDir {
@@ -140,6 +140,62 @@ fn test_disable_deactivates_active_contributor() -> Result<()> {
     let content = fs::read_to_string(".gitehr/contributors.json")?;
     let config: serde_json::Value = serde_json::from_str(&content)?;
     assert_eq!(config["contributors"]["doc001"]["active"], false);
+    assert!(
+        config["current_contributor"].is_null(),
+        "disabling the active contributor must clear current_contributor"
+    );
+    assert_eq!(
+        get_current_contributor(),
+        None,
+        "a disabled contributor must not remain the author of new entries"
+    );
+
+    Ok(())
+}
+
+#[test]
+#[serial]
+fn test_disable_other_contributor_keeps_current() -> Result<()> {
+    let _temp_dir = setup();
+
+    add_contributor("doc001", "Dr. Smith", None, None, None)?;
+    add_contributor("doc002", "Dr. Jones", None, None, None)?;
+    activate_contributor("doc001")?;
+    disable_contributor("doc002")?;
+
+    assert_eq!(get_current_contributor(), Some("doc001".to_string()));
+
+    Ok(())
+}
+
+#[test]
+#[serial]
+fn test_stale_current_pointing_at_disabled_contributor_is_ignored() -> Result<()> {
+    let temp_dir = setup();
+
+    // The shape older `user disable` left behind: the contributor is
+    // disabled but `current_contributor` still names it.
+    fs::write(
+        ".gitehr/contributors.json",
+        r#"{
+  "contributors": {
+    "doc001": {
+      "id": "doc001",
+      "name": "Dr. Smith",
+      "role": null,
+      "email": null,
+      "public_key": null,
+      "enabled": false,
+      "active": false,
+      "added_at": "2026-01-01T00:00:00Z"
+    }
+  },
+  "current_contributor": "doc001"
+}"#,
+    )?;
+
+    assert_eq!(get_current_contributor(), None);
+    assert_eq!(get_current_contributor_at(temp_dir.path()), None);
 
     Ok(())
 }
