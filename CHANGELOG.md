@@ -5,11 +5,135 @@ All notable changes to GitEHR are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Releases are grouped from conventional-commit messages by [git-cliff](https://git-cliff.org).
 
+## [0.5.0] - 2026-11-22
+
+### Bug fixes
+
+- **state**: Resolve --file from the invocation directory (R43) ([88f9f17](https://github.com/gitehr/gitehr/commit/88f9f170e632b5643b14372d8dd6457e77999b81))
+
+- **user**: Stop disabled contributors authoring new entries (R43) ([15bceab](https://github.com/gitehr/gitehr/commit/15bceab98c470f9162f9c9f262ceb99e8ada3f4f))
+
+- **state**: Commit typed state together with its journal entry (R43) ([2138cd2](https://github.com/gitehr/gitehr/commit/2138cd2d73173f0f234fcb3e26766be8f0750420))
+
+- **document**: Commit Documents together with their journal entry (R43) ([fc1cdff](https://github.com/gitehr/gitehr/commit/fc1cdff09ad205109fd5090664f9b32f5e26d4ea))
+
+- **completions**: Clarify shell setup ([73f9390](https://github.com/gitehr/gitehr/commit/73f9390011526d4903791ff7b61d5318f4c41141))
+
+- **mcp**: Refuse symlinked state/journal paths on MCP writes (R74) ([941b26c](https://github.com/gitehr/gitehr/commit/941b26c44b200bccc1da799ad4fa34e134dad764))
+
+- **docs**: Clarify transport extraction context ([458e2a0](https://github.com/gitehr/gitehr/commit/458e2a056c23bd26b0550851c3455c0949157ef1))
+
+- **docs**: Clarify GUI Store creation and allergy status ([6b17b2d](https://github.com/gitehr/gitehr/commit/6b17b2d514cb43510d1d7582032a88c832b40d79))
+
+- **docs**: Correct troubleshooting context guidance ([6cc8167](https://github.com/gitehr/gitehr/commit/6cc81670d50defe93e8d576d5cc31ab96f1cf18b))
+
+- **gui**: Align Mantine peer requirements ([8d931ee](https://github.com/gitehr/gitehr/commit/8d931eec8c4091509e615d83623114df41d590ab))
+
+- **journal**: Harden MCP draft review paths (R86) ([190ec92](https://github.com/gitehr/gitehr/commit/190ec92a63477c1a668440755a7ad666f90a3bbd))
+
+- **upgrade**: Preflight control-file symlinks ([3e14ebd](https://github.com/gitehr/gitehr/commit/3e14ebd0575603c721be37903dcb81adfe1cce41))
+
+- **clincalc**: Record upgraded engine version ([39e51c3](https://github.com/gitehr/gitehr/commit/39e51c391b1ef727ec8d88a8822d8f27a3527037))
+
+- **mcp**: Reject dangling journal symlinks ([eee8b13](https://github.com/gitehr/gitehr/commit/eee8b132134366b4e55fb88659e1d81b47d726de))
+
+- **mcp**: Reject symlinked read paths ([99deb4c](https://github.com/gitehr/gitehr/commit/99deb4ca44972d2c8728073a4392ec0487697804))
+
+- **gui**: Resolve compatible Tauri internals ([ceed978](https://github.com/gitehr/gitehr/commit/ceed978a49d94c7c7f16b25ded66389609b7b1ea))
+
+### CI
+
+- Test Ubuntu 26.04 runner ([677cf34](https://github.com/gitehr/gitehr/commit/677cf3452a4ff915e55d4af25ab93828791b93f2))
+
+- Use current WebKit driver package ([a147654](https://github.com/gitehr/gitehr/commit/a147654cd4c0af98c69af057c620d41f6af9a002))
+
+### CI / dependencies
+
+- **deps**: Bump the routine-minor-and-patch group with 2 updates ([29ed77f](https://github.com/gitehr/gitehr/commit/29ed77f9cc0266772696aa7efc6147b28ad37092))
+
+- **deps**: Update GUI dependencies ([afd7866](https://github.com/gitehr/gitehr/commit/afd78661f409f7b747657a23464a7d58c262e57f))
+
+- **deps**: Update taiki install action ([0f63f1f](https://github.com/gitehr/gitehr/commit/0f63f1fed3aea9233240e26ea68727a4be7551e6))
+
+- **deps**: Bump flate2 ([2027752](https://github.com/gitehr/gitehr/commit/2027752bc1711f1c72d9134dd775c71be82c16ad))
+
+- **deps**: Bump the routine-minor-and-patch group across 1 directory with 2 updates ([39c4482](https://github.com/gitehr/gitehr/commit/39c4482dde42974c528e0bb1630e06f5a5eedb9e))
+
+- **deps**: Bump the github-actions-minor-and-patch group with 4 updates ([308e767](https://github.com/gitehr/gitehr/commit/308e767f7845089f86727a6e9c5ddc629977e3f4))
+
+- **deps**: Bump the routine-minor-and-patch group with 2 updates ([62ea05f](https://github.com/gitehr/gitehr/commit/62ea05f144a027f6ae1ba19963979ce0f29b41e3))
+
+- **deps**: Bump clincalc from 0.3.4 to 0.4.0 ([3b3d340](https://github.com/gitehr/gitehr/commit/3b3d340469e9be709c94f22fb00f4baaa757c07b))
+
+- **deps**: Bump the routine-minor-and-patch group across 2 directories with 7 updates ([e630b82](https://github.com/gitehr/gitehr/commit/e630b82d1d5d71365109ed136b5f368dba0cee5f))
+
+- **deps**: Bump taiki-e/install-action ([2612e52](https://github.com/gitehr/gitehr/commit/2612e523a643f04c3009d4225ee1a173efd86bda))
+
+- **deps**: Bump the routine-minor-and-patch group across 1 directory with 4 updates ([56b3496](https://github.com/gitehr/gitehr/commit/56b34969244b39727ed7197076cdea836c6e7dc4))
+
+### Chores
+
+- **deps-dev**: Bump the routine-minor-and-patch group across 2 directories with 5 updates ([7e48a88](https://github.com/gitehr/gitehr/commit/7e48a8876aa35798ba42a7dcc9f787440c80e918))
+
+- **deps-dev**: Bump the routine-major group across 1 directory with 4 updates ([d6b3d98](https://github.com/gitehr/gitehr/commit/d6b3d98cbba371715e7c3f2312931c684a912a1e))
+
+### Documentation
+
+- **completions**: Align docs and spec with runtime behaviour (R43) ([e01a543](https://github.com/gitehr/gitehr/commit/e01a5430786bbb8489caf9c18b1308d06b964be3))
+
+- **mcp**: Describe best-effort audit drafts ([c406bee](https://github.com/gitehr/gitehr/commit/c406beec42b2bf5d68db178ddfae471efeb1d458))
+
+- **mcp**: Clarify state write safety limits ([cf0088d](https://github.com/gitehr/gitehr/commit/cf0088d40bf5db9b33f51b1940e321e0c53f696e))
+
+- **transport**: Align docs and spec with runtime behaviour (R43) ([14cea78](https://github.com/gitehr/gitehr/commit/14cea7800a1b0c9d66a37c44aa05c14fdf6b48ac))
+
+- **safety**: Document controls in practice ([83aba7e](https://github.com/gitehr/gitehr/commit/83aba7e2470f63c48c85b2c652a7088e13aa817d))
+
+- Align GUI walkthroughs with shipped interface (R44) ([0b96792](https://github.com/gitehr/gitehr/commit/0b967928afc765261c7047ce57fdcfcf9da67e4b))
+
+- Add CLI troubleshooting page (R44) ([773a0cf](https://github.com/gitehr/gitehr/commit/773a0cfb5b96b9b030ff6ba1e38b3983df66b59a))
+
+- Audit remote command behaviour against docs (R43) ([00a28af](https://github.com/gitehr/gitehr/commit/00a28af09914195ceab5192c939c9b73e3a36f9a))
+
+- Track custody and MCP safety gaps ([67d8670](https://github.com/gitehr/gitehr/commit/67d867033e624d2836642f29a94686347e5e7c89))
+
+- Align version and upgrade docs with runtime behaviour (R43) ([a16e32d](https://github.com/gitehr/gitehr/commit/a16e32dae0880de336cd7791e72a1f3094f3072a))
+
+- Describe config show output and set-store behaviour (R43) ([b9da785](https://github.com/gitehr/gitehr/commit/b9da785248f2738eb7f19de3453d1a03afede164))
+
+- Clarify encryption marker behaviour (R43) ([ffec9ba](https://github.com/gitehr/gitehr/commit/ffec9bab5cd2aca2e270b5b99c1139c53bd8925d))
+
+- Align encrypt/decrypt docs and specs with runtime behaviour (R43) ([dec0132](https://github.com/gitehr/gitehr/commit/dec0132ddfb8afa270452532cd7eff624d979ead))
+
+- Correct gitehr status encryption description (R43) ([ef4da76](https://github.com/gitehr/gitehr/commit/ef4da760e5d6464ebd7a37b55a4419f780509b7f))
+
+- **roadmap**: Correct R43 audit scope ([bc751e6](https://github.com/gitehr/gitehr/commit/bc751e6c7d4d99e6d240feb8eac48472c9238728))
+
+- **roadmap**: Record completed R43 argument-value audit ([c09f1ae](https://github.com/gitehr/gitehr/commit/c09f1ae2ed47ea84e299d355d2aa7af14f8d99b7))
+
+- List accepted conditions add values (R43) ([66a83b1](https://github.com/gitehr/gitehr/commit/66a83b1083bb935e891869e63dc40505b5ad74e8))
+
+### Features
+
+- **mcp**: Add journal extract resource (R65) ([896bc6c](https://github.com/gitehr/gitehr/commit/896bc6c12e17c593ac7e81f84ef48c8166eabe76))
+
+- **mcp**: Add read-only extract_journal_entry tool (R65) ([1107254](https://github.com/gitehr/gitehr/commit/110725425819640e6f1f65044b81207b54bcc10a))
+
+### Tests
+
+- **import**: Preserve unrelated staged work ([8f0f6d5](https://github.com/gitehr/gitehr/commit/8f0f6d53e89a8e79c68f377c5a3172a77d888bdd))
+
+- **mcp**: Gate symlink test on Unix ([6491388](https://github.com/gitehr/gitehr/commit/649138810fc4deacbfb28b73dc71f885457bfd0b))
+
+- **gui**: Scope E2E patient open control ([484b085](https://github.com/gitehr/gitehr/commit/484b0855338fee8bf64f2327358367751be5d887))
+
 ## [0.4.1] - 2026-10-19
 
 ### CI / dependencies
 
 - **deps**: Use published medical-markdown ([5c30861](https://github.com/gitehr/gitehr/commit/5c3086126aa3173d5f540e5755b98ad20202ad96))
+
+- **deps**: Bump the github-actions-minor-and-patch group with 3 updates ([884ef4f](https://github.com/gitehr/gitehr/commit/884ef4f03643ce2f49917e4c72d5047f82438a5f))
 
 ## [0.4.0] - 2026-10-19
 
