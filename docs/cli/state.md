@@ -8,7 +8,7 @@ Manage the mutable clinical state files under `state/`. State holds current info
 [`gitehr observations`](observations.md), and [`gitehr vaccinations`](vaccinations.md) for GUI-facing or
 automation-facing clinical state.
 
-All subcommands require the current directory to be a GitEHR repository.
+All subcommands run against the subject repository resolved from the current directory: the nearest enclosing directory containing `.gitehr/` (so they work from any subdirectory of a record), or the only subject when run at a Store root with exactly one subject.
 
 ## gitehr state list
 
@@ -16,7 +16,7 @@ All subcommands require the current directory to be a GitEHR repository.
 gitehr state list
 ```
 
-Lists files recursively in `state/`, excluding its `README.md`, with their last-modified timestamps when available.
+Lists files recursively in `state/`, excluding its `README.md`, with their last-modified timestamps when available. A binary or non-UTF-8 file is still listed. A symbolic link anywhere under `state/` is refused rather than followed.
 
 Run with no subcommand for the same effect: `gitehr state`.
 
@@ -26,7 +26,7 @@ Run with no subcommand for the same effect: `gitehr state`.
 gitehr state get <filename>
 ```
 
-Prints the contents of the named state file. Fails if the file does not exist in `state/`.
+Prints the contents of the named state file. Fails if the file does not exist in `state/`, is not valid UTF-8 text, or is reached through a symbolic link.
 
 ## gitehr state set
 
@@ -36,7 +36,7 @@ gitehr state set <filename> --file <path|->
 gitehr state set <filename> --file <path|-> --commit
 ```
 
-Writes content to the named state file, creating `state/` (and any subdirectory in `filename`) if needed. Overwrites any existing file of the same name. Use `--file -` to read content from standard input rather than exposing sensitive content in process arguments. Pass `--commit` to create a commit containing only the updated state file; it refuses to overwrite an uncommitted target file.
+Writes content to the named state file, creating `state/` (and any subdirectory in `filename`) if needed. Overwrites any existing file of the same name. Use `--file -` to read content from standard input rather than exposing sensitive content in process arguments; a relative `--file` path is resolved against the directory you ran the command from. Pass `--commit` to create a commit containing only the updated state file, leaving any other staged work staged; it refuses to overwrite an uncommitted target file, and if the new content matches what is already committed it reports that there is nothing to commit and succeeds without creating a commit. If the commit itself fails, the file is unstaged but the new content stays in the working tree.
 
 `filename` may include subdirectories, for example `calculations/feverpain-latest.json`; an absolute path or any `..` component is rejected.
 

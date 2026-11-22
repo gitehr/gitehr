@@ -34,6 +34,10 @@ pub fn run(filename: &str, content: Option<&str>, file: Option<&str>, commit: bo
 
     update_state_file(filename, &content)?;
     if commit {
+        if git::git_path_status(&state_name)?.is_empty() {
+            println!("State file unchanged; nothing to commit.");
+            return Ok(());
+        }
         git::git_add(&state_name)?;
         if let Err(error) =
             git::git_commit_paths(&format!("Update state file: {filename}"), &[&state_name])

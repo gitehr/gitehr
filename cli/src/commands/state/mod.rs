@@ -154,7 +154,9 @@ fn collect_state_files(dir: &Path, relative_dir: &Path, files: &mut Vec<StateFil
             continue;
         }
 
-        let content = fs::read_to_string(&path)?;
+        // Read lossily: one binary or non-UTF-8 file must not abort the whole
+        // listing (and `gitehr status`, and the GUI, which share this path).
+        let content = String::from_utf8_lossy(&fs::read(&path)?).into_owned();
         let metadata = fs::metadata(&path)?;
         let last_modified = metadata.modified().ok().map(|t| {
             chrono::DateTime::<chrono::Utc>::from(t)

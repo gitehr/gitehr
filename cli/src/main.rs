@@ -338,6 +338,9 @@ fn absolutize_external_paths(command: &mut Commands, base: &Path) {
         Commands::Journal {
             command: JournalCommands::Add { file: Some(f), .. },
         } if f != "-" => fix_str(f, base),
+        Commands::State {
+            command: Some(StateCommands::Set { file: Some(f), .. }),
+        } if f != "-" => fix_str(f, base),
         Commands::Document {
             command: DocumentCommands::Add { paths, .. },
         } => {
