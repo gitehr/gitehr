@@ -65,5 +65,11 @@ jobs:
         env:
           CARGO_REGISTRY_TOKEN: ${{ steps.crates-io-auth.outputs.token }}
         run: |
-          cargo publish --locked --package gitehr
-          cargo publish --locked --package gitehr-clincalc
+          version="$(grep -m1 '^version = "' Cargo.toml | cut -d'"' -f2)"
+          for crate in gitehr gitehr-clincalc; do
+            if curl -fsS -A "gitehr-release-workflow" -o /dev/null "https://crates.io/api/v1/crates/$crate/$version"; then
+              echo "$crate@$version is already published; skipping."
+              continue
+            fi
+            cargo publish --locked --package "$crate"
+          done
