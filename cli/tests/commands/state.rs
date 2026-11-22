@@ -254,6 +254,74 @@ fn test_state_set_reads_content_from_stdin() -> Result<()> {
 
 #[test]
 #[serial]
+fn test_state_set_file_resolves_relative_to_invocation_directory() -> Result<()> {
+    let temp_dir = setup();
+    // A same-named file at the repo root must not be read instead.
+    fs::write("note.txt", "repo root")?;
+    fs::create_dir_all("work")?;
+    fs::write("work/note.txt", "from cwd")?;
+
+    let output = Command::new(env!("CARGO_BIN_EXE_gitehr"))
+        .current_dir(temp_dir.path().join("work"))
+        .args(["state", "set", "note.md", "--file", "note.txt"])
+        .output()?;
+
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert_eq!(fs::read_to_string("state/note.md")?, "from cwd");
+
+    Ok(())
+}
+
+#[test]
+#[serial]
+fn test_state_set_commit_with_unchanged_content_is_a_no_op() -> Result<()> {
+    let _temp_dir = setup();
+    git(&["init"])?;
+    git(&["config", "user.email", "test@example.com"])?;
+    git(&["config", "user.name", "Test User"])?;
+    git(&["config", "commit.gpgsign", "false"])?;
+
+    let set = || {
+        Command::new(env!("CARGO_BIN_EXE_gitehr"))
+            .args(["state", "set", "note.md", "same", "--commit"])
+            .output()
+    };
+    assert!(set()?.status.success());
+    let second = set()?;
+    assert!(
+        second.status.success(),
+        "{}",
+        String::from_utf8_lossy(&second.stderr)
+    );
+    assert!(String::from_utf8_lossy(&second.stdout).contains("nothing to commit"));
+    let count = Command::new("git")
+        .args(["rev-list", "--count", "HEAD"])
+        .output()?;
+    assert_eq!(String::from_utf8(count.stdout)?.trim(), "1");
+
+    Ok(())
+}
+
+#[test]
+#[serial]
+fn test_list_state_files_tolerates_non_utf8_files() -> Result<()> {
+    let _temp_dir = setup();
+    fs::write("state/binary.dat", [0xff, 0xfe, 0x00])?;
+    fs::write("state/notes.md", "text")?;
+
+    let files = list_state_files()?;
+    let names: Vec<_> = files.iter().map(|f| f.name.as_str()).collect();
+    assert_eq!(names, ["binary.dat", "notes.md"]);
+
+    Ok(())
+}
+
+#[test]
+#[serial]
 fn test_state_set_commit_leaves_unrelated_staged_changes_untouched() -> Result<()> {
     let _temp_dir = setup();
     git(&["init"])?;
