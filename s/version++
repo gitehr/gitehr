@@ -134,8 +134,13 @@ node -e '
   fs.writeFileSync(path, `${JSON.stringify(config, null, 2)}\n`);
 ' "$next"
 
-cargo generate-lockfile
-cargo generate-lockfile --manifest-path gui/src-tauri/Cargo.toml
+# Bump only the workspace members' entries in each lockfile. `cargo
+# generate-lockfile` re-resolves every dependency to the latest
+# semver-compatible version, which turned the v0.5.0 release into a dependency
+# refresh whose newer tauri stack broke the GUI build. A release commit must
+# be a pure version bump; dependency updates are separate review work.
+cargo update --workspace
+cargo update --workspace --manifest-path gui/src-tauri/Cargo.toml
 
 if [ "$mode" = "pr" ]; then
   relbranch="release/$tag"
