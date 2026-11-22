@@ -53,11 +53,16 @@ export const config = {
     }
 
     console.log('Building Tauri app (debug mode)...');
-    spawnSync('npm', ['run', 'tauri', 'build', '--', '--debug', '--no-bundle'], {
+    const build = spawnSync('npm', ['run', 'tauri', 'build', '--', '--debug', '--no-bundle'], {
       cwd: path.resolve(__dirname, '..'),
       stdio: 'inherit',
       shell: true,
     });
+    // Fail here, not later as a confusing "binary not found" from tauri-driver.
+    if (build.status !== 0) {
+      console.error(`Tauri build failed with exit code ${build.status}; see build output above.`);
+      process.exit(build.status ?? 1);
+    }
 
     if (isWithRepo) {
       const cliBinary = path.resolve(__dirname, '../../target/debug/gitehr');
