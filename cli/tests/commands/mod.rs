@@ -9,6 +9,7 @@ pub mod contributor;
 pub mod demographics;
 pub mod document;
 pub mod encrypt;
+pub mod family_history;
 pub mod gui;
 pub mod import;
 pub mod journal;

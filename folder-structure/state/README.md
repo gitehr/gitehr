@@ -7,6 +7,7 @@ Examples of stateful information:
 - Alerts and 'About Me' information
 - Allergies
 - Vaccinations and immunisations
+- Family history
 - Current medications
 - Active problems
 - Latest vital signs

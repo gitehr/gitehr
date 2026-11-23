@@ -53,6 +53,7 @@ nav:
       - acquisitions: cli/acquisitions.md
       - allergies: cli/allergies.md
       - conditions: cli/conditions.md
+      - family-history: cli/family-history.md
       - medications: cli/medications.md
       - observations: cli/observations.md
       - vaccinations: cli/vaccinations.md

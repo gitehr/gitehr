@@ -15,6 +15,7 @@ use commands::conditions::ConditionCommands;
 use commands::config::ConfigCommands;
 use commands::demographics::DemographicsCommands;
 use commands::document::DocumentCommands;
+use commands::family_history::FamilyHistoryCommands;
 use commands::journal::JournalCommands;
 use commands::mcp::McpCommands;
 use commands::medications::MedicationCommands;
@@ -111,6 +112,15 @@ After `install`, follow its printed setup note, then restart your shell."#
     Encrypt {
         #[arg(long, help = "Key source (currently ignored)")]
         key: Option<String>,
+    },
+    #[command(
+        name = "family-history",
+        about = "Manage typed family-history state",
+        arg_required_else_help = true
+    )]
+    FamilyHistory {
+        #[command(subcommand)]
+        command: FamilyHistoryCommands,
     },
     #[command(about = "Launch the GitEHR graphical interface")]
     Gui {
@@ -275,6 +285,7 @@ fn main() -> Result<()> {
         Commands::Demographics { command } => commands::demographics::run(command)?,
         Commands::Document { command } => commands::document::run(command)?,
         Commands::Encrypt { key } => commands::encrypt::run(key.as_deref())?,
+        Commands::FamilyHistory { command } => commands::family_history::run(command)?,
         Commands::Gui { allow_bundled } => commands::gui::run(allow_bundled)?,
         Commands::Import { mode, path } => commands::import::run(mode, &path)?,
         Commands::Journal { command } => commands::journal::run(command)?,
@@ -308,6 +319,7 @@ fn bare_command_help_target(command: &str) -> Option<&'static str> {
         "conditions" => Some("conditions"),
         "config" => Some("config"),
         "demographics" => Some("demographics"),
+        "family-history" => Some("family-history"),
         "import" => Some("import"),
         "journal" => Some("journal"),
         "mcp" => Some("mcp"),
@@ -355,6 +367,13 @@ fn absolutize_external_paths(command: &mut Commands, base: &Path) {
                     ..
                 },
         } => fix_pb(path, base),
+        Commands::FamilyHistory {
+            command:
+                FamilyHistoryCommands::Add {
+                    fhir_json: Some(path),
+                    ..
+                },
+        } => fix_pb(path, base),
         Commands::Transport {
             command: Some(transport),
         } => match transport {
@@ -397,6 +416,7 @@ fn apply_context(command: &mut Commands) -> Result<()> {
         | Commands::Acquisitions { .. }
         | Commands::Allergies { .. }
         | Commands::Conditions { .. }
+        | Commands::FamilyHistory { .. }
         | Commands::Medications { .. }
         | Commands::Observations { .. }
         | Commands::Vaccinations { .. }
