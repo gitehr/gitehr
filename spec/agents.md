@@ -39,7 +39,7 @@
 
 When an agent session is left to pick up "suitable" work (e.g. overnight runs), start from these tasks, in this order. Each is self-contained, has an existing proven pattern or spec to follow, and needs no product decisions:
 
-1. **#84 - Complete the family-history typed-state primitive.** Medications and immunisations are already shipped (`gitehr medications`; `gitehr vaccinations` with `immunisations` and `immunizations` aliases). Follow the `allergies`/`vaccinations` typed-state pattern exactly: typed state file, subcommands, journal entry per mutation, integration tests, and updated command/docs specifications. FHIR mappings are in the issue.
+1. ~~**#84 - Complete the family-history typed-state primitive.**~~ Shipped as `gitehr family-history` (R88); the GUI does not yet display it. Medications and immunisations were already shipped (`gitehr medications`; `gitehr vaccinations` with `immunisations` and `immunizations` aliases). Follow the `allergies`/`vaccinations` typed-state pattern exactly: typed state file, subcommands, journal entry per mutation, integration tests, and updated command/docs specifications. FHIR mappings are in the issue.
 Do NOT start these without Marcus: #86 (provenance - needs evidence-level vocabulary decisions), #88/#87 (depend on #85 primitives), #94 (external collaborator mid-experiment), #29 (typed-error architecture decision pending).
 
 Distribution blockers for Marcus, not agents: R54 needs an APT hosting decision (GitHub Pages vs Hetzner) plus a GPG signing key; R55 needs the `gitehr` package created in the AUR under his account (the release job is wired and will fail loudly at `git clone` until then); R56 signing needs Apple Developer + Microsoft EV accounts.

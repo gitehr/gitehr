@@ -25,6 +25,7 @@ Each command has its own page. Subcommands are sections within the parent comman
 | [`gitehr acquisitions`](acquisitions.md) | Record-acquisition register (SARs, portal pulls, paper) and SAR letters |
 | [`gitehr allergies`](allergies.md) | Typed allergy/adverse-reaction state for clinical warning displays |
 | [`gitehr conditions`](conditions.md) | Typed condition and problem-list state for clinical summaries |
+| [`gitehr family-history`](family-history.md) | Typed family-history state (relative, condition, onset age) for summaries and risk calculators |
 | [`gitehr medications`](medications.md) | Typed medication state for prescribing and PHR display |
 | [`gitehr observations`](observations.md) | Typed observation state (vitals, labs) for clinical summaries |
 | [`gitehr vaccinations`](vaccinations.md) | Typed vaccination/immunisation state with optional FHIR R4 payloads |

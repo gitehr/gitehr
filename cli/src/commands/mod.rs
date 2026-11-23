@@ -12,6 +12,7 @@ pub mod decrypt;
 pub mod demographics;
 pub mod document;
 pub mod encrypt;
+pub mod family_history;
 mod git;
 pub mod gui;
 pub mod import;

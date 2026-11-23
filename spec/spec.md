@@ -113,6 +113,10 @@ Manages typed patient demographics state.
 
 Manages typed condition and problem-list state in `state/conditions.md`.
 
+### [`gitehr family-history`](commands/family-history.md)
+
+Manages typed family-history state in `state/family-history.md`.
+
 ### [`gitehr medications`](commands/medications.md)
 
 Manages typed medication state in `state/medications.md`.
