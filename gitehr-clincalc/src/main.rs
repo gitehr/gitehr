@@ -9,7 +9,10 @@ use std::io::{Read, Write};
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
 
-const CLINCALC_VERSION: &str = "0.4.0";
+/// Engine version recorded as provenance in every calculation journal entry.
+/// Must equal the exact `clincalc` pin in the workspace `Cargo.toml`; a test
+/// enforces this, so a dependency bump fails until this is updated too.
+const CLINCALC_VERSION: &str = "0.5.0";
 
 #[derive(Parser)]
 #[command(name = "gitehr-clincalc")]
