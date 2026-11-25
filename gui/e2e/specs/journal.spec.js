@@ -51,9 +51,9 @@ describe('GitEHR Store and Record View', () => {
     });
 
     it('should summarise the typed state the CLI holds', async () => {
-      await browser.waitUntil(async () => (await $$('.state-card')).length === 4, {
+      await browser.waitUntil(async () => (await $$('.state-card')).length === 5, {
         timeout: 10000,
-        timeoutMsg: 'expected problem, medication, observation and vaccination cards',
+        timeoutMsg: 'expected problem, medication, observation, vaccination and family-history cards',
       });
 
       let text = '';
@@ -64,6 +64,7 @@ describe('GitEHR Store and Record View', () => {
       expect(text).toContain('Ramipril');
       expect(text).toContain('Blood pressure');
       expect(text).toContain('Influenza');
+      expect(text).toContain('Breast cancer');
     });
 
     it('should show the entry input textarea and Add button', async () => {

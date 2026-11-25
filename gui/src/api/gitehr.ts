@@ -162,6 +162,20 @@ export interface VaccinationInfo {
   note: string | null;
 }
 
+export interface FamilyHistoryInfo {
+  id: string;
+  status: "completed" | "entered-in-error";
+  relationship: string;
+  condition: string;
+  onset_age: number | null;
+  contributed_to_death: boolean;
+  recorded_at: string;
+  recorded_by: string | null;
+  entered_in_error_at: string | null;
+  entered_in_error_reason: string | null;
+  note: string | null;
+}
+
 export interface MpiPatientInfo {
   patient_id: string;
   repo_path: string;
@@ -288,6 +302,12 @@ export async function getVaccinations(
   repoPath: string
 ): Promise<VaccinationInfo[]> {
   return invoke<VaccinationInfo[]>("get_vaccinations", { repoPath });
+}
+
+export async function getFamilyHistory(
+  repoPath: string
+): Promise<FamilyHistoryInfo[]> {
+  return invoke<FamilyHistoryInfo[]>("get_family_history", { repoPath });
 }
 
 export async function updateStateFile(
