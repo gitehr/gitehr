@@ -257,9 +257,7 @@ function App() {
   const [medications, setMedications] = useState<MedicationInfo[]>([]);
   const [observations, setObservations] = useState<ObservationInfo[]>([]);
   const [vaccinations, setVaccinations] = useState<VaccinationInfo[]>([]);
-  const [familyHistory, setFamilyHistory] = useState<FamilyHistoryInfo[]>(
-    []
-  );
+  const [familyHistory, setFamilyHistory] = useState<FamilyHistoryInfo[]>([]);
   const [loadingOlder, setLoadingOlder] = useState(false);
   const [demographics, setDemographics] = useState<PatientDemographics | null>(null);
   const [allergies, setAllergies] = useState<AllergyInfo[]>([]);

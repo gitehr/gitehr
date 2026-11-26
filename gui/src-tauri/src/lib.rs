@@ -394,9 +394,9 @@ fn get_active_allergies(
 
 // The typed-state readers below are deliberately the same "current view" the
 // CLI shows by default: active medications, current problems, current
-// observations, completed vaccinations, and family history. Entries the record has moved on
-// from - stopped, resolved, refuted, entered in error - are still in the
-// record and reachable from the CLI, but showing them in a summary would
+// observations, completed vaccinations, and family history. Entries the record
+// has moved on from - stopped, resolved, refuted, entered in error - are still
+// in the record and reachable from the CLI, but showing them in a summary would
 // present superseded clinical belief as current.
 
 #[tauri::command]
