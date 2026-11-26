@@ -394,9 +394,9 @@ fn get_active_allergies(
 
 // The typed-state readers below are deliberately the same "current view" the
 // CLI shows by default: active medications, current problems, current
-// observations, and completed vaccinations. Entries the record has moved on
-// from - stopped, resolved, refuted, entered in error - are still in the
-// record and reachable from the CLI, but showing them in a summary would
+// observations, completed vaccinations, and family history. Entries the record
+// has moved on from - stopped, resolved, refuted, entered in error - are still
+// in the record and reachable from the CLI, but showing them in a summary would
 // present superseded clinical belief as current.
 
 #[tauri::command]
@@ -432,6 +432,15 @@ fn get_vaccinations(
 ) -> Result<Vec<gitehr::commands::vaccinations::Vaccination>, String> {
     with_repo_dir(&repo_path, || {
         gitehr::commands::vaccinations::list(false).map_err(|e| e.to_string())
+    })
+}
+
+#[tauri::command]
+fn get_family_history(
+    repo_path: String,
+) -> Result<Vec<gitehr::commands::family_history::FamilyHistoryEntry>, String> {
+    with_repo_dir(&repo_path, || {
+        gitehr::commands::family_history::list(false).map_err(|e| e.to_string())
     })
 }
 
@@ -567,6 +576,7 @@ pub fn run() {
             get_problem_list,
             get_recent_observations,
             get_vaccinations,
+            get_family_history,
             add_journal_entry,
             add_documents,
             get_contributors,

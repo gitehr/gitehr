@@ -32,6 +32,7 @@ import {
   IconPill,
   IconActivityHeartbeat,
   IconVaccine,
+  IconUsers,
 } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
 import gitehrLogo from "./assets/gitehr-logo.svg";
@@ -46,6 +47,7 @@ import {
   getProblemList,
   getRecentObservations,
   getVaccinations,
+  getFamilyHistory,
   getDemographics,
   getJournalEntries,
   isGitehrRepo,
@@ -60,6 +62,7 @@ import {
   type ConditionInfo,
   type ObservationInfo,
   type VaccinationInfo,
+  type FamilyHistoryInfo,
   type JournalDocumentInfo,
   type MpiInfo,
   type MpiIdentifier,
@@ -172,7 +175,8 @@ interface StateRow {
 }
 
 /**
- * One typed-state summary: problems, medications, observations, vaccinations.
+ * One typed-state summary: problems, medications, observations, vaccinations,
+ * family history.
  *
  * "Nothing recorded" and "not loaded yet" are different clinical statements,
  * so the card never claims the former while the record is still loading. It
@@ -253,6 +257,7 @@ function App() {
   const [medications, setMedications] = useState<MedicationInfo[]>([]);
   const [observations, setObservations] = useState<ObservationInfo[]>([]);
   const [vaccinations, setVaccinations] = useState<VaccinationInfo[]>([]);
+  const [familyHistory, setFamilyHistory] = useState<FamilyHistoryInfo[]>([]);
   const [loadingOlder, setLoadingOlder] = useState(false);
   const [demographics, setDemographics] = useState<PatientDemographics | null>(null);
   const [allergies, setAllergies] = useState<AllergyInfo[]>([]);
@@ -433,6 +438,7 @@ function App() {
     setMedications([]);
     setObservations([]);
     setVaccinations([]);
+    setFamilyHistory([]);
     try {
       // Refetching keeps whatever the reader has already paged back to, so
       // adding an entry does not throw them to the top of the timeline.
@@ -445,6 +451,7 @@ function App() {
         medicationsData,
         observationsData,
         vaccinationsData,
+        familyHistoryData,
       ] = await Promise.all([
         getJournalEntries(repoPath, { limit, reverse: true }),
         getDemographics(repoPath),
@@ -453,6 +460,7 @@ function App() {
         getActiveMedications(repoPath),
         getRecentObservations(repoPath),
         getVaccinations(repoPath),
+        getFamilyHistory(repoPath),
       ]);
       if (isStale()) return;
 
@@ -464,6 +472,7 @@ function App() {
       setMedications(medicationsData);
       setObservations(observationsData);
       setVaccinations(vaccinationsData);
+      setFamilyHistory(familyHistoryData);
     } catch (err) {
       if (isStale()) return;
       console.error("Failed to fetch data:", err);
@@ -988,6 +997,24 @@ function App() {
                       .filter(Boolean)
                       .join(" \u00b7 "),
                   }))}
+              />
+              <StateCard
+                title="Family history"
+                icon={<IconUsers size={18} />}
+                color="cyan"
+                loading={loading}
+                rows={familyHistory.map((entry) => ({
+                  key: entry.id,
+                  primary: `${entry.relationship}: ${entry.condition}`,
+                  secondary: [
+                    entry.onset_age !== null
+                      ? `onset age ${entry.onset_age}`
+                      : null,
+                    entry.contributed_to_death ? "contributed to death" : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" \u00b7 "),
+                }))}
               />
             </SimpleGrid>
 

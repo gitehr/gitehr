@@ -15,7 +15,7 @@ Opening a Store root shows the Patient Index: a searchable list of subjects (nam
 - Header: GitEHR identity plus typed patient demographics, all active allergies, and identifiers.
 - Left sidebar: the **Patient list** button when a Store is open; otherwise empty.
 - Right sidebar: reserved, intentionally empty until its workflows are real.
-- Main area: read-only Problems, Medications, Observations and Vaccinations cards, then the Journal panel.
+- Main area: read-only Problems, Medications, Observations, Vaccinations and Family history cards, then the Journal panel.
 
 ## Journal panel
 

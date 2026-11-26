@@ -33,7 +33,7 @@ The header shows the subject's name, title, date of birth, address, active aller
 
 ## 5. Review the Current State
 
-Below the heading, four read-only cards show Problems, Medications, Observations and Vaccinations. They are changed through the CLI (for example `gitehr medications add`), not in the GUI.
+Below the heading, five read-only cards show Problems, Medications, Observations, Vaccinations and Family history. They are changed through the CLI (for example `gitehr medications add`), not in the GUI.
 
 ## 6. Add a Journal Entry
 

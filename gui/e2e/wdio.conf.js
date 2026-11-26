@@ -102,6 +102,7 @@ export const config = {
       execSync(`"${cliBinary}" medications add --name Ramipril --dose 5mg --frequency "once daily"`, { cwd: testRepoPath, stdio: 'inherit', shell: true });
       execSync(`"${cliBinary}" observations add --name "Blood pressure" --value 138/84 --unit mmHg --category vital-signs --effective 2019-09-03`, { cwd: testRepoPath, stdio: 'inherit', shell: true });
       execSync(`"${cliBinary}" vaccinations add --vaccine "Influenza (inactivated)" --date 2025-10-14`, { cwd: testRepoPath, stdio: 'inherit', shell: true });
+      execSync(`"${cliBinary}" family-history add --relationship mother --condition "Breast cancer" --onset-age 52`, { cwd: testRepoPath, stdio: 'inherit', shell: true });
 
       writeFileSync(fixtureFile(), JSON.stringify({ testStorePath, testRepoPath }));
     }
