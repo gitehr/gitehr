@@ -281,3 +281,107 @@ fn test_add_fails_outside_repository() -> Result<()> {
 
     Ok(())
 }
+
+fn porcelain_status() -> Result<String> {
+    let status = std::process::Command::new("git")
+        .args(["status", "--porcelain", "--untracked-files=all"])
+        .output()?;
+    Ok(String::from_utf8(status.stdout)?)
+}
+
+fn stored_entries(root: &str) -> Result<Vec<String>> {
+    let mut names: Vec<String> = fs::read_dir(root)?
+        .map(|entry| entry.map(|e| e.file_name().to_string_lossy().into_owned()))
+        .collect::<std::io::Result<_>>()?;
+    names.sort();
+    Ok(names)
+}
+
+#[test]
+#[serial]
+fn test_failed_multi_add_leaves_no_partial_documents() -> Result<()> {
+    let _temp_dir = setup_with_git()?;
+
+    fs::write("letter.pdf", b"%PDF-1.4 letter")?;
+    fs::create_dir("empty-study")?;
+    let result = add_documents(
+        &[PathBuf::from("letter.pdf"), PathBuf::from("empty-study")],
+        None,
+        false,
+        None,
+    );
+
+    assert!(result.unwrap_err().to_string().contains("no files"));
+    assert!(stored_entries("documents")?.is_empty());
+    assert!(parsed_entries()?.is_empty());
+    assert_eq!(porcelain_status()?, "?? letter.pdf\n");
+
+    // The earlier Document did not get stuck as a write-once collision.
+    add_document(Path::new("letter.pdf"), None, false, None)?;
+    assert_eq!(parsed_entries()?.len(), 1);
+    Ok(())
+}
+
+#[test]
+#[serial]
+fn test_same_content_listed_twice_is_rejected_before_writing() -> Result<()> {
+    let _temp_dir = setup_with_git()?;
+
+    fs::write("scan.pdf", b"%PDF-1.4 scan")?;
+    let result = add_documents(
+        &[PathBuf::from("scan.pdf"), PathBuf::from("scan.pdf")],
+        None,
+        false,
+        None,
+    );
+
+    assert!(
+        result
+            .unwrap_err()
+            .to_string()
+            .contains("cannot be added twice")
+    );
+    assert!(stored_entries("documents")?.is_empty());
+    assert!(parsed_entries()?.is_empty());
+    Ok(())
+}
+
+fn assert_failed_commit_rolls_back(with_initial_commit: bool) -> Result<()> {
+    let _temp_dir = setup_with_git()?;
+    if with_initial_commit {
+        std::process::Command::new("git")
+            .args(["commit", "--allow-empty", "-m", "initial"])
+            .output()?;
+    }
+
+    super::fail_later_commits()?;
+
+    fs::write("letter.pdf", b"%PDF-1.4 letter")?;
+    fs::create_dir("study")?;
+    fs::write("study/1.dcm", b"DICM one")?;
+    let result = add_documents(
+        &[PathBuf::from("letter.pdf"), PathBuf::from("study")],
+        None,
+        true,
+        None,
+    );
+
+    let error = result.unwrap_err().to_string();
+    assert!(!error.contains("Rollback incomplete"), "{error}");
+    assert!(stored_entries("imaging")?.is_empty());
+    assert!(stored_entries("journal")?.is_empty());
+    assert_eq!(porcelain_status()?, "?? letter.pdf\n?? study/1.dcm\n");
+    Ok(())
+}
+
+#[test]
+#[serial]
+fn test_failed_commit_rolls_back_documents_and_journal_entry() -> Result<()> {
+    assert_failed_commit_rolls_back(false)
+}
+
+#[test]
+#[serial]
+fn test_failed_commit_rolls_back_after_earlier_commits() -> Result<()> {
+    assert_failed_commit_rolls_back(true)
+}

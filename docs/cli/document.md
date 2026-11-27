@@ -26,6 +26,7 @@ Behavior:
 - Copies each source into `documents/` (or `imaging/`) as `YYYY-MM-DD-<slug>-<hash8>.<ext>`. The hash suffix makes name collisions between offline contributors impossible.
 - Adding identical content on the same day produces the same name and is rejected - Documents are write-once.
 - Writes one journal entry recording every reference (`path`, `sha256`, `original_filename`) under `documents:` in the front matter, and commits it together with the stored Document(s) in a single commit; other staged changes are not included.
+- All-or-nothing: every source is hashed and its stored name checked before anything is written. If any source fails (missing, an empty directory, a name collision, or the same content listed twice), nothing is added. If writing or committing fails part-way, the Documents and journal entry written by that command are removed and unstaged again.
 
 Examples:
 

@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use anyhow::Result;
+use std::fs;
+use std::io::ErrorKind;
 use std::path::Path;
 use std::process::{Command, Output};
 
@@ -101,6 +103,50 @@ pub(crate) fn git_unstage_paths(file_paths: &[&str]) -> Result<()> {
     };
     args.extend_from_slice(file_paths);
     run_git_command_in(Path::new("."), &args)
+}
+
+/// Undo a failed write by removing `paths` from the index and the working
+/// tree, then return `error`, noting any part of the rollback that failed.
+///
+/// Only pass paths the failed operation itself created: anything that existed
+/// beforehand would be deleted. Paths that were never staged, or never
+/// written, are fine.
+pub(crate) fn roll_back_new_paths_in(
+    repo_path: &Path,
+    paths: &[&str],
+    error: anyhow::Error,
+) -> anyhow::Error {
+    if paths.is_empty() {
+        return error;
+    }
+    let mut failures = Vec::new();
+    let mut args = vec!["rm", "--cached", "-r", "--quiet", "--ignore-unmatch", "--"];
+    args.extend_from_slice(paths);
+    if let Err(unstage_error) = run_git_command_in(repo_path, &args) {
+        failures.push(format!("unstaging failed: {unstage_error}"));
+    }
+    for path in paths {
+        let full_path = repo_path.join(path);
+        let removed = match fs::symlink_metadata(&full_path) {
+            Ok(metadata) if metadata.is_dir() => fs::remove_dir_all(&full_path),
+            Ok(_) => fs::remove_file(&full_path),
+            Err(missing) if missing.kind() == ErrorKind::NotFound => Ok(()),
+            Err(other) => Err(other),
+        };
+        if let Err(remove_error) = removed {
+            failures.push(format!("removing {path} failed: {remove_error}"));
+        }
+    }
+    if failures.is_empty() {
+        error
+    } else {
+        anyhow::anyhow!("{error}\nRollback incomplete: {}", failures.join("; "))
+    }
+}
+
+/// [`roll_back_new_paths_in`] for the process's current directory.
+pub(crate) fn roll_back_new_paths(paths: &[&str], error: anyhow::Error) -> anyhow::Error {
+    roll_back_new_paths_in(Path::new("."), paths, error)
 }
 
 /// Get the installed git version string

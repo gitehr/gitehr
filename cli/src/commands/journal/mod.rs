@@ -317,6 +317,7 @@ pub fn create_journal_entry_with_documents(
 /// process's current directory (the MCP server may be given a `--repo-path`
 /// that differs from cwd). Writes the entry, stages it, and commits it
 /// (along with any already-staged `co_commit_paths`), then returns the entry's repo-relative filename (e.g. `journal/<name>.md`).
+/// If staging or committing fails, the entry is removed again.
 ///
 /// Unlike [`create_journal_entry_with_documents`], this does not print to
 /// stdout: an MCP server speaking JSON-RPC over stdio would have any stray
@@ -330,11 +331,22 @@ pub fn create_journal_entry_at(
 ) -> Result<String> {
     let relative_filename = write_journal_entry_at(repo_path, content, documents, author, false)?;
 
-    git::git_add_in(repo_path, &relative_filename)?;
-    let commit_message = format!("Journal entry: {relative_filename}");
-    let mut paths: Vec<&str> = vec![&relative_filename];
-    paths.extend_from_slice(co_commit_paths);
-    git::git_commit_paths_in(repo_path, &commit_message, &paths)?;
+    let committed = git::git_add_in(repo_path, &relative_filename).and_then(|()| {
+        let commit_message = format!("Journal entry: {relative_filename}");
+        let mut paths: Vec<&str> = vec![&relative_filename];
+        paths.extend_from_slice(co_commit_paths);
+        git::git_commit_paths_in(repo_path, &commit_message, &paths)
+    });
+    // An entry that never reached history must not stay in the working tree,
+    // where every reader would present it as part of the record. The
+    // co-committed paths belong to the caller, which rolls them back itself.
+    if let Err(error) = committed {
+        return Err(git::roll_back_new_paths_in(
+            repo_path,
+            &[&relative_filename],
+            error,
+        ));
+    }
 
     Ok(relative_filename)
 }

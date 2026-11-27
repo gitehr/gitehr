@@ -59,6 +59,13 @@ fn collect_files(source: &Path) -> Vec<PathBuf> {
 /// `config::configured_document_whitelist`, so the file's extension is
 /// lowercased the same way rather than compared ASCII-only. A file with no
 /// extension never matches.
+/// Whether anything, including a dangling symlink, already occupies `dest`.
+/// `Path::exists` follows symlinks, so copying onto a dangling one would write
+/// through to its target.
+fn is_present(dest: &Path) -> bool {
+    fs::symlink_metadata(dest).is_ok()
+}
+
 fn matches_whitelist(file: &Path, allowed: &[String]) -> bool {
     file.extension()
         .and_then(|ext| ext.to_str())
@@ -101,16 +108,22 @@ fn import_journal(files: &[PathBuf]) -> Result<()> {
         }
 
         let dest = PathBuf::from("journal").join(filename);
-        if dest.exists() {
+        if is_present(&dest) {
             println!("Skipping (already present): {}", filename);
             skipped += 1;
             continue;
         }
 
-        fs::copy(file, &dest).with_context(|| format!("Failed to copy {}", file.display()))?;
         let dest_str = dest.to_string_lossy().to_string();
-        git::git_add(&dest_str)?;
-        git::git_commit_paths(&format!("Import journal entry: {}", filename), &[&dest_str])?;
+        let imported_entry = fs::copy(file, &dest)
+            .with_context(|| format!("Failed to copy {}", file.display()))
+            .and_then(|_| git::git_add(&dest_str))
+            .and_then(|()| {
+                git::git_commit_paths(&format!("Import journal entry: {}", filename), &[&dest_str])
+            });
+        if let Err(error) = imported_entry {
+            return Err(git::roll_back_new_paths(&[&dest_str], error));
+        }
         println!("Imported journal entry: {}", filename);
         imported += 1;
     }
@@ -152,19 +165,25 @@ fn import_documents(files: &[PathBuf]) -> Result<()> {
         }
 
         let dest = PathBuf::from("documents").join(filename);
-        if dest.exists() {
+        if is_present(&dest) {
             println!("Skipping (already present): documents/{}", filename);
             skipped += 1;
             continue;
         }
 
-        fs::copy(file, &dest).with_context(|| format!("Failed to copy {}", file.display()))?;
-        let dest_str = dest.to_string_lossy().to_string();
-        git::git_add(&dest_str)?;
-
         // Body link only — the GUI decides whether to follow it.
         let body = format!("[{0}](/documents/{0})", filename);
-        journal::create_journal_entry_with_documents(&body, Vec::new(), &[&dest_str])?;
+        let dest_str = dest.to_string_lossy().to_string();
+        let imported_document = fs::copy(file, &dest)
+            .with_context(|| format!("Failed to copy {}", file.display()))
+            .and_then(|_| git::git_add(&dest_str))
+            .and_then(|()| {
+                journal::create_journal_entry_with_documents(&body, Vec::new(), &[&dest_str])
+            });
+        // Otherwise a retry would skip the orphaned file as "already present".
+        if let Err(error) = imported_document {
+            return Err(git::roll_back_new_paths(&[&dest_str], error));
+        }
         println!("Imported document: documents/{}", filename);
         imported += 1;
     }

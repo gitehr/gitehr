@@ -459,3 +459,24 @@ fn journal_partial_write_failure_leaves_no_entry_or_temporary_file() -> Result<(
     assert!(staged.stdout.is_empty());
     Ok(())
 }
+
+#[test]
+#[serial]
+fn journal_failed_commit_leaves_no_entry_behind() -> Result<()> {
+    let _temp_dir = setup_with_git()?;
+    super::fail_later_commits()?;
+
+    let error = create_journal_entry("Never committed")
+        .unwrap_err()
+        .to_string();
+
+    // Readers work from the working tree, so an uncommitted entry left in
+    // journal/ would be shown as part of the record.
+    assert!(!error.contains("Rollback incomplete"), "{error}");
+    assert!(fs::read_dir("journal")?.next().is_none());
+    let status = Command::new("git")
+        .args(["status", "--porcelain", "--untracked-files=all"])
+        .output()?;
+    assert_eq!(String::from_utf8(status.stdout)?, "");
+    Ok(())
+}
