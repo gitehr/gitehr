@@ -136,66 +136,23 @@ pub fn run_many_with_sources(
         .map(|document| document.path.as_str())
         .collect();
 
-    // Write, stage and commit the Documents with their journal entry as one
-    // isolated commit; on any failure, undo everything this call wrote.
-    let mut written: Vec<&PlannedDocument> = Vec::new();
-    let mut journal_name: Option<String> = None;
+    // Write and stage the Documents, then commit them with their journal entry
+    // as one isolated commit. The journal helper removes its own entry if the
+    // commit fails; on any failure, also remove the Documents this call wrote.
+    let mut written: Vec<&str> = Vec::new();
     let result = (|| -> Result<()> {
-        for plan in &planned {
+        for (plan, path) in planned.iter().zip(&stored_paths) {
             // Re-check immediately before writing: never write over, or roll
             // back, a path this call did not create.
             check_destination(&plan.dest)?;
-            written.push(plan);
+            written.push(path);
             write_document(plan)?;
-        }
-        let name = journal::write_journal_entry_with_documents(&body, document_refs)?;
-        journal_name = Some(name.clone());
-        for path in &stored_paths {
             git::git_add(path)?;
         }
-        git::git_add(&name)?;
-        let mut commit_paths = vec![name.as_str()];
-        commit_paths.extend_from_slice(&stored_paths);
-        git::git_commit_paths(&format!("Journal entry: {name}"), &commit_paths)?;
-        println!("Created journal entry: {name}");
-        Ok(())
+        journal::create_journal_entry_with_documents(&body, document_refs, &stored_paths)
     })();
-
     if let Err(error) = result {
-        let mut rollback_errors = Vec::new();
-        let mut unstage: Vec<&str> = written
-            .iter()
-            .map(|plan| plan.dest.to_str().unwrap_or_default())
-            .filter(|p| !p.is_empty())
-            .collect();
-        if let Some(name) = journal_name.as_deref() {
-            unstage.push(name);
-        }
-        if !unstage.is_empty()
-            && let Err(rollback_error) = git::git_unstage_paths(&unstage)
-        {
-            rollback_errors.push(format!("unstage failed: {rollback_error}"));
-        }
-        for plan in &written {
-            if let Err(rollback_error) = remove_written(&plan.dest) {
-                rollback_errors.push(format!(
-                    "removing {} failed: {rollback_error}",
-                    plan.dest.display()
-                ));
-            }
-        }
-        if let Some(name) = journal_name.as_deref()
-            && let Err(rollback_error) = remove_written(Path::new(name))
-        {
-            rollback_errors.push(format!("journal cleanup failed: {rollback_error}"));
-        }
-        if rollback_errors.is_empty() {
-            return Err(error);
-        }
-        bail!(
-            "{error}\nRollback incomplete: {}",
-            rollback_errors.join("; ")
-        );
+        return Err(git::roll_back_new_paths(&written, error));
     }
 
     for document in &stored_documents {
@@ -290,16 +247,6 @@ fn write_document(plan: &PlannedDocument) -> Result<()> {
         }
     }
     Ok(())
-}
-
-/// Remove a path this add created, if it exists.
-fn remove_written(path: &Path) -> std::io::Result<()> {
-    match fs::symlink_metadata(path) {
-        Ok(metadata) if metadata.is_dir() => fs::remove_dir_all(path),
-        Ok(_) => fs::remove_file(path),
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
-        Err(error) => Err(error),
-    }
 }
 
 fn default_journal_body(documents: &[StoredDocument]) -> String {

@@ -354,14 +354,7 @@ fn assert_failed_commit_rolls_back(with_initial_commit: bool) -> Result<()> {
             .output()?;
     }
 
-    let hook = Path::new(".git/hooks/pre-commit");
-    fs::create_dir_all(hook.parent().unwrap())?;
-    fs::write(hook, "#!/bin/sh\nexit 1\n")?;
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        fs::set_permissions(hook, fs::Permissions::from_mode(0o755))?;
-    }
+    super::fail_later_commits()?;
 
     fs::write("letter.pdf", b"%PDF-1.4 letter")?;
     fs::create_dir("study")?;

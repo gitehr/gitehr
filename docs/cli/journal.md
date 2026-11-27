@@ -10,7 +10,7 @@ Repo-level: run inside a subject's repo. In a single-subject Store, `gitehr` aut
 gitehr journal add [<text>] [--file <path>]
 ```
 
-Add an entry. The body comes from, in order of precedence: `--file <path>` (or `--file -` for stdin), the inline `<text>` argument, piped stdin, or - on a terminal with none of those - your `$EDITOR`. An empty body aborts. The entry is written and git-committed immediately.
+Add an entry. The body comes from, in order of precedence: `--file <path>` (or `--file -` for stdin), the inline `<text>` argument, piped stdin, or - on a terminal with none of those - your `$EDITOR`. An empty body aborts. The entry is written and git-committed immediately. If the commit fails (for example, a pre-commit hook rejects it), the entry is removed again rather than left in `journal/` uncommitted.
 
 ```bash
 gitehr journal add "Patient reviewed; plan updated."   # inline

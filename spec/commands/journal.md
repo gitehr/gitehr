@@ -9,7 +9,7 @@ Add, list, and read journal entries. A journal entry is a single, immutable clin
 Add a new entry in one step. The body comes from, in order of precedence: `--file <path>` (or `--file -` for stdin), the inline `<text>` argument, piped stdin, or - on a terminal with none of those - the user's `$EDITOR` (falling back to `$VISUAL`, then `vi`) on an ephemeral temp file. An empty body aborts.
 
 - Prepends YAML front matter: `timestamp`, `author` (the currently active contributor, if any), and optional `documents`.
-- Writes `journal/<timestamp>-<uuid>.md`, then `git add` + `git commit` with message `Journal entry: <filename>`.
+- Writes `journal/<timestamp>-<uuid>.md`, then `git add` + `git commit` with message `Journal entry: <filename>`. If staging or committing fails, the entry file is unstaged and removed, since every reader works from the working tree.
 - Inline `<text>` and `--file` are mutually exclusive (enforced by clap).
 
 ```bash

@@ -252,3 +252,71 @@ fn import_journal_commits_only_the_imported_entry() -> Result<()> {
     assert_eq!(status, "A  unrelated.txt\n");
     Ok(())
 }
+
+#[test]
+#[serial]
+fn import_documents_failed_commit_leaves_no_orphan_and_can_be_retried() -> Result<()> {
+    let (_temp_dir, _guard) = setup_with_git()?;
+    let _config_dir = write_config("");
+    let source = tempdir()?;
+    fs::write(source.path().join("scan.pdf"), b"pdf content")?;
+
+    super::fail_later_commits()?;
+    let error = import_run(ImportMode::Documents, source.path())
+        .unwrap_err()
+        .to_string();
+    assert!(!error.contains("Rollback incomplete"), "{error}");
+    assert!(!PathBuf::from("documents/scan.pdf").exists());
+    assert!(fs::read_dir("journal")?.next().is_none());
+
+    // Without the rollback, the retry would skip scan.pdf as "already present"
+    // and it would never be committed.
+    fs::remove_file(".git/hooks/pre-commit")?;
+    import_run(ImportMode::Documents, source.path())?;
+    let (head_files, status) = head_files_and_status()?;
+    assert!(
+        head_files.lines().any(|l| l == "documents/scan.pdf"),
+        "{head_files}"
+    );
+    assert_eq!(status, "");
+    Ok(())
+}
+
+#[test]
+#[serial]
+fn import_journal_failed_commit_leaves_no_orphan_entry() -> Result<()> {
+    let (_temp_dir, _guard) = setup_with_git()?;
+    let source = tempdir()?;
+    fs::write(
+        source.path().join("20260101T000000.000Z-imported.md"),
+        "---\ntimestamp: 2026-01-01T00:00:00Z\n---\nImported journal entry\n",
+    )?;
+
+    super::fail_later_commits()?;
+    let error = import_run(ImportMode::Journal, source.path())
+        .unwrap_err()
+        .to_string();
+    assert!(!error.contains("Rollback incomplete"), "{error}");
+    assert!(fs::read_dir("journal")?.next().is_none());
+    let (_, status) = head_files_and_status()?;
+    assert_eq!(status, "");
+    Ok(())
+}
+
+#[cfg(unix)]
+#[test]
+#[serial]
+fn import_documents_does_not_copy_through_a_dangling_symlink() -> Result<()> {
+    let (temp_dir, _guard) = setup_with_git()?;
+    let _config_dir = write_config("");
+    let source = tempdir()?;
+    fs::write(source.path().join("scan.pdf"), b"pdf content")?;
+
+    fs::create_dir("documents")?;
+    let target = temp_dir.path().join("outside.pdf");
+    std::os::unix::fs::symlink(&target, "documents/scan.pdf")?;
+
+    import_run(ImportMode::Documents, source.path())?;
+    assert!(!target.exists(), "import wrote through a dangling symlink");
+    Ok(())
+}

@@ -6,7 +6,7 @@ Bring records **into** a GitEHR repository from a file or directory - either wel
 gitehr import --mode <journal|documents> <path>
 ```
 
-`<path>` may be a single file or a directory. Directories are walked **recursively**; hidden files and directories (`.git`, dotfiles) are ignored, and symbolic links are not followed. Files that don't match the chosen mode are skipped, and a summary count of imported and skipped files is printed at the end (ignored hidden files and symlinks are not counted). If copying a file fails, the import stops with an error; files imported before that point stay imported and committed.
+`<path>` may be a single file or a directory. Directories are walked **recursively**; hidden files and directories (`.git`, dotfiles) are ignored, and symbolic links are not followed. Files that don't match the chosen mode are skipped, and a summary count of imported and skipped files is printed at the end (ignored hidden files and symlinks are not counted). If copying or committing a file fails, the import stops with an error and removes what it wrote for that file, so a retry imports it rather than skipping it as already present; files imported before that point stay imported and committed. A destination already occupied by anything, including a dangling symbolic link, counts as already present.
 
 ## --mode journal
 
