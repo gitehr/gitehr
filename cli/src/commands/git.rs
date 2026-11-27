@@ -97,7 +97,7 @@ pub(crate) fn git_unstage_paths(file_paths: &[&str]) -> Result<()> {
     let mut args = if has_head {
         vec!["restore", "--staged", "--"]
     } else {
-        vec!["rm", "--cached", "--quiet", "--ignore-unmatch", "--"]
+        vec!["rm", "--cached", "-r", "--quiet", "--ignore-unmatch", "--"]
     };
     args.extend_from_slice(file_paths);
     run_git_command_in(Path::new("."), &args)

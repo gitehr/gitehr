@@ -32,6 +32,7 @@ Adds one or more files or directories to the record as Documents and creates a s
 - Copies each source into `documents/` (or `imaging/` with `--imaging`) under the name `YYYY-MM-DD-<slug>-<first-8-hex-of-sha256>.<ext>`. The date is UTC; the slug is derived from `--title` or the original filename. Directory Documents use the same naming scheme without an extension and gain a `manifest.json`.
 - The hash suffix makes name collisions between offline contributors cryptographically impossible. Adding identical content on the same day yields the same name and is rejected (Documents are write-once).
 - Stages the stored Document(s) with `git add`, then creates one journal entry whose front matter records every reference under `documents:` (`path`, `sha256`, `original_filename`), and commits the entry and the Document(s) together in one commit (only those paths), so history never holds an entry whose Documents are missing.
+- Is all-or-nothing. Every source is hashed and its destination checked (it must not already exist, even as a dangling symlink, and no two sources may map to the same destination) before anything is written, so a failing source aborts the whole add with nothing written. If a later step fails (copy, journal write, staging, or commit), the Documents and journal entry this invocation created are unstaged and removed, and any rollback that cannot complete is reported.
 - Prints each stored path and SHA-256.
 
 **Examples:**

@@ -349,6 +349,21 @@ pub(crate) fn write_journal_entry(content: &str) -> Result<String> {
     )
 }
 
+/// Write (but do not stage or commit) a journal entry referencing `documents`,
+/// so a caller can commit it alongside other paths and roll it back on failure.
+pub(crate) fn write_journal_entry_with_documents(
+    content: &str,
+    documents: Vec<DocumentRef>,
+) -> Result<String> {
+    write_journal_entry_at(
+        Path::new("."),
+        content,
+        documents,
+        contributor::get_current_contributor(),
+        false,
+    )
+}
+
 fn write_journal_entry_at(
     repo_path: &Path,
     content: &str,

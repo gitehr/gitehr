@@ -10,6 +10,7 @@ use super::{
     MANIFEST_FILENAME, build_manifest, check_destination, copy_tree, ensure_gitehr_repository,
     hash_file, slugify,
 };
+use crate::commands::git;
 use crate::commands::journal::{self, DocumentRef};
 
 #[derive(Debug, Clone)]
@@ -93,13 +94,32 @@ pub fn run_many_with_sources(
         }
     }
 
-    let mut stored_documents = Vec::with_capacity(sources.len());
+    // Plan every Document before writing anything, so a bad source (an empty
+    // directory, a name collision, the same content listed twice) fails the
+    // whole add up front instead of leaving earlier Documents behind.
+    let date = Utc::now().format("%Y-%m-%d").to_string();
+    let mut planned: Vec<PlannedDocument> = Vec::with_capacity(sources.len());
     for source in sources {
-        let stored = store_document(source)?;
-        crate::commands::git::git_add(&stored.path)?;
-        stored_documents.push(stored);
+        let plan = plan_document(source, &date)?;
+        if let Some(earlier) = planned.iter().find(|p| p.dest == plan.dest) {
+            bail!(
+                "{} and {} would both be stored as {} - the same content cannot be added twice (Documents are write-once)",
+                earlier.source.display(),
+                plan.source.display(),
+                plan.dest.display()
+            );
+        }
+        planned.push(plan);
     }
 
+    let stored_documents: Vec<StoredDocument> = planned
+        .iter()
+        .map(|plan| StoredDocument {
+            path: plan.dest.to_string_lossy().to_string(),
+            sha256: plan.sha256.clone(),
+            original_filename: plan.original_filename.clone(),
+        })
+        .collect();
     let body = message
         .map(|m| m.to_string())
         .unwrap_or_else(|| default_journal_body(&stored_documents));
@@ -111,12 +131,72 @@ pub fn run_many_with_sources(
             original_filename: Some(document.original_filename.clone()),
         })
         .collect();
-
     let stored_paths: Vec<&str> = stored_documents
         .iter()
         .map(|document| document.path.as_str())
         .collect();
-    journal::create_journal_entry_with_documents(&body, document_refs, &stored_paths)?;
+
+    // Write, stage and commit the Documents with their journal entry as one
+    // isolated commit; on any failure, undo everything this call wrote.
+    let mut written: Vec<&PlannedDocument> = Vec::new();
+    let mut journal_name: Option<String> = None;
+    let result = (|| -> Result<()> {
+        for plan in &planned {
+            // Re-check immediately before writing: never write over, or roll
+            // back, a path this call did not create.
+            check_destination(&plan.dest)?;
+            written.push(plan);
+            write_document(plan)?;
+        }
+        let name = journal::write_journal_entry_with_documents(&body, document_refs)?;
+        journal_name = Some(name.clone());
+        for path in &stored_paths {
+            git::git_add(path)?;
+        }
+        git::git_add(&name)?;
+        let mut commit_paths = vec![name.as_str()];
+        commit_paths.extend_from_slice(&stored_paths);
+        git::git_commit_paths(&format!("Journal entry: {name}"), &commit_paths)?;
+        println!("Created journal entry: {name}");
+        Ok(())
+    })();
+
+    if let Err(error) = result {
+        let mut rollback_errors = Vec::new();
+        let mut unstage: Vec<&str> = written
+            .iter()
+            .map(|plan| plan.dest.to_str().unwrap_or_default())
+            .filter(|p| !p.is_empty())
+            .collect();
+        if let Some(name) = journal_name.as_deref() {
+            unstage.push(name);
+        }
+        if !unstage.is_empty()
+            && let Err(rollback_error) = git::git_unstage_paths(&unstage)
+        {
+            rollback_errors.push(format!("unstage failed: {rollback_error}"));
+        }
+        for plan in &written {
+            if let Err(rollback_error) = remove_written(&plan.dest) {
+                rollback_errors.push(format!(
+                    "removing {} failed: {rollback_error}",
+                    plan.dest.display()
+                ));
+            }
+        }
+        if let Some(name) = journal_name.as_deref()
+            && let Err(rollback_error) = remove_written(Path::new(name))
+        {
+            rollback_errors.push(format!("journal cleanup failed: {rollback_error}"));
+        }
+        if rollback_errors.is_empty() {
+            return Err(error);
+        }
+        bail!(
+            "{error}\nRollback incomplete: {}",
+            rollback_errors.join("; ")
+        );
+    }
 
     for document in &stored_documents {
         println!("Added Document: {}", document.path);
@@ -129,7 +209,18 @@ pub fn run_many_with_sources(
         .collect())
 }
 
-fn store_document(source: &DocumentSource) -> Result<StoredDocument> {
+/// A Document whose hash and destination are known but which has not yet been
+/// written into the record.
+struct PlannedDocument {
+    source: PathBuf,
+    dest: PathBuf,
+    sha256: String,
+    original_filename: String,
+    /// The manifest to write for a directory Document; `None` for a file.
+    manifest: Option<Vec<u8>>,
+}
+
+fn plan_document(source: &DocumentSource, date: &str) -> Result<PlannedDocument> {
     let original_filename = source
         .path
         .file_name()
@@ -144,15 +235,13 @@ fn store_document(source: &DocumentSource) -> Result<StoredDocument> {
             .and_then(|s| s.to_str())
             .unwrap_or("document")
     }));
-    let date = Utc::now().format("%Y-%m-%d");
     let root = if source.imaging {
         "imaging"
     } else {
         "documents"
     };
-    fs::create_dir_all(root)?;
 
-    let (dest, sha256) = if source.path.is_dir() {
+    let (dest, sha256, manifest) = if source.path.is_dir() {
         if source.path.join(MANIFEST_FILENAME).exists() {
             bail!(
                 "Directory already contains a {} - this name is reserved for the Document manifest",
@@ -161,11 +250,7 @@ fn store_document(source: &DocumentSource) -> Result<StoredDocument> {
         }
         let (manifest_bytes, manifest_hash) = build_manifest(&source.path)?;
         let dest = PathBuf::from(root).join(format!("{}-{}-{}", date, slug, &manifest_hash[..8]));
-        check_destination(&dest)?;
-        copy_tree(&source.path, &dest)?;
-        fs::write(dest.join(MANIFEST_FILENAME), &manifest_bytes)
-            .context("Failed to write manifest")?;
-        (dest, manifest_hash)
+        (dest, manifest_hash, Some(manifest_bytes))
     } else {
         let hash = hash_file(&source.path)?;
         let ext = source
@@ -175,19 +260,46 @@ fn store_document(source: &DocumentSource) -> Result<StoredDocument> {
             .map(|e| format!(".{}", e.to_ascii_lowercase()))
             .unwrap_or_default();
         let dest = PathBuf::from(root).join(format!("{}-{}-{}{}", date, slug, &hash[..8], ext));
-        check_destination(&dest)?;
-        fs::copy(&source.path, &dest)
-            .with_context(|| format!("Failed to copy {} into the record", source.path.display()))?;
-        (dest, hash)
+        (dest, hash, None)
     };
+    check_destination(&dest)?;
 
-    let dest_str = dest.to_string_lossy().to_string();
-
-    Ok(StoredDocument {
-        path: dest_str,
+    Ok(PlannedDocument {
+        source: source.path.clone(),
+        dest,
         sha256,
         original_filename,
+        manifest,
     })
+}
+
+fn write_document(plan: &PlannedDocument) -> Result<()> {
+    if let Some(parent) = plan.dest.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    match &plan.manifest {
+        Some(manifest_bytes) => {
+            copy_tree(&plan.source, &plan.dest)?;
+            fs::write(plan.dest.join(MANIFEST_FILENAME), manifest_bytes)
+                .context("Failed to write manifest")?;
+        }
+        None => {
+            fs::copy(&plan.source, &plan.dest).with_context(|| {
+                format!("Failed to copy {} into the record", plan.source.display())
+            })?;
+        }
+    }
+    Ok(())
+}
+
+/// Remove a path this add created, if it exists.
+fn remove_written(path: &Path) -> std::io::Result<()> {
+    match fs::symlink_metadata(path) {
+        Ok(metadata) if metadata.is_dir() => fs::remove_dir_all(path),
+        Ok(_) => fs::remove_file(path),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        Err(error) => Err(error),
+    }
 }
 
 fn default_journal_body(documents: &[StoredDocument]) -> String {

@@ -175,7 +175,9 @@ pub fn copy_tree(source: &Path, dest: &Path) -> Result<()> {
 }
 
 pub fn check_destination(dest: &Path) -> Result<()> {
-    if dest.exists() {
+    // symlink_metadata, not exists(): a dangling symlink must also count as
+    // occupied, or copying onto it would write through to its target.
+    if fs::symlink_metadata(dest).is_ok() {
         bail!(
             "Document already exists in the record: {} (Documents are write-once; identical content added today produces the same name)",
             dest.display()
