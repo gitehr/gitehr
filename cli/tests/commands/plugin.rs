@@ -132,3 +132,42 @@ fn plugin_exit_code_propagates() {
 
     assert_eq!(out.status.code(), Some(3));
 }
+
+#[test]
+fn plugins_and_help_omit_unreachable_plugins() {
+    let dir = tempdir().unwrap();
+    write_plugin(dir.path(), "gitehr-export", "#!/bin/sh\n");
+    // clap's generated `help` subcommand wins over this plugin.
+    write_plugin(dir.path(), "gitehr-help", "#!/bin/sh\necho DECOY-RAN\n");
+    // Fails plugin-name validation, so `gitehr dot.dot` is never dispatched.
+    write_plugin(dir.path(), "gitehr-dot.dot", "#!/bin/sh\n");
+
+    let list = gitehr()
+        .arg("plugins")
+        .env("PATH", path_with(dir.path()))
+        .output()
+        .unwrap();
+    let help = gitehr()
+        .arg("--help")
+        .env("PATH", path_with(dir.path()))
+        .output()
+        .unwrap();
+    let run_help = gitehr()
+        .arg("help")
+        .env("PATH", path_with(dir.path()))
+        .output()
+        .unwrap();
+
+    let list = String::from_utf8_lossy(&list.stdout);
+    assert!(list.contains("export"));
+    assert!(!list.contains("gitehr-help"), "got: {list}");
+    assert!(!list.contains("dot.dot"), "got: {list}");
+
+    let help = String::from_utf8_lossy(&help.stdout);
+    let section = help.split("Plugins (").nth(1).expect("plugins section");
+    assert!(section.contains("export"));
+    assert!(!section.contains("help"), "got: {section}");
+    assert!(!section.contains("dot.dot"), "got: {section}");
+
+    assert!(!String::from_utf8_lossy(&run_help.stdout).contains("DECOY-RAN"));
+}

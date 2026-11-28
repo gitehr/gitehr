@@ -73,8 +73,12 @@ pub fn plugins_help_section(builtins: &HashSet<String>) -> Option<String> {
 }
 
 /// The names (and aliases) of every built-in subcommand, which always shadow a
-/// same-named plugin. Derived from the clap command so it cannot drift.
+/// same-named plugin. Derived from the clap command so it cannot drift. The
+/// command is built first so clap's generated `help` subcommand, which also
+/// wins over a `gitehr-help` plugin, is included.
 pub fn builtin_names(cmd: &clap::Command) -> HashSet<String> {
+    let mut cmd = cmd.clone();
+    cmd.build();
     let mut names = HashSet::new();
     for sub in cmd.get_subcommands() {
         names.insert(sub.get_name().to_string());
@@ -92,8 +96,9 @@ struct Plugin {
 }
 
 /// Scan `$PATH` for `gitehr-<name>` executables. First match per name wins
-/// (PATH order); built-in names are excluded since they are unreachable as
-/// plugins. Result is sorted by name.
+/// (PATH order). Only names that [`run`] would actually dispatch are listed:
+/// built-in names and names that fail [`is_valid_name`] are excluded, since
+/// they are unreachable as plugins. Result is sorted by name.
 fn discover(builtins: &HashSet<String>) -> Vec<Plugin> {
     match std::env::var_os("PATH") {
         Some(path) => discover_in(std::env::split_paths(&path), builtins),
@@ -120,9 +125,12 @@ fn discover_in(
             let Some(name) = file_name.strip_prefix(PREFIX) else {
                 continue;
             };
-            // Tolerate a Windows .exe suffix on the discovered name.
+            // On Windows, `gitehr-foo.exe` is invoked as `gitehr foo`. On
+            // other platforms the suffix is part of the name, so such a file
+            // is unreachable and is left to the validity check below.
+            #[cfg(windows)]
             let name = name.strip_suffix(".exe").unwrap_or(name);
-            if name.is_empty() || builtins.contains(name) || seen.contains(name) {
+            if !is_valid_name(name) || builtins.contains(name) || seen.contains(name) {
                 continue;
             }
             if !is_executable(&entry.path()) {
@@ -250,5 +258,47 @@ mod tests {
             "non-executable must be excluded"
         );
         assert!(!found.iter().any(|n| n == "unrelated"));
+    }
+
+    #[test]
+    fn discover_excludes_names_that_cannot_be_dispatched() {
+        let dir = tempfile::tempdir().unwrap();
+        for f in ["gitehr-ok", "gitehr-dot.dot", "gitehr-", "gitehr-sp ace"] {
+            let p = dir.path().join(f);
+            std::fs::write(&p, "#!/bin/sh\n").unwrap();
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::PermissionsExt;
+                std::fs::set_permissions(&p, std::fs::Permissions::from_mode(0o755)).unwrap();
+            }
+        }
+        let found: Vec<String> =
+            discover_in([dir.path().to_path_buf()].into_iter(), &HashSet::new())
+                .into_iter()
+                .map(|p| p.name)
+                .collect();
+        assert_eq!(found, vec!["ok".to_string()]);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn discover_keeps_exe_suffix_off_windows() {
+        use std::os::unix::fs::PermissionsExt;
+        let dir = tempfile::tempdir().unwrap();
+        let p = dir.path().join("gitehr-foo.exe");
+        std::fs::write(&p, "#!/bin/sh\n").unwrap();
+        std::fs::set_permissions(&p, std::fs::Permissions::from_mode(0o755)).unwrap();
+        // `gitehr foo` would not find `gitehr-foo.exe` on Unix, so it must
+        // not be listed as `foo`.
+        let found = discover_in([dir.path().to_path_buf()].into_iter(), &HashSet::new());
+        assert!(found.is_empty());
+    }
+
+    #[test]
+    fn builtin_names_include_the_generated_help_subcommand() {
+        let cmd = clap::Command::new("t").subcommand(clap::Command::new("status"));
+        let names = builtin_names(&cmd);
+        assert!(names.contains("status"));
+        assert!(names.contains("help"));
     }
 }

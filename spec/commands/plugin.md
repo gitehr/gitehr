@@ -15,7 +15,7 @@ Plugin names must be simple tokens (letters, digits, `-`, `_`); anything that co
 
 ## `gitehr plugins`
 
-Lists installed plugins: every `gitehr-*` executable on `$PATH`, by the name you invoke (`gitehr-export` is listed as `export`). Names shadowed by a built-in are omitted, since they are unreachable as plugins. First match per name wins, in `PATH` order.
+Lists installed plugins: every `gitehr-*` executable on `$PATH`, by the name you invoke (`gitehr-export` is listed as `export`). Only names that dispatch would actually run are listed: names shadowed by a built-in (including clap's generated `help` subcommand) and names that are not simple tokens (`gitehr-report.sh`) are omitted. On Windows a trailing `.exe` is dropped from the listed name; elsewhere it is part of the name, so `gitehr-foo.exe` is not listed as `foo`. First match per name wins, in `PATH` order. The `--help` "Plugins" section uses the same list.
 
 ## `--help`
 
