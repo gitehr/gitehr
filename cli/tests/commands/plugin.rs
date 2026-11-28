@@ -171,3 +171,35 @@ fn plugins_and_help_omit_unreachable_plugins() {
 
     assert!(!String::from_utf8_lossy(&run_help.stdout).contains("DECOY-RAN"));
 }
+
+#[test]
+fn plugins_are_found_from_a_deleted_working_directory() {
+    let plugins = tempdir().unwrap();
+    write_plugin(
+        plugins.path(),
+        "gitehr-greet",
+        "#!/bin/sh\necho greet-ran\n",
+    );
+    let gone = tempdir().unwrap().keep();
+
+    // A process cannot be spawned into a deleted directory, so a shell enters
+    // it, removes it, then execs gitehr with that working directory.
+    let run_in_deleted_dir = |args: &str| {
+        Command::new("sh")
+            .arg("-c")
+            .arg(format!(
+                r#"cd "$GONE" && rmdir "$GONE" && exec "$GITEHR" {args}"#
+            ))
+            .env("GONE", &gone)
+            .env("GITEHR", env!("CARGO_BIN_EXE_gitehr"))
+            .env("PATH", path_with(plugins.path()))
+            .output()
+            .unwrap()
+    };
+
+    let list = run_in_deleted_dir("plugins");
+    assert!(String::from_utf8_lossy(&list.stdout).contains("greet"));
+    fs::create_dir(&gone).unwrap();
+    let run = run_in_deleted_dir("greet");
+    assert_eq!(String::from_utf8_lossy(&run.stdout), "greet-ran\n");
+}

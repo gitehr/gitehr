@@ -47,7 +47,10 @@ pub fn run(args: Vec<String>) -> Result<()> {
 /// what would run: first match in `PATH` order, executables only, and on
 /// Windows any `PATHEXT` extension.
 fn resolve(name: &str, path_var: Option<&OsStr>) -> Option<PathBuf> {
-    let cwd = std::env::current_dir().ok()?;
+    // The working directory only anchors relative PATH entries. It may be
+    // unreadable (a deleted directory inherited from a parent), and that must
+    // not hide plugins installed in absolute PATH directories.
+    let cwd = std::env::current_dir().unwrap_or_default();
     which::which_in(format!("{PREFIX}{name}"), path_var, cwd).ok()
 }
 
