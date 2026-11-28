@@ -9,7 +9,7 @@ Hello from a gitehr plugin. You passed: world
 
 ## `gitehr plugins`
 
-Lists the plugins gitehr can see - every `gitehr-*` executable on your `PATH`, by the name you invoke it as.
+Lists the plugins gitehr can run - every `gitehr-*` executable on your `PATH`, by the name you invoke it as. Where the same name appears in several `PATH` directories, the first one wins, as it does when the plugin runs. Executables gitehr would never run are left out: names taken by a built-in command (including `help`) and names that are not simple tokens, such as `gitehr-report.sh`.
 
 ```console
 $ gitehr plugins
